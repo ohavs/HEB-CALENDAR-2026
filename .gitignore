@@ -36,3 +36,4 @@ yarn-error.log*
 pnpm-debug.log*
 logs/
 *.log
+dist-preview/

@@ -3,10 +3,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/**
+ * PREVIEW_BUILD=1 בונה גרסת תצוגה בלבד: בלי service worker ובלי manifest,
+ * לשימוש בסביבות שאין בהן תמיכה ב-PWA (למשל קישור תצוגה מוטמע).
+ */
+const previewBuild = process.env.PREVIEW_BUILD === '1';
+
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      disable: previewBuild,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'icons/apple-touch-icon.png'],
       manifest: {
