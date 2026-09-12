@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// כל משתמש רשאי לקרוא ולכתוב אך ורק את הנתונים שתחת ה-uid שלו.
+// אין שום נתיב שנגיש לאנונימיים או חוצה-משתמשים.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validEvent(d) {
+      return d.title is string
+        && d.title.size() <= 300
+        && d.date is string
+        && d.date.size() == 10
+        && d.updatedAt is number
+        && d.createdAt is number
+        && (!('notes' in d) || d.notes == null || (d.notes is string && d.notes.size() <= 4000))
+        && (!('location' in d) || d.location == null || (d.location is string && d.location.size() <= 300))
+        && d.keys().hasOnly([
+             'title', 'date', 'startTime', 'endTime', 'allDay', 'location',
+             'notes', 'color', 'reminderMinutes', 'repeat', 'createdAt',
+             'updatedAt', 'deleted'
+           ]);
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /events/{eventId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEvent(request.resource.data);
+      }
+
+      match /meta/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // כל נתיב אחר תחת המשתמש - רק הבעלים
+      match /{rest=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+  }
+}

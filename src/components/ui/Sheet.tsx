@@ -1,0 +1,205 @@
+/**
+ * חלונית תחתונה (bottom sheet) עם סגירה בגרירה למטה.
+ *
+ * הגרירה מופעלת מידית האחיזה ומכותרת החלונית, וגם מגוף התוכן כשהוא גלול
+ * עד למעלה - כך ש"משיכה למטה" תמיד סוגרת, בלי להתנגש בגלילה הפנימית.
+ */
+import {
+  AnimatePresence,
+  motion,
+  useDragControls,
+  useReducedMotion,
+  type PanInfo,
+} from 'framer-motion';
+import { useCallback, useEffect, useRef, type PointerEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+
+const CLOSE_OFFSET = 110;
+const CLOSE_VELOCITY = 520;
+
+const SPRING = { type: 'spring' as const, stiffness: 420, damping: 38, mass: 0.9 };
+
+export type SheetProps = {
+  open: boolean;
+  onClose: () => void;
+  title?: ReactNode;
+  /** כיתוב קטן מתחת לכותרת */
+  subtitle?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  /** כפתור סגירה עגול בפינה, כמו בעיצוב הייחוס */
+  showCloseButton?: boolean;
+  /** 'auto' = לפי התוכן, 'tall' = כמעט מסך מלא */
+  size?: 'auto' | 'tall';
+  /** תוכן נוסף בקו הכותרת (למשל כפתור עריכה) */
+  headerAction?: ReactNode;
+  className?: string;
+};
+
+export function Sheet({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  showCloseButton = true,
+  size = 'auto',
+  headerAction,
+  className = '',
+}: SheetProps) {
+  const controls = useDragControls();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pointerStart = useRef<{ y: number; dragging: boolean } | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  // נעילת גלילת הרקע כל עוד החלונית פתוחה
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  // Esc סוגר
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const onDragEnd = useCallback(
+    (_: unknown, info: PanInfo) => {
+      if (info.offset.y > CLOSE_OFFSET || info.velocity.y > CLOSE_VELOCITY) onClose();
+    },
+    [onClose],
+  );
+
+  /* גרירה שמתחילה מגוף התוכן, רק כשהוא גלול עד למעלה */
+  const onContentPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    pointerStart.current = { y: e.clientY, dragging: false };
+    if (el && el.scrollTop > 0) pointerStart.current = null;
+  };
+
+  const onContentPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current;
+    const el = scrollRef.current;
+    if (!start || start.dragging || !el) return;
+    if (el.scrollTop > 0) {
+      pointerStart.current = null;
+      return;
+    }
+    if (e.clientY - start.y > 10) {
+      start.dragging = true;
+      controls.start(e);
+    }
+  };
+
+  const onContentPointerUp = () => {
+    pointerStart.current = null;
+  };
+
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: 'rgb(var(--sheet-scrim) / var(--sheet-scrim-alpha))',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            onClick={onClose}
+          />
+
+          <motion.div
+            className={`relative flex max-h-[92svh] flex-col rounded-t-sheet bg-surface shadow-sheet ${
+              size === 'tall' ? 'h-[88svh]' : ''
+            } ${className}`}
+            initial={reduceMotion ? { opacity: 0 } : { y: '100%' }}
+            animate={reduceMotion ? { opacity: 1 } : { y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { y: '100%' }}
+            transition={SPRING}
+            drag="y"
+            dragListener={false}
+            dragControls={controls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.55 }}
+            onDragEnd={onDragEnd}
+          >
+            {/* ידית אחיזה - אזור הגרירה העיקרי */}
+            <div
+              className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-2.5 active:cursor-grabbing"
+              onPointerDown={(e) => controls.start(e)}
+            >
+              <div className="h-1.5 w-10 rounded-full bg-hairline" />
+            </div>
+
+            {(title || showCloseButton || headerAction) && (
+              <div
+                className="flex shrink-0 touch-none items-start gap-3 px-5 pb-2 pt-1"
+                onPointerDown={(e) => controls.start(e)}
+              >
+                {showCloseButton && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    aria-label="סגירה"
+                    className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-well text-muted transition-colors active:bg-hairline"
+                  >
+                    <X size={18} strokeWidth={2.2} />
+                  </button>
+                )}
+                <div className="min-w-0 flex-1">
+                  {title && (
+                    <h2 className="truncate text-[17px] font-semibold leading-tight text-ink">
+                      {title}
+                    </h2>
+                  )}
+                  {subtitle && (
+                    <p className="mt-0.5 truncate text-[13px] text-muted">{subtitle}</p>
+                  )}
+                </div>
+                {headerAction && (
+                  <div onPointerDown={(e) => e.stopPropagation()} className="shrink-0">
+                    {headerAction}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              ref={scrollRef}
+              className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2"
+              onPointerDown={onContentPointerDown}
+              onPointerMove={onContentPointerMove}
+              onPointerUp={onContentPointerUp}
+              onPointerCancel={onContentPointerUp}
+            >
+              {children}
+            </div>
+
+            {footer && (
+              <div className="safe-b shrink-0 border-t border-hairline bg-surface px-5 pb-3 pt-3">
+                {footer}
+              </div>
+            )}
+            {!footer && <div className="safe-b shrink-0 pb-2" />}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}

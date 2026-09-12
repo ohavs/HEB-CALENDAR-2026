@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   טוקנים של ערכת הנושא. כל צבע מוגדר כ-RGB channels כדי לאפשר אלפא ב-Tailwind.
+   ========================================================================== */
+@layer base {
+  :root {
+    --c-canvas: 246 246 250;
+    --c-surface: 255 255 255;
+    --c-elevated: 255 255 255;
+    --c-hairline: 232 233 240;
+    --c-well: 246 246 250;
+    --c-ink: 23 23 42;
+    --c-muted: 122 127 146;
+    --c-faint: 168 173 190;
+    --c-brand: 99 102 241;
+    --c-brand-soft: 238 239 254;
+    --c-brand-ink: 79 70 229;
+    --c-shabbat: 217 119 6;
+
+    --sheet-scrim: 16 18 40;
+    --sheet-scrim-alpha: 0.32;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --c-canvas: 9 9 15;
+    --c-surface: 20 20 30;
+    --c-elevated: 28 28 41;
+    --c-hairline: 42 43 59;
+    --c-well: 31 31 45;
+    --c-ink: 242 242 247;
+    --c-muted: 145 150 170;
+    --c-faint: 104 109 129;
+    --c-brand: 132 134 250;
+    --c-brand-soft: 41 42 76;
+    --c-brand-ink: 173 175 253;
+    --c-shabbat: 251 191 36;
+
+    --sheet-scrim: 0 0 0;
+    --sheet-scrim-alpha: 0.55;
+
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    margin: 0;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'tnum' 0;
+  }
+
+  /* מספרים בלוח השנה - רוחב אחיד כדי שהעמודות לא "ירקדו" */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  ::selection {
+    background: rgb(var(--c-brand) / 0.2);
+  }
+
+  /* מיקוד נגיש אך שקט */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-brand) / 0.55);
+    outline-offset: 2px;
+  }
+}
+
+/* ==========================================================================
+   פלטת צבעים פסטלית לאירועים (bg / ink / bar), עם גרסת מצב לילה.
+   ========================================================================== */
+@layer components {
+  .ev {
+    background-color: rgb(var(--ev-bg));
+    color: rgb(var(--ev-ink));
+  }
+  .ev-bar {
+    background-color: rgb(var(--ev-bar));
+  }
+  .ev-dot {
+    background-color: rgb(var(--ev-bar));
+  }
+
+  .ev-violet {
+    --ev-bg: 238 237 253;
+    --ev-ink: 88 76 201;
+    --ev-bar: 139 124 246;
+  }
+  .ev-mint {
+    --ev-bg: 222 244 236;
+    --ev-ink: 25 125 95;
+    --ev-bar: 52 179 138;
+  }
+  .ev-rose {
+    --ev-bg: 253 231 236;
+    --ev-ink: 194 60 90;
+    --ev-bar: 240 118 149;
+  }
+  .ev-peach {
+    --ev-bg: 253 240 225;
+    --ev-ink: 176 108 26;
+    --ev-bar: 243 169 78;
+  }
+  .ev-sky {
+    --ev-bg: 226 240 253;
+    --ev-ink: 34 106 176;
+    --ev-bar: 90 163 233;
+  }
+  .ev-slate {
+    --ev-bg: 236 238 244;
+    --ev-ink: 82 90 112;
+    --ev-bar: 138 146 170;
+  }
+
+  .dark .ev-violet {
+    --ev-bg: 45 42 84;
+    --ev-ink: 192 185 253;
+    --ev-bar: 139 124 246;
+  }
+  .dark .ev-mint {
+    --ev-bg: 18 58 48;
+    --ev-ink: 148 227 201;
+    --ev-bar: 52 179 138;
+  }
+  .dark .ev-rose {
+    --ev-bg: 65 28 40;
+    --ev-ink: 249 178 195;
+    --ev-bar: 240 118 149;
+  }
+  .dark .ev-peach {
+    --ev-bg: 64 44 21;
+    --ev-ink: 250 205 149;
+    --ev-bar: 243 169 78;
+  }
+  .dark .ev-sky {
+    --ev-bg: 21 44 70;
+    --ev-ink: 163 205 246;
+    --ev-bar: 90 163 233;
+  }
+  .dark .ev-slate {
+    --ev-bg: 36 39 52;
+    --ev-ink: 176 183 202;
+    --ev-bar: 138 146 170;
+  }
+}
+
+/* ==========================================================================
+   עזרי פריסה
+   ========================================================================== */
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-t {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-b {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* בזמן גרירת אירוע - מבטלים בחירת טקסט וגלילה */
+  .dragging,
+  .dragging * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: grabbing !important;
+  }
+
+  .hairline-b {
+    box-shadow: inset 0 -1px 0 rgb(var(--c-hairline));
+  }
+}

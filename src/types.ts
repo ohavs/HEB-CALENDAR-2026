@@ -1,0 +1,174 @@
+/** טיפוסים משותפים לכל האפליקציה. */
+
+/** מפתח תאריך לוקאלי בפורמט YYYY-MM-DD (לא UTC!). */
+export type DateKey = string;
+
+export type EventColor = 'violet' | 'mint' | 'rose' | 'peach' | 'sky' | 'slate';
+
+/** אירוע שהמשתמש יצר. */
+export type UserEvent = {
+  id: string;
+  title: string;
+  /** יום האירוע (מפתח לוקאלי) */
+  date: DateKey;
+  /** שעת התחלה HH:mm, או null לאירוע של כל היום */
+  startTime: string | null;
+  /** שעת סיום HH:mm, אופציונלי */
+  endTime: string | null;
+  allDay: boolean;
+  location?: string;
+  notes?: string;
+  color: EventColor;
+  /** דקות לפני האירוע לתזכורת; null = בלי תזכורת */
+  reminderMinutes: number | null;
+  /** חזרתיות בסיסית */
+  repeat: RepeatRule;
+  createdAt: number;
+  updatedAt: number;
+  /** מסומן כמחוק לצורך סנכרון (tombstone) */
+  deleted?: boolean;
+};
+
+export type RepeatRule = 'none' | 'weekly' | 'monthly' | 'yearly' | 'hebrew-yearly';
+
+/** סוגי מועדים מהלוח העברי. */
+export type HolidayKind =
+  | 'yomtov' // חג מהתורה (יו"ט)
+  | 'cholhamoed' // חול המועד
+  | 'erev' // ערב חג
+  | 'majorfast' // צום מרכזי
+  | 'minorfast' // צום מדרבנן
+  | 'minor' // מועד מדרבנן (חנוכה, פורים, ט"ו בשבט...)
+  | 'modern' // מועד ישראלי מודרני
+  | 'roshchodesh'
+  | 'specialshabbat'
+  | 'parsha'
+  | 'omer';
+
+export type HolidayItem = {
+  /** מזהה יציב (התיאור האנגלי מ-hebcal) */
+  id: string;
+  /** הכיתוב בעברית */
+  title: string;
+  /** כיתוב מקוצר לתאי הלוח הצרים */
+  shortTitle: string;
+  kind: HolidayKind;
+  emoji?: string;
+  /** האם זהו יום שאסור בו במלאכה (שבת/יו"ט) */
+  restWork: boolean;
+};
+
+/** זמן ממודד (הדלקת נרות / הבדלה / צום). */
+export type TimedItem = {
+  id: string;
+  title: string;
+  /** HH:mm בשעון המקום */
+  time: string;
+  /** חתימת זמן מוחלטת */
+  at: number;
+  kind: 'candles' | 'havdalah' | 'fast-begins' | 'fast-ends';
+  /** למה הזמן הזה קשור, לדוגמה "שבת" או "יום כיפור" */
+  subject?: string;
+};
+
+/** כל מה שיש ליום אחד בלוח. */
+export type DayInfo = {
+  key: DateKey;
+  date: Date;
+  /** מספר היום העברי כגימטריה, למשל "י״ד" */
+  hebrewDay: string;
+  /** שם החודש העברי, למשל "תשרי" */
+  hebrewMonth: string;
+  /** שנה עברית כגימטריה, למשל "תשפ״ו" */
+  hebrewYear: string;
+  /** תאריך עברי מלא */
+  hebrewFull: string;
+  holidays: HolidayItem[];
+  times: TimedItem[];
+  parsha?: string;
+  omerDay?: number;
+  /** שבת או יום טוב */
+  isRestDay: boolean;
+  isShabbat: boolean;
+  isToday: boolean;
+  inCurrentMonth: boolean;
+};
+
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export type GeoCity = {
+  id: string;
+  /** שם בעברית */
+  name: string;
+  /** אזור לתצוגה בקיבוץ ברשימה */
+  region: string;
+  latitude: number;
+  longitude: number;
+  tzid: string;
+  /** האם לוח החגים הישראלי (יום טוב אחד) */
+  il: boolean;
+  elevation?: number;
+};
+
+export type Settings = {
+  theme: ThemeMode;
+  /** הצגת תאריך עברי בתאי הלוח */
+  showHebrewDates: boolean;
+  /** הצגת שם החודש העברי בכותרת */
+  showHebrewMonths: boolean;
+  /** הצגת חגים ומועדים יהודיים על הלוח */
+  showJewishHolidays: boolean;
+  /** הצגת מועדי ישראל המודרניים (יום העצמאות, יום הזיכרון...) */
+  showIsraeliHolidays: boolean;
+  /** הצגת מועדים מדרבנן קטנים (ט"ו בשבט, ל"ג בעומר...) */
+  showMinorHolidays: boolean;
+  /** הצגת צומות */
+  showFasts: boolean;
+  /** הצגת ראש חודש */
+  showRoshChodesh: boolean;
+  /** הצגת פרשת השבוע */
+  showParsha: boolean;
+  /** הצגת ספירת העומר */
+  showOmer: boolean;
+  /** הצגת זמני כניסת/יציאת שבת על הלוח */
+  showCandleTimes: boolean;
+  /** מזהה עיר לזמנים */
+  cityId: string;
+  /** דקות לפני השקיעה להדלקת נרות */
+  candleLightingMins: number;
+  /** מעלות לצאת הכוכבים להבדלה, או מספר דקות אם havdalahMode = minutes */
+  havdalahMode: 'degrees' | 'minutes';
+  havdalahDegrees: number;
+  havdalahMins: number;
+  /** תזכורות */
+  notifyCandleLighting: boolean;
+  /** דקות לפני הדלקת נרות */
+  notifyCandleLightingMins: number;
+  notifyHavdalah: boolean;
+  notifyHavdalahMins: number;
+  notifyEvents: boolean;
+  /** תזכורת בערב שלפני מועד או צום ("מחר: פורים") */
+  notifyHolidayEve: boolean;
+  /** השעה שבה תישלח תזכורת המועד, 0-23 */
+  notifyHolidayEveHour: number;
+  /** יום ראשון בשבוע: 0=ראשון (ברירת מחדל בישראל) */
+  weekStart: 0 | 1;
+  /** ברירת מחדל לצבע אירוע חדש */
+  defaultEventColor: EventColor;
+};
+
+/** תת-קבוצה מההגדרות שמשמשת את מנוע הלוח העברי. */
+export type CalendarFilters = {
+  showJewishHolidays: boolean;
+  showIsraeliHolidays: boolean;
+  showMinorHolidays: boolean;
+  showFasts: boolean;
+  showRoshChodesh: boolean;
+  showParsha: boolean;
+  showOmer: boolean;
+  showCandleTimes: boolean;
+  candleLightingMins: number;
+  havdalahMode: 'degrees' | 'minutes';
+  havdalahDegrees: number;
+  havdalahMins: number;
+};

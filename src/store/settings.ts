@@ -1,0 +1,150 @@
+/** הגדרות המשתמש - נשמרות מקומית ומסונכרנות לענן כשמתחברים. */
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { CalendarFilters, Settings, ThemeMode } from '@/types';
+import { DEFAULT_CITY_ID, findCity, guessCityId } from '@/lib/locations';
+
+const STORAGE_KEY = 'heb-cal:settings';
+
+function defaults(): Settings {
+  const cityId = guessCityId();
+  const city = findCity(cityId);
+  return {
+    theme: 'system',
+    showHebrewDates: true,
+    showHebrewMonths: true,
+    showJewishHolidays: true,
+    showIsraeliHolidays: true,
+    showMinorHolidays: false,
+    showFasts: true,
+    showRoshChodesh: true,
+    showParsha: true,
+    showOmer: false,
+    showCandleTimes: true,
+    cityId: cityId || DEFAULT_CITY_ID,
+    candleLightingMins: city.il ? 40 : 18,
+    havdalahMode: 'degrees',
+    havdalahDegrees: 8.5,
+    havdalahMins: 42,
+    notifyCandleLighting: true,
+    notifyCandleLightingMins: 30,
+    notifyHavdalah: false,
+    notifyHavdalahMins: 0,
+    notifyEvents: true,
+    notifyHolidayEve: false,
+    notifyHolidayEveHour: 20,
+    weekStart: 0,
+    defaultEventColor: 'violet',
+  };
+}
+
+type SettingsStore = {
+  settings: Settings;
+  /** חתימה שמשתנה בכל עדכון - שימושי כדי לרענן חישובים ותזכורות */
+  revision: number;
+  /** חתימת זמן לשינוי האחרון, לצורך סנכרון last-write-wins */
+  updatedAt: number;
+  set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  patch: (values: Partial<Settings>) => void;
+  replaceAll: (values: Settings) => void;
+  reset: () => void;
+};
+
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (setState) => ({
+      settings: defaults(),
+      revision: 0,
+      updatedAt: 0,
+      set: (key, value) =>
+        setState((s) => ({
+          settings: { ...s.settings, [key]: value },
+          revision: s.revision + 1,
+          updatedAt: Date.now(),
+        })),
+      patch: (values) =>
+        setState((s) => ({
+          settings: { ...s.settings, ...values },
+          revision: s.revision + 1,
+          updatedAt: Date.now(),
+        })),
+      replaceAll: (values) =>
+        setState((s) => ({ settings: values, revision: s.revision + 1, updatedAt: Date.now() })),
+      reset: () =>
+        setState((s) => ({ settings: defaults(), revision: s.revision + 1, updatedAt: Date.now() })),
+    }),
+    {
+      name: STORAGE_KEY,
+      version: 1,
+      // ממזגים עם ברירות המחדל כדי שהוספת הגדרה חדשה לא תשבור משתמשים קיימים
+      merge: (persisted, current) => {
+        const p = persisted as { settings?: Partial<Settings> } | undefined;
+        const stored = persisted as { settings?: Partial<Settings>; updatedAt?: number } | undefined;
+        return {
+          ...current,
+          settings: { ...current.settings, ...(p?.settings ?? {}) },
+          updatedAt: stored?.updatedAt ?? 0,
+        };
+      },
+    },
+  ),
+);
+
+/** גישה נוחה להגדרות. */
+export const useSettings = (): Settings => useSettingsStore((s) => s.settings);
+
+/** רק החלק שמנוע הלוח צריך, כדי לא לחשב מחדש על כל שינוי ערכת נושא. */
+export function toFilters(s: Settings): CalendarFilters {
+  return {
+    showJewishHolidays: s.showJewishHolidays,
+    showIsraeliHolidays: s.showIsraeliHolidays,
+    showMinorHolidays: s.showMinorHolidays,
+    showFasts: s.showFasts,
+    showRoshChodesh: s.showRoshChodesh,
+    showParsha: s.showParsha,
+    showOmer: s.showOmer,
+    showCandleTimes: s.showCandleTimes,
+    candleLightingMins: s.candleLightingMins,
+    havdalahMode: s.havdalahMode,
+    havdalahDegrees: s.havdalahDegrees,
+    havdalahMins: s.havdalahMins,
+  };
+}
+
+/* ==========================================================================
+   ערכת נושא
+   ========================================================================== */
+
+let mediaQuery: MediaQueryList | null = null;
+let mediaListener: ((e: MediaQueryListEvent) => void) | null = null;
+
+function paint(dark: boolean) {
+  const root = document.documentElement;
+  root.classList.toggle('dark', dark);
+  root.classList.toggle('light', !dark);
+  root.style.colorScheme = dark ? 'dark' : 'light';
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
+  if (meta) meta.content = dark ? '#09090F' : '#F6F6FA';
+}
+
+/** מחיל ערכת נושא ומאזין לשינוי העדפת המערכת. */
+export function applyTheme(mode: ThemeMode): void {
+  if (mediaQuery && mediaListener) {
+    mediaQuery.removeEventListener('change', mediaListener);
+    mediaListener = null;
+  }
+  if (mode === 'system') {
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaListener = (e) => paint(e.matches);
+    mediaQuery.addEventListener('change', mediaListener);
+    paint(mediaQuery.matches);
+  } else {
+    paint(mode === 'dark');
+  }
+  // index.html קורא את המפתח הזה לפני הצביעה הראשונה, כדי למנוע הבהוב
+  try {
+    localStorage.setItem('heb-cal:theme', JSON.stringify(mode));
+  } catch {
+    /* מצב פרטי - אין מה לעשות */
+  }
+}

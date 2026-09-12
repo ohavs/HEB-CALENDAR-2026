@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+dev-dist/
+*.local
+
+# secrets & environment — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+serviceAccount*.json
+firebase-adminsdk*.json
+.firebaserc
+.firebase/
+
+# scratch
+.tmp/
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log

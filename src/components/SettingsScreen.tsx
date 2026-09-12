@@ -1,0 +1,465 @@
+/** טאב ההגדרות - תצוגה, תוכן הלוח, זמנים, תזכורות וחשבון. */
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Bell,
+  BellRing,
+  Check,
+  ChevronLeft,
+  Download,
+  LogOut,
+  MapPin,
+  Moon,
+  Sun,
+  SunMoon,
+} from 'lucide-react';
+import type { ThemeMode } from '@/types';
+import { useSettings, useSettingsStore } from '@/store/settings';
+import { useAuthStore } from '@/store/auth';
+import { findCity } from '@/lib/locations';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import {
+  notificationState,
+  permissionLabel,
+  requestNotificationPermission,
+  showTestNotification,
+  type PermissionState,
+} from '@/lib/notifications';
+import { Segmented, SettingRow, SettingsGroup, Stepper, Toggle } from './ui/controls';
+
+/** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
+type InstallPrompt = Event & { prompt: () => Promise<void> };
+
+export function SettingsScreen({
+  onPickCity,
+  bottomInset,
+}: {
+  onPickCity: () => void;
+  bottomInset: number;
+}) {
+  const settings = useSettings();
+  const setValue = useSettingsStore((s) => s.set);
+  const { user, status, busy, error, signInWithGoogle, signOut, clearError } = useAuthStore();
+
+  const [permission, setPermission] = useState<PermissionState>(() => notificationState());
+  const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
+  const [testSent, setTestSent] = useState(false);
+
+  useEffect(() => {
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as InstallPrompt);
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+  }, []);
+
+  const askPermission = async () => {
+    setPermission(await requestNotificationPermission());
+  };
+
+  const sendTest = async () => {
+    if (permission !== 'granted') {
+      const next = await requestNotificationPermission();
+      setPermission(next);
+      if (next !== 'granted') return;
+    }
+    await showTestNotification();
+    setTestSent(true);
+    setTimeout(() => setTestSent(false), 2500);
+  };
+
+  const notificationsReady = permission === 'granted';
+
+  return (
+    <div
+      className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-4"
+      style={{ paddingBottom: bottomInset + 16 }}
+    >
+      <header className="safe-t pb-4 pt-3">
+        <h1 className="text-[19px] font-semibold leading-tight text-ink">הגדרות</h1>
+      </header>
+
+      {/* ------------------------------- חשבון ------------------------------- */}
+      <SettingsGroup title="חשבון">
+        {user ? (
+          <>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="h-11 w-11 rounded-full object-cover ring-1 ring-hairline"
+                />
+              ) : (
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-soft text-[16px] font-semibold text-brand-ink">
+                  {(user.name ?? user.email ?? '?').slice(0, 1)}
+                </span>
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-medium text-ink">
+                  {user.name ?? 'מחובר'}
+                </span>
+                <span className="block truncate text-[12.5px] text-muted">{user.email}</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-[rgb(52_179_138)]/15 px-2.5 py-1 text-[11.5px] font-semibold text-[rgb(25_125_95)]">
+                מסונכרן
+              </span>
+            </div>
+            <SettingRow
+              title="יציאה מהחשבון"
+              hint="הנתונים יישארו על המכשיר הזה"
+              icon={<LogOut size={17} strokeWidth={2.1} />}
+              onClick={() => void signOut()}
+            />
+          </>
+        ) : (
+          <div className="px-4 py-4">
+            <p className="text-[14px] font-medium text-ink">התחברות עם גוגל</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+              כדי לשמור את האירועים וההגדרות ולסנכרן בין המכשירים שלך.
+            </p>
+            <motion.button
+              type="button"
+              onClick={() => void signInWithGoogle()}
+              disabled={busy || !isFirebaseConfigured}
+              whileTap={{ scale: 0.98 }}
+              className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-2xl border border-hairline bg-surface py-3 text-[14.5px] font-semibold text-ink disabled:opacity-50"
+            >
+              <GoogleMark />
+              {busy ? 'מתחבר…' : 'התחברות עם גוגל'}
+            </motion.button>
+            {status === 'unavailable' && (
+              <p className="mt-2 text-[12px] text-muted">
+                ההתחברות לא מוגדרת בגרסה הזו. האפליקציה עובדת מקומית.
+              </p>
+            )}
+            {error && (
+              <button
+                type="button"
+                onClick={clearError}
+                className="mt-2 block w-full rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-[12.5px] text-[rgb(194_60_90)]"
+              >
+                {error}
+              </button>
+            )}
+          </div>
+        )}
+      </SettingsGroup>
+
+      {/* ------------------------------- תצוגה ------------------------------- */}
+      <SettingsGroup title="תצוגה">
+        <SettingRow title="ערכת נושא">
+          <Segmented<ThemeMode>
+            value={settings.theme}
+            onChange={(v) => setValue('theme', v)}
+            size="sm"
+            options={[
+              { value: 'light', label: 'בהיר', icon: <Sun size={13} strokeWidth={2.4} /> },
+              { value: 'dark', label: 'כהה', icon: <Moon size={13} strokeWidth={2.4} /> },
+              { value: 'system', label: 'מערכת', icon: <SunMoon size={13} strokeWidth={2.4} /> },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow title="תאריך עברי בתאי הלוח" hint="מספר היום העברי בפינת כל תא">
+          <Toggle
+            label="תאריך עברי"
+            checked={settings.showHebrewDates}
+            onChange={(v) => setValue('showHebrewDates', v)}
+          />
+        </SettingRow>
+        <SettingRow title="חודש עברי בכותרת" hint="לדוגמה: אלול–תשרי תשפ״ז">
+          <Toggle
+            label="חודש עברי"
+            checked={settings.showHebrewMonths}
+            onChange={(v) => setValue('showHebrewMonths', v)}
+          />
+        </SettingRow>
+        <SettingRow title="תחילת השבוע">
+          <Segmented<'0' | '1'>
+            value={String(settings.weekStart) as '0' | '1'}
+            onChange={(v) => setValue('weekStart', v === '0' ? 0 : 1)}
+            size="sm"
+            options={[
+              { value: '0', label: 'ראשון' },
+              { value: '1', label: 'שני' },
+            ]}
+          />
+        </SettingRow>
+      </SettingsGroup>
+
+      {/* ---------------------------- תוכן הלוח ---------------------------- */}
+      <SettingsGroup
+        title="מועדים על הלוח"
+        footer="כשמכבים חגים יהודיים, הלוח מציג רק את התאריכים הלועזיים ואת האירועים שלך."
+      >
+        <SettingRow title="חגים ומועדים יהודיים">
+          <Toggle
+            label="חגים יהודיים"
+            checked={settings.showJewishHolidays}
+            onChange={(v) => setValue('showJewishHolidays', v)}
+          />
+        </SettingRow>
+        <SettingRow title="מועדי ישראל" hint="יום העצמאות, יום הזיכרון, יום ירושלים ועוד">
+          <Toggle
+            label="מועדי ישראל"
+            checked={settings.showIsraeliHolidays}
+            onChange={(v) => setValue('showIsraeliHolidays', v)}
+            disabled={!settings.showJewishHolidays}
+          />
+        </SettingRow>
+        <SettingRow title="צומות">
+          <Toggle
+            label="צומות"
+            checked={settings.showFasts}
+            onChange={(v) => setValue('showFasts', v)}
+            disabled={!settings.showJewishHolidays}
+          />
+        </SettingRow>
+        <SettingRow title="ראש חודש">
+          <Toggle
+            label="ראש חודש"
+            checked={settings.showRoshChodesh}
+            onChange={(v) => setValue('showRoshChodesh', v)}
+            disabled={!settings.showJewishHolidays}
+          />
+        </SettingRow>
+        <SettingRow title="מועדים קטנים" hint="סליחות, פורים קטן, ט״ו באב ועוד">
+          <Toggle
+            label="מועדים קטנים"
+            checked={settings.showMinorHolidays}
+            onChange={(v) => setValue('showMinorHolidays', v)}
+            disabled={!settings.showJewishHolidays}
+          />
+        </SettingRow>
+        <SettingRow title="פרשת השבוע">
+          <Toggle
+            label="פרשת השבוע"
+            checked={settings.showParsha}
+            onChange={(v) => setValue('showParsha', v)}
+          />
+        </SettingRow>
+        <SettingRow title="ספירת העומר">
+          <Toggle
+            label="ספירת העומר"
+            checked={settings.showOmer}
+            onChange={(v) => setValue('showOmer', v)}
+          />
+        </SettingRow>
+        <SettingRow title="זמני כניסת ויציאת שבת על הלוח">
+          <Toggle
+            label="זמני שבת"
+            checked={settings.showCandleTimes}
+            onChange={(v) => setValue('showCandleTimes', v)}
+          />
+        </SettingRow>
+      </SettingsGroup>
+
+      {/* --------------------------- מקום וזמנים --------------------------- */}
+      <SettingsGroup
+        title="מקום וזמנים"
+        footer="הזמנים מחושבים לפי אזור הזמן של העיר, ולכן שעון קיץ וחורף מתעדכן אוטומטית."
+      >
+        <SettingRow
+          title="עיר"
+          hint={findCity(settings.cityId).name}
+          icon={<MapPin size={17} strokeWidth={2.1} />}
+          onClick={onPickCity}
+        >
+          <ChevronLeft size={17} strokeWidth={2.3} className="text-faint" />
+        </SettingRow>
+        <SettingRow title="הדלקת נרות" hint="דקות לפני השקיעה">
+          <Stepper
+            value={settings.candleLightingMins}
+            onChange={(v) => setValue('candleLightingMins', v)}
+            min={0}
+            max={60}
+            step={1}
+            suffix="דק׳"
+          />
+        </SettingRow>
+        <SettingRow title="חישוב הבדלה">
+          <Segmented<'degrees' | 'minutes'>
+            value={settings.havdalahMode}
+            onChange={(v) => setValue('havdalahMode', v)}
+            size="sm"
+            options={[
+              { value: 'degrees', label: 'צאת הכוכבים' },
+              { value: 'minutes', label: 'דקות' },
+            ]}
+          />
+        </SettingRow>
+        {settings.havdalahMode === 'degrees' ? (
+          <SettingRow title="מעלות לצאת הכוכבים" hint="8.5° = שלושה כוכבים קטנים">
+            <Stepper
+              value={settings.havdalahDegrees}
+              onChange={(v) => setValue('havdalahDegrees', Math.round(v * 100) / 100)}
+              min={5}
+              max={9}
+              step={0.5}
+              suffix="°"
+            />
+          </SettingRow>
+        ) : (
+          <SettingRow title="דקות אחרי השקיעה" hint="נהוג 42, 50 או 72 דקות">
+            <Stepper
+              value={settings.havdalahMins}
+              onChange={(v) => setValue('havdalahMins', v)}
+              min={20}
+              max={90}
+              step={1}
+              suffix="דק׳"
+            />
+          </SettingRow>
+        )}
+      </SettingsGroup>
+
+      {/* ---------------------------- תזכורות ---------------------------- */}
+      <SettingsGroup
+        title="תזכורות"
+        footer="בדפדפן התזכורות מוצגות כשהאפליקציה פתוחה או פועלת ברקע. באפליקציית האנדרואיד הן יעבדו גם כשהיא סגורה לגמרי."
+      >
+        {!notificationsReady && (
+          <button
+            type="button"
+            onClick={() => void askPermission()}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-right"
+          >
+            <BellRing size={17} strokeWidth={2.1} className="shrink-0 text-brand" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium text-ink">אישור התראות</span>
+              <span className="mt-0.5 block text-[12.5px] text-muted">
+                {permissionLabel(permission)}
+              </span>
+            </span>
+          </button>
+        )}
+
+        <SettingRow title="לפני כניסת שבת וחג">
+          <Toggle
+            label="כניסת שבת"
+            checked={settings.notifyCandleLighting}
+            onChange={(v) => setValue('notifyCandleLighting', v)}
+          />
+        </SettingRow>
+        {settings.notifyCandleLighting && (
+          <SettingRow title="מתי להזכיר" hint="דקות לפני הדלקת נרות">
+            <Stepper
+              value={settings.notifyCandleLightingMins}
+              onChange={(v) => setValue('notifyCandleLightingMins', v)}
+              min={0}
+              max={180}
+              step={5}
+              suffix="דק׳"
+            />
+          </SettingRow>
+        )}
+
+        <SettingRow title="ביציאת שבת וחג">
+          <Toggle
+            label="יציאת שבת"
+            checked={settings.notifyHavdalah}
+            onChange={(v) => setValue('notifyHavdalah', v)}
+          />
+        </SettingRow>
+        {settings.notifyHavdalah && (
+          <SettingRow title="מתי להזכיר" hint="דקות לפני ההבדלה">
+            <Stepper
+              value={settings.notifyHavdalahMins}
+              onChange={(v) => setValue('notifyHavdalahMins', v)}
+              min={0}
+              max={60}
+              step={5}
+              suffix="דק׳"
+            />
+          </SettingRow>
+        )}
+
+        <SettingRow title="בערב שלפני מועד או צום" hint='לדוגמה: "מחר: צום גדליה"'>
+          <Toggle
+            label="ערב מועד"
+            checked={settings.notifyHolidayEve}
+            onChange={(v) => setValue('notifyHolidayEve', v)}
+          />
+        </SettingRow>
+        {settings.notifyHolidayEve && (
+          <SettingRow title="שעת התזכורת">
+            <Stepper
+              value={settings.notifyHolidayEveHour}
+              onChange={(v) => setValue('notifyHolidayEveHour', v)}
+              min={5}
+              max={23}
+              step={1}
+              suffix=":00"
+            />
+          </SettingRow>
+        )}
+
+        <SettingRow title="תזכורות לאירועים שלי">
+          <Toggle
+            label="אירועים"
+            checked={settings.notifyEvents}
+            onChange={(v) => setValue('notifyEvents', v)}
+          />
+        </SettingRow>
+
+        <SettingRow
+          title={testSent ? 'נשלחה התראת בדיקה' : 'שליחת התראת בדיקה'}
+          icon={
+            testSent ? (
+              <Check size={17} strokeWidth={2.6} className="text-[rgb(52_179_138)]" />
+            ) : (
+              <Bell size={17} strokeWidth={2.1} />
+            )
+          }
+          onClick={() => void sendTest()}
+        />
+      </SettingsGroup>
+
+      {/* ---------------------------- אפליקציה ---------------------------- */}
+      <SettingsGroup title="אפליקציה">
+        {installPrompt && (
+          <SettingRow
+            title="התקנת האפליקציה במכשיר"
+            hint="פתיחה ממסך הבית, גם בלי אינטרנט"
+            icon={<Download size={17} strokeWidth={2.1} />}
+            onClick={() => {
+              void installPrompt.prompt();
+              setInstallPrompt(null);
+            }}
+          />
+        )}
+        <div className="px-4 py-3.5">
+          <p className="text-[13px] leading-relaxed text-muted">
+            לוח שנה עברי · כל החגים והמועדים, זמני שבת מדויקים לפי מקום, ואירועים אישיים.
+            הנתונים נשמרים על המכשיר, ומסונכרנים לענן רק אם התחברת.
+          </p>
+        </div>
+      </SettingsGroup>
+    </div>
+  );
+}
+
+/** סמל גוגל - וקטור, כדי לא לטעון תמונה חיצונית. */
+function GoogleMark() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59A14.5 14.5 0 0 1 9.77 24c0-1.6.27-3.14.76-4.59l-7.98-6.19A23.94 23.94 0 0 0 0 24c0 3.83.92 7.45 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
+  );
+}
