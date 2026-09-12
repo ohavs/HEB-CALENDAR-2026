@@ -16,7 +16,6 @@ dev-dist/
 service-account*.json
 serviceAccount*.json
 firebase-adminsdk*.json
-.firebaserc
 .firebase/
 
 # scratch

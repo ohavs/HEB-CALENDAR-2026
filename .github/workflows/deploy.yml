@@ -1,18 +1,21 @@
 # פריסה אוטומטית ל-Firebase Hosting.
 #
 # מה צריך להגדיר פעם אחת ב-GitHub, תחת
-# Settings → Secrets and variables → Actions → Secrets:
+# Settings → Secrets and variables → Actions → New repository secret:
 #
-#   FIREBASE_TOKEN                     הפלט של `firebase login:ci`
-#   VITE_FIREBASE_API_KEY              מ-Firebase Console → Project settings → Your apps
-#   VITE_FIREBASE_AUTH_DOMAIN
-#   VITE_FIREBASE_PROJECT_ID
-#   VITE_FIREBASE_STORAGE_BUCKET
-#   VITE_FIREBASE_MESSAGING_SENDER_ID
-#   VITE_FIREBASE_APP_ID
-#   VITE_FIREBASE_MEASUREMENT_ID       אופציונלי
+#   FIREBASE_TOKEN                     חובה. הפלט של `firebase login:ci`
+#   VITE_FIREBASE_API_KEY              חובה. מ-Firebase Console → Project settings → Your apps
+#   VITE_FIREBASE_AUTH_DOMAIN          חובה
+#   VITE_FIREBASE_STORAGE_BUCKET       חובה
+#   VITE_FIREBASE_MESSAGING_SENDER_ID  חובה
+#   VITE_FIREBASE_APP_ID               חובה
+#   VITE_FIREBASE_MEASUREMENT_ID       אופציונלי (אנליטיקס)
 #
-# אף אחד מהערכים האלה לא נשמר בריפו. הם מוזרקים כאן בזמן ה-build בלבד.
+# מזהה הפרויקט אינו סוד - הוא מוטמע בחבילה שנשלחת לכל דפדפן - ולכן הוא
+# מוגדר כאן ובקובץ .firebaserc, ולא כסוד.
+#
+# אם אחד הסודות החובה חסר, השלב הראשון ייכשל עם רשימה מדויקת של מה שחסר,
+# במקום להיכשל באמצע הפריסה.
 
 name: Deploy to Firebase Hosting
 
@@ -23,7 +26,9 @@ on:
       - claude/stoic-ride-7cl69q
   workflow_dispatch:
 
-# מריצים פריסה אחת בכל פעם, ומבטלים ריצה קודמת שעוד לא הסתיימה
+env:
+  FIREBASE_PROJECT_ID: heb-calendar-2026
+
 concurrency:
   group: firebase-deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -37,6 +42,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # בדיקה מקדימה: מוודאת שכל הסודות הנדרשים קיימים.
+      # הבדיקה בוחנת רק אם הערך ריק ואינה מדפיסה אף ערך.
+      - name: Check required secrets
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: |
+          missing=""
+          for name in FIREBASE_TOKEN \
+                      VITE_FIREBASE_API_KEY \
+                      VITE_FIREBASE_AUTH_DOMAIN \
+                      VITE_FIREBASE_STORAGE_BUCKET \
+                      VITE_FIREBASE_MESSAGING_SENDER_ID \
+                      VITE_FIREBASE_APP_ID; do
+            if [ -z "${!name}" ]; then
+              missing="$missing  - $name"$'\n'
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Missing secrets::Add these under Settings -> Secrets and variables -> Actions"
+            printf 'The following repository secrets are not set:\n%s\n' "$missing"
+            exit 1
+          fi
+          echo "All required secrets are present."
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -49,7 +83,7 @@ jobs:
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_PROJECT_ID: ${{ env.FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
@@ -62,5 +96,11 @@ jobs:
         run: >-
           npx --yes firebase-tools@13 deploy
           --only hosting,firestore:rules
-          --project "${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
+          --project "$FIREBASE_PROJECT_ID"
           --non-interactive
+
+      - name: Show the deployed URL
+        run: |
+          echo "### האפליקציה פורסמה 🎉" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://$FIREBASE_PROJECT_ID.web.app" >> "$GITHUB_STEP_SUMMARY"
