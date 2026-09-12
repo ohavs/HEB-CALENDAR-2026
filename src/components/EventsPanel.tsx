@@ -5,10 +5,10 @@
  */
 import { motion, useMotionValue, type PanInfo } from 'framer-motion';
 import { useRef } from 'react';
-import { ChevronUp, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
-import { dayTitleLabel, relativeDayLabel } from '@/lib/dates';
+import { relativeDayLabel } from '@/lib/dates';
 import { EventCard } from './EventChip';
 import { useElementSize } from '@/hooks/useElementSize';
 
@@ -118,19 +118,26 @@ export function EventsPanel({
       >
         {day && (
           <>
+            {/* כניסה לתצוגת היום המורחבת */}
             <button
               type="button"
               onClick={onOpenDay}
-              className="mb-3 w-full rounded-2xl bg-well px-3.5 py-3 text-right"
+              className="mb-3 flex w-full items-center gap-2 rounded-2xl bg-well px-3.5 py-3 text-right"
             >
-              <span className="block text-[13.5px] font-semibold text-ink">
-                {dayTitleLabel(day.date)}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13.5px] font-semibold text-ink">
+                  {day.hebrewFull}
+                </span>
+                <span className="mt-0.5 block truncate text-[12px] text-muted">
+                  {[
+                    day.parsha ? `פרשת ${day.parsha}` : null,
+                    day.omerDay ? `${day.omerDay} לעומר` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || 'לתצוגת יום מורחבת'}
+                </span>
               </span>
-              <span className="mt-0.5 block text-[12px] text-muted">
-                {day.hebrewFull}
-                {day.parsha ? ` · פרשת ${day.parsha}` : ''}
-                {day.omerDay ? ` · ${day.omerDay} לעומר` : ''}
-              </span>
+              <ChevronLeft size={17} strokeWidth={2.3} className="shrink-0 text-faint" />
             </button>
 
             {day.holidays.length > 0 && (
