@@ -22,7 +22,13 @@ export type UserEvent = {
   /** שעת סיום HH:mm, אופציונלי */
   endTime: string | null;
   allDay: boolean;
+  /** הכיתוב שמוצג. תמיד קיים כשיש מקום, גם אם נבחר מקום שמור. */
   location?: string;
+  /**
+   * מזהה המקום השמור שנבחר, אם נבחר כזה. הכיתוב לבדו לא מספיק: שינוי
+   * שם של מקום שמור היה מנתק ממנו את כל האירועים.
+   */
+  placeId?: string;
   notes?: string;
   color: EventColor;
   /** דקות לפני האירוע לתזכורת; null = בלי תזכורת */
@@ -60,6 +66,7 @@ export type EventException = {
   endTime?: string | null;
   allDay?: boolean;
   location?: string;
+  placeId?: string;
   notes?: string;
   color?: EventColor;
   reminderMinutes?: number | null;

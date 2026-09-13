@@ -52,7 +52,9 @@ export function Field({
 
 /* -------------------------- שדה שפותח בורר -------------------------- */
 
-function PickerField({
+/** שורה שנראית כמו שדה, אבל פותחת גיליון בחירה במקום לקבל הקלדה. */
+
+export function PickerField({
   label,
   display,
   icon,

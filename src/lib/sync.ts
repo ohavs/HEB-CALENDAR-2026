@@ -54,6 +54,7 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
     endTime: (data.endTime as string | null) ?? null,
     allDay: Boolean(data.allDay),
     location: (data.location as string | undefined) || undefined,
+    placeId: (data.placeId as string | undefined) || undefined,
     notes: (data.notes as string | undefined) || undefined,
     color: (data.color as UserEvent['color']) ?? 'violet',
     reminderMinutes:
@@ -79,6 +80,7 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
     endTime: ev.endTime ?? null,
     allDay: ev.allDay,
     location: ev.location ?? null,
+    placeId: ev.placeId ?? null,
     notes: ev.notes ?? null,
     color: ev.color,
     reminderMinutes: ev.reminderMinutes,

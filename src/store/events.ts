@@ -32,6 +32,7 @@ export type EventDraft = {
   endTime: string | null;
   allDay: boolean;
   location?: string;
+  placeId?: string;
   notes?: string;
   color: EventColor;
   reminderMinutes: number | null;

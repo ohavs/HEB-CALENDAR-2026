@@ -96,6 +96,7 @@ const OVERRIDE_FIELDS = [
   'endTime',
   'allDay',
   'location',
+  'placeId',
   'notes',
   'color',
   'reminderMinutes',

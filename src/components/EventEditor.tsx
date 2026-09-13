@@ -8,14 +8,28 @@ import { motion } from 'framer-motion';
 import { Bell, CalendarDays, CalendarRange, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import { REPEAT_LABELS, spanLengthOf, type Occurrence } from '@/lib/recurrence';
-import { EVENT_COLORS, REMINDER_OPTIONS, useEventsStore, type EventDraft } from '@/store/events';
+import {
+  EVENT_COLORS,
+  REMINDER_OPTIONS,
+  useEvents,
+  useEventsStore,
+  type EventDraft,
+} from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
+import { LocationPicker } from './LocationPicker';
 import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
-import { DateField, SelectField, TextArea, TextField, TimeField } from './ui/fields';
+import {
+  DateField,
+  PickerField,
+  SelectField,
+  TextArea,
+  TextField,
+  TimeField,
+} from './ui/fields';
 import { ICON, STROKE } from '@/lib/motion';
 
 const COLOR_SWATCH: Record<EventColor, string> = {
@@ -56,6 +70,7 @@ export function EventEditor({
   editing: Occurrence | UserEvent | null;
 }) {
   const settings = useSettings();
+  const places = settings.places;
   const { add, update, remove, updateOccurrence, cancelOccurrence } = useEventsStore();
   const [draft, setDraft] = useState<EventDraft>(() =>
     emptyDraft(date, settings.defaultEventColor),
@@ -63,6 +78,8 @@ export function EventEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** איזו שאלת היקף פתוחה, כשעורכים מופע בתוך סדרה חוזרת */
   const [askScope, setAskScope] = useState<'save' | 'delete' | null>(null);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const allEvents = useEvents();
 
   /**
    * עריכה של מופע בתוך סדרה חוזרת חייבת לשאול על מה היא חלה. אירוע
@@ -76,6 +93,7 @@ export function EventEditor({
     if (!open) return;
     setConfirmDelete(false);
     setAskScope(null);
+    setLocationOpen(false);
     if (editing) {
       setDraft({
         title: editing.title,
@@ -84,6 +102,7 @@ export function EventEditor({
         endTime: editing.endTime,
         allDay: editing.allDay,
         location: editing.location ?? '',
+        placeId: editing.placeId,
         notes: editing.notes ?? '',
         color: editing.color,
         reminderMinutes: editing.reminderMinutes,
@@ -101,6 +120,7 @@ export function EventEditor({
     ...draft,
     title: draft.title.trim(),
     location: draft.location?.trim() || undefined,
+    placeId: draft.placeId,
     notes: draft.notes?.trim() || undefined,
     startTime: draft.allDay ? null : draft.startTime,
     endTime: draft.allDay ? null : draft.endTime,
@@ -116,6 +136,7 @@ export function EventEditor({
     if (p.startTime !== occurrence.startTime) exception.startTime = p.startTime;
     if (p.endTime !== occurrence.endTime) exception.endTime = p.endTime;
     if ((p.location ?? '') !== (occurrence.location ?? '')) exception.location = p.location;
+    if (p.placeId !== occurrence.placeId) exception.placeId = p.placeId;
     if ((p.notes ?? '') !== (occurrence.notes ?? '')) exception.notes = p.notes;
     if (p.endDate !== occurrence.endDate) exception.endDate = p.endDate;
     if (p.color !== occurrence.color) exception.color = p.color;
@@ -315,12 +336,16 @@ export function EventEditor({
           </div>
         )}
 
-        <TextField
+        <PickerField
           label="מקום"
-          value={draft.location ?? ''}
-          onChange={(location) => patch({ location })}
-          placeholder="לא הוגדר"
+          display={draft.location || 'לא הוגדר'}
           icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
+          hint={
+            draft.placeId && places.some((pl) => pl.id === draft.placeId)
+              ? 'מקום שמור'
+              : undefined
+          }
+          onOpen={() => setLocationOpen(true)}
         />
 
         <SelectField<UserEvent['repeat']>
@@ -349,6 +374,15 @@ export function EventEditor({
           placeholder="פרטים נוספים"
         />
       </div>
+
+      <LocationPicker
+        open={locationOpen}
+        onClose={() => setLocationOpen(false)}
+        value={{ location: draft.location, placeId: draft.placeId }}
+        onChange={(next) => patch({ location: next.location ?? '', placeId: next.placeId })}
+        events={allEvents}
+        places={places}
+      />
 
       <ScopeSheet
         open={askScope === 'save'}
