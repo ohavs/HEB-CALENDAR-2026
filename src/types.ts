@@ -11,6 +11,12 @@ export type UserEvent = {
   title: string;
   /** יום האירוע (מפתח לוקאלי) */
   date: DateKey;
+  /**
+   * יום הסיום של אירוע רב־יומי (חופשה, טיול, אירוח).
+   * חסר או שווה ל-date באירוע של יום אחד. באירוע חוזר, אורך הפרישה
+   * נשמר וחוזר עם כל מופע.
+   */
+  endDate?: DateKey;
   /** שעת התחלה HH:mm, או null לאירוע של כל היום */
   startTime: string | null;
   /** שעת סיום HH:mm, אופציונלי */
@@ -57,6 +63,8 @@ export type EventException = {
   notes?: string;
   color?: EventColor;
   reminderMinutes?: number | null;
+  /** אורך פרישה שונה למופע הזה בלבד */
+  endDate?: DateKey;
 };
 
 /** סוגי מועדים מהלוח העברי. */

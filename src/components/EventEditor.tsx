@@ -5,12 +5,12 @@
  */
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, CalendarDays, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
+import { Bell, CalendarDays, CalendarRange, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
-import { REPEAT_LABELS, type Occurrence } from '@/lib/recurrence';
+import { REPEAT_LABELS, spanLengthOf, type Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, REMINDER_OPTIONS, useEventsStore, type EventDraft } from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
-import { keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
+import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
@@ -88,6 +88,7 @@ export function EventEditor({
         color: editing.color,
         reminderMinutes: editing.reminderMinutes,
         repeat: editing.repeat,
+        endDate: editing.endDate,
       });
     } else {
       setDraft(emptyDraft(date, settings.defaultEventColor));
@@ -116,6 +117,7 @@ export function EventEditor({
     if (p.endTime !== occurrence.endTime) exception.endTime = p.endTime;
     if ((p.location ?? '') !== (occurrence.location ?? '')) exception.location = p.location;
     if ((p.notes ?? '') !== (occurrence.notes ?? '')) exception.notes = p.notes;
+    if (p.endDate !== occurrence.endDate) exception.endDate = p.endDate;
     if (p.color !== occurrence.color) exception.color = p.color;
     if (p.reminderMinutes !== occurrence.reminderMinutes) {
       exception.reminderMinutes = p.reminderMinutes;
@@ -168,6 +170,9 @@ export function EventEditor({
 
   const eventDate = keyToDate(draft.date);
   const hebrew = hebrewDateParts(eventDate);
+  const multiDay = Boolean(draft.endDate && draft.endDate > draft.date);
+  const spanDays = spanLengthOf({ date: draft.date, endDate: draft.endDate });
+  const spanHint = multiDay ? `${spanDays} ימים` : '';
 
   /** שינוי שעת ההתחלה מזיז גם את שעת הסיום, כדי לשמור על המשך */
   const onStartChange = (value: string) => {
@@ -244,13 +249,43 @@ export function EventEditor({
         </div>
 
         <DateField
-          label="תאריך"
+          label={multiDay ? 'מתאריך' : 'תאריך'}
           value={draft.date}
-          onChange={(d) => patch({ date: d })}
+          onChange={(d) =>
+            // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
+            patch({ date: d, endDate: draft.endDate && draft.endDate < d ? d : draft.endDate })
+          }
           icon={<CalendarDays size={ICON.sm} strokeWidth={STROKE} />}
           hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
           weekStart={settings.weekStart}
         />
+
+        {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
+        <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
+          <span className="flex items-center gap-2.5 text-body font-medium text-ink">
+            <CalendarRange size={ICON.lg} strokeWidth={STROKE} className="text-muted" />
+            נמשך כמה ימים
+          </span>
+          <Toggle
+            label="נמשך כמה ימים"
+            checked={multiDay}
+            onChange={(on) =>
+              patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined })
+            }
+          />
+        </div>
+
+        {multiDay && (
+          <DateField
+            label="עד תאריך"
+            value={draft.endDate ?? draft.date}
+            onChange={(endDate) => patch({ endDate })}
+            icon={<CalendarRange size={ICON.sm} strokeWidth={STROKE} />}
+            hint={spanHint}
+            weekStart={settings.weekStart}
+            min={draft.date}
+          />
+        )}
 
         {/* כל היום */}
         <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">

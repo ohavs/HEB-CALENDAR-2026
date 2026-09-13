@@ -143,7 +143,13 @@ function DayCellInner({
         ))}
 
         {shownEvents.map((occ) => (
-          <MiniEventChip key={occ.occurrenceId} occurrence={occ} />
+          <MiniEventChip
+            key={occ.occurrenceId}
+            occurrence={occ}
+            // פס רב־יומי נושא כותרת בתחילתו, ושוב בתחילת כל שורת שבוע -
+            // אחרת השורה השנייה של החופשה היא פס צבע בלי שם
+            labelled={occ.spanIndex === 0 || day.date.getDay() === settings.weekStart}
+          />
         ))}
 
         {hidden > 0 && (

@@ -204,3 +204,27 @@ describe('permissionLabel', () => {
     }
   });
 });
+
+describe('אירוע רב־יומי', () => {
+  const soon = '2026-11-20';
+
+  it('מקבל תזכורת אחת בלבד, ביום שהוא מתחיל', () => {
+    const ev = event({ date: soon, endDate: '2026-11-24', allDay: true, reminderMinutes: 0 });
+    const rs = buildReminders(settings(), [ev], NOW).filter((r) => r.id.startsWith('event-'));
+    expect(rs).toHaveLength(1);
+    expect(new Date(rs[0].at).getDate()).toBe(20);
+  });
+
+  it('גוף ההודעה אומר כמה ימים', () => {
+    const ev = event({ date: soon, endDate: '2026-11-24', allDay: true, reminderMinutes: 0 });
+    const r = buildReminders(settings(), [ev], NOW).find((x) => x.id.startsWith('event-'))!;
+    expect(r.body).toContain('5');
+  });
+
+  it('פרישה שהתחילה לפני היום לא מייצרת תזכורת חדשה', () => {
+    const ev = event({ date: '2026-11-10', endDate: '2026-11-25', allDay: true, reminderMinutes: 0 });
+    expect(
+      buildReminders(settings(), [ev], NOW).some((r) => r.id.startsWith('event-')),
+    ).toBe(false);
+  });
+});

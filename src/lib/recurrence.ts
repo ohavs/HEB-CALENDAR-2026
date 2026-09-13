@@ -31,6 +31,15 @@ export type Occurrence = UserEvent & {
   sourceKey: DateKey;
   /** האם למופע הזה יש חריג משלו */
   hasException: boolean;
+  /**
+   * מיקום היום המוצג בתוך אירוע רב־יומי: 0 ביום הראשון.
+   * `spanLength` הוא 1 באירוע של יום אחד, ולכן ברוב האירועים אין לזה
+   * משמעות - אבל הוא מה שמאפשר לצייר פס רציף על פני התאים.
+   */
+  spanIndex: number;
+  spanLength: number;
+  /** היום הראשון של הפרישה */
+  spanStart: DateKey;
 };
 
 function hebrewMonthMatches(baseMonth: number, baseLeap: boolean, hd: HDate): boolean {
@@ -81,6 +90,7 @@ export function isOccurrenceKey(ev: UserEvent, key: DateKey): boolean {
 
 /** השדות שחריג יכול לדרוס במופע. */
 const OVERRIDE_FIELDS = [
+  'endDate',
   'title',
   'startTime',
   'endTime',
@@ -104,23 +114,33 @@ function applyException(base: UserEvent, exception: EventException | undefined):
 function toOccurrence(
   ev: UserEvent,
   sourceKey: DateKey,
-  outKey: DateKey,
-  exception?: EventException,
+  spanStart: DateKey,
+  renderKey: DateKey,
+  exception: EventException | undefined,
+  spanIndex: number,
+  spanLength: number,
 ): Occurrence {
   const recurring = sourceKey !== ev.date;
   return {
     ...applyException(ev, exception),
-    date: outKey,
+    date: renderKey,
     occurrenceId: recurring ? `${ev.id}@${sourceKey}` : ev.id,
     baseId: ev.id,
     isRecurring: recurring,
     sourceKey,
     hasException: Boolean(exception),
+    spanIndex,
+    spanLength,
+    spanStart,
   };
 }
 
 export function sortOccurrences(a: Occurrence, b: Occurrence): number {
-  if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+  // אירוע רב־יומי מתנהג כמו אירוע של כל היום: הוא מתאר את היום כולו
+  const aWide = a.allDay || a.spanLength > 1;
+  const bWide = b.allDay || b.spanLength > 1;
+  if (aWide !== bWide) return aWide ? -1 : 1;
+  if (a.spanLength !== b.spanLength) return b.spanLength - a.spanLength;
   if (a.startTime && b.startTime) {
     const diff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
     if (diff !== 0) return diff;
@@ -146,6 +166,36 @@ export function expandEvents(
   const startKey = dateKey(start);
   const endKey = dateKey(end);
 
+  /** יום הסיום של פרישה שמתחילה ב-firstKey, לפי אורך הפרישה של האירוע. */
+  const spanEndFor = (ev: UserEvent, firstKey: DateKey): DateKey | undefined => {
+    const length = spanLengthOf(ev);
+    if (length <= 1) return undefined;
+    return dateKey(addDays(keyToDate(firstKey), length - 1));
+  };
+
+  /**
+   * פולט את המופע לכל ימי הפרישה שנופלים בתוך הטווח. אירוע של יום אחד
+   * הוא המקרה הפרטי שבו הפרישה היא יום אחד בלבד.
+   */
+  const emit = (
+    ev: UserEvent,
+    sourceKey: DateKey,
+    firstKey: DateKey,
+    exception?: EventException,
+  ) => {
+    const length = spanLengthOf({
+      date: firstKey,
+      endDate: exception?.endDate ?? spanEndFor(ev, firstKey),
+    });
+    const firstDate = keyToDate(firstKey);
+    for (let i = 0; i < length; i += 1) {
+      const key = dateKey(addDays(firstDate, i));
+      if (key < startKey) continue;
+      if (key > endKey) break;
+      push(key, toOccurrence(ev, sourceKey, firstKey, key, exception, i, length));
+    }
+  };
+
   for (const ev of events) {
     if (ev.deleted) continue;
     const exceptions = ev.exceptions;
@@ -153,18 +203,19 @@ export function expandEvents(
     /* ---------- מעבר ראשון: מופעים במקומם הטבעי ---------- */
     if (ev.repeat === 'none') {
       const exception = exceptions?.[ev.date];
-      if (!exception?.cancelled && !exception?.movedTo && ev.date >= startKey && ev.date <= endKey) {
-        push(ev.date, toOccurrence(ev, ev.date, ev.date, exception));
-      }
+      if (!exception?.cancelled && !exception?.movedTo) emit(ev, ev.date, ev.date, exception);
     } else {
       const baseDate = keyToDate(ev.date);
-      for (let d = start; d <= end; d = addDays(d, 1)) {
+      // אירוע רב־יומי שהתחיל לפני החלון עדיין נמשך לתוכו, ולכן הסריקה
+      // מתחילה מוקדם יותר באורך הפרישה
+      const scanStart = addDays(start, -(maxSpanDays(ev) - 1));
+      for (let d = scanStart; d <= end; d = addDays(d, 1)) {
         const key = dateKey(d);
         if (key !== ev.date && !occursOn(ev, d, baseDate)) continue;
         const exception = exceptions?.[key];
         // מופע שבוטל נעלם; מופע שהוזז ייפלט במעבר השני, ביעד שלו
         if (exception?.cancelled || exception?.movedTo) continue;
-        push(key, toOccurrence(ev, key, key, exception));
+        emit(ev, key, key, exception);
       }
     }
 
@@ -173,9 +224,8 @@ export function expandEvents(
     for (const [sourceKey, exception] of Object.entries(exceptions)) {
       const target = exception.movedTo;
       if (!target || exception.cancelled) continue;
-      if (target < startKey || target > endKey) continue;
       if (!isOccurrenceKey(ev, sourceKey)) continue;
-      push(target, toOccurrence(ev, sourceKey, target, exception));
+      emit(ev, sourceKey, target, exception);
     }
   }
 
@@ -195,3 +245,39 @@ export const REPEAT_LABELS: Record<UserEvent['repeat'], string> = {
   yearly: 'כל שנה (לועזי)',
   'hebrew-yearly': 'כל שנה (עברי)',
 };
+
+/* ==========================================================================
+   אירועים רב־יומיים
+   ========================================================================== */
+
+/** כמה ימים האירוע נמשך. 1 לאירוע רגיל. */
+export function spanLengthOf(ev: { date: DateKey; endDate?: DateKey }): number {
+  if (!ev.endDate || ev.endDate <= ev.date) return 1;
+  const days = Math.round(
+    (keyToDate(ev.endDate).getTime() - keyToDate(ev.date).getTime()) / 86_400_000,
+  );
+  return Math.max(1, days + 1);
+}
+
+/** האם היום הזה הוא היום האחרון בפרישה. */
+export function isSpanEnd(occ: Occurrence): boolean {
+  return occ.spanIndex === occ.spanLength - 1;
+}
+
+/**
+ * הפרישה הארוכה ביותר שהאירוע יכול לייצר, כולל חריגים שהאריכו מופע
+ * יחיד. זה מה שקובע כמה אחורה צריך לסרוק כדי לא לפספס פרישה שהתחילה
+ * לפני החלון ונמשכת לתוכו.
+ */
+function maxSpanDays(ev: UserEvent): number {
+  let longest = spanLengthOf(ev);
+  if (!ev.exceptions) return longest;
+  for (const [sourceKey, exception] of Object.entries(ev.exceptions)) {
+    if (!exception.endDate) continue;
+    longest = Math.max(
+      longest,
+      spanLengthOf({ date: exception.movedTo ?? sourceKey, endDate: exception.endDate }),
+    );
+  }
+  return longest;
+}

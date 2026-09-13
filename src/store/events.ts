@@ -26,6 +26,8 @@ const MAX_CONFLICTS = 20;
 export type EventDraft = {
   title: string;
   date: DateKey;
+  /** יום סיום לאירוע רב־יומי; חסר באירוע של יום אחד */
+  endDate?: DateKey;
   startTime: string | null;
   endTime: string | null;
   allDay: boolean;

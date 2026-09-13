@@ -369,6 +369,7 @@ export function DatePickerSheet({
   value,
   onChange,
   weekStart = 0,
+  min,
 }: {
   open: boolean;
   onClose: () => void;
@@ -377,6 +378,8 @@ export function DatePickerSheet({
   value: string;
   onChange: (next: string) => void;
   weekStart?: 0 | 1;
+  /** התאריך המוקדם ביותר שאפשר לבחור (YYYY-MM-DD) */
+  min?: string;
 }) {
   const selected = keyToDate(value);
   const [month, setMonth] = useState(
@@ -436,16 +439,18 @@ export function DatePickerSheet({
             const isSelected = key === value;
             const mark = markers.get(key);
             const hasHoliday = Boolean(mark?.holidays.length);
+            const disabled = Boolean(min && key < min);
             return (
               <button
                 key={key}
                 type="button"
+                disabled={disabled}
                 onClick={() => {
                   onChange(key);
                   onClose();
                 }}
                 aria-label={hasHoliday ? `${d.getDate()} · ${mark!.holidays[0]}` : undefined}
-                className="flex flex-col items-center gap-1 py-1"
+                className="focus-ring flex flex-col items-center gap-1 rounded-2xl py-1 disabled:opacity-30"
               >
                 <span
                   className={`tnum flex h-11 w-11 items-center justify-center rounded-2xl text-label transition-colors ${

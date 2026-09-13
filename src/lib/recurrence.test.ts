@@ -9,7 +9,9 @@ import {
   eventsOnDay,
   expandEvents,
   isOccurrenceKey,
+  isSpanEnd,
   sortOccurrences,
+  spanLengthOf,
   REPEAT_LABELS,
 } from './recurrence';
 import { dateKey, keyToDate } from './dates';
@@ -431,5 +433,154 @@ describe('חריגים בחזרה עברית', () => {
     expect(after).toEqual(['2027-12-25']);
     // השנה שאחריה חוזרת לתאריך העברי הרגיל
     expect(keysFor(moved, '2028-01-01', '2028-12-31')).toHaveLength(1);
+  });
+});
+
+/* ==========================================================================
+   אירועים רב־יומיים
+   ========================================================================== */
+
+describe('spanLengthOf', () => {
+  it('אירוע בלי יום סיום נמשך יום אחד', () => {
+    expect(spanLengthOf({ date: '2026-09-13' })).toBe(1);
+  });
+
+  it('יום סיום זהה ליום ההתחלה נמשך יום אחד', () => {
+    expect(spanLengthOf({ date: '2026-09-13', endDate: '2026-09-13' })).toBe(1);
+  });
+
+  it('סופר את שני הקצוות', () => {
+    expect(spanLengthOf({ date: '2026-09-13', endDate: '2026-09-15' })).toBe(3);
+  });
+
+  it('יום סיום לפני ההתחלה מתעלמים ממנו', () => {
+    expect(spanLengthOf({ date: '2026-09-13', endDate: '2026-09-10' })).toBe(1);
+  });
+
+  it('חוצה גבול חודש', () => {
+    expect(spanLengthOf({ date: '2026-09-29', endDate: '2026-10-02' })).toBe(4);
+  });
+
+  it('חוצה מעבר שעון קיץ בלי לאבד יום', () => {
+    // שעון הקיץ בישראל מתחיל ב-27.3.2026
+    expect(spanLengthOf({ date: '2026-03-26', endDate: '2026-03-29' })).toBe(4);
+  });
+});
+
+describe('פריסת אירוע רב־יומי', () => {
+  it('מופיע בכל ימי הפרישה', () => {
+    const ev = event({ date: '2026-09-13', endDate: '2026-09-16', allDay: true });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).toEqual([
+      '2026-09-13',
+      '2026-09-14',
+      '2026-09-15',
+      '2026-09-16',
+    ]);
+  });
+
+  it('כל יום יודע את מקומו בפרישה', () => {
+    const ev = event({ date: '2026-09-13', endDate: '2026-09-15', allDay: true });
+    const at = (k: string) => eventsOnDay([ev], keyToDate(k))[0];
+    expect(at('2026-09-13').spanIndex).toBe(0);
+    expect(at('2026-09-14').spanIndex).toBe(1);
+    expect(at('2026-09-15').spanIndex).toBe(2);
+    expect(at('2026-09-15').spanLength).toBe(3);
+    expect(isSpanEnd(at('2026-09-15'))).toBe(true);
+    expect(isSpanEnd(at('2026-09-14'))).toBe(false);
+  });
+
+  it('כל ימי הפרישה חולקים את אותו יום ראשון ואת אותו מזהה', () => {
+    const ev = event({ date: '2026-09-13', endDate: '2026-09-15', allDay: true });
+    const a = eventsOnDay([ev], keyToDate('2026-09-13'))[0];
+    const b = eventsOnDay([ev], keyToDate('2026-09-15'))[0];
+    expect(b.spanStart).toBe('2026-09-13');
+    expect(b.occurrenceId).toBe(a.occurrenceId);
+  });
+
+  it('פרישה שהתחילה לפני החלון ממשיכה לתוכו', () => {
+    const ev = event({ date: '2026-09-28', endDate: '2026-10-04', allDay: true });
+    const keys = keysFor(ev, '2026-10-01', '2026-10-31');
+    expect(keys).toEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
+    expect(eventsOnDay([ev], keyToDate('2026-10-01'))[0].spanIndex).toBe(3);
+  });
+
+  it('פרישה נחתכת בקצה החלון ולא זולגת מעבר לו', () => {
+    const ev = event({ date: '2026-09-28', endDate: '2026-10-04', allDay: true });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).toEqual(['2026-09-28', '2026-09-29', '2026-09-30']);
+  });
+
+  it('אירוע רב־יומי חוזר פורש מחדש בכל מופע', () => {
+    const ev = event({
+      date: '2026-09-07',
+      endDate: '2026-09-09',
+      repeat: 'weekly',
+      allDay: true,
+    });
+    const keys = keysFor(ev, '2026-09-01', '2026-09-30');
+    expect(keys).toContain('2026-09-07');
+    expect(keys).toContain('2026-09-09');
+    expect(keys).toContain('2026-09-14');
+    expect(keys).toContain('2026-09-16');
+    expect(keys).not.toContain('2026-09-10');
+  });
+
+  it('מופע חוזר שהתחיל לפני החלון נמשך לתוכו', () => {
+    const ev = event({
+      date: '2026-09-07',
+      endDate: '2026-09-09',
+      repeat: 'weekly',
+      allDay: true,
+    });
+    // החלון מתחיל באמצע המופע של ה-14
+    expect(keysFor(ev, '2026-09-15', '2026-09-20')).toContain('2026-09-15');
+  });
+
+  it('הזזת מופע רב־יומי מזיזה את כל הפרישה', () => {
+    const ev = event({
+      date: '2026-09-07',
+      endDate: '2026-09-09',
+      repeat: 'weekly',
+      allDay: true,
+      exceptions: { '2026-09-14': { movedTo: '2026-09-21' } },
+    });
+    const keys = keysFor(ev, '2026-09-01', '2026-09-30');
+    expect(keys).not.toContain('2026-09-14');
+    expect(keys).toContain('2026-09-21');
+    expect(keys).toContain('2026-09-23');
+  });
+
+  it('חריג יכול לשנות את אורך הפרישה של מופע יחיד', () => {
+    const ev = event({
+      date: '2026-09-07',
+      endDate: '2026-09-08',
+      repeat: 'weekly',
+      allDay: true,
+      exceptions: { '2026-09-14': { endDate: '2026-09-18' } },
+    });
+    expect(eventsOnDay([ev], keyToDate('2026-09-18'))).toHaveLength(1);
+    // השבוע שאחריו חוזר לאורך המקורי
+    expect(eventsOnDay([ev], keyToDate('2026-09-25'))).toHaveLength(0);
+  });
+
+  it('אירוע רב־יומי ממוין לפני אירוע ממודד', () => {
+    const trip = event({ date: '2026-09-13', endDate: '2026-09-15', allDay: true, title: 'טיול' });
+    const meeting = event({ date: '2026-09-14', startTime: '08:00', title: 'פגישה' });
+    const list = eventsOnDay([meeting, trip], keyToDate('2026-09-14'));
+    expect(list[0].title).toBe('טיול');
+  });
+
+  it('אירוע ארוך יותר ממוין לפני אירוע ארוך פחות', () => {
+    const long = event({ date: '2026-09-13', endDate: '2026-09-20', allDay: true, title: 'ארוך' });
+    const short = event({ date: '2026-09-13', endDate: '2026-09-14', allDay: true, title: 'קצר' });
+    const list = eventsOnDay([short, long], keyToDate('2026-09-13'));
+    expect(list[0].title).toBe('ארוך');
+  });
+
+  it('אירוע רגיל נשאר באורך 1', () => {
+    const ev = event({ date: '2026-09-13' });
+    const occ = eventsOnDay([ev], keyToDate('2026-09-13'))[0];
+    expect(occ.spanLength).toBe(1);
+    expect(occ.spanIndex).toBe(0);
+    expect(isSpanEnd(occ)).toBe(true);
   });
 });

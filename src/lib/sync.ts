@@ -49,6 +49,7 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
     id,
     title: data.title,
     date: data.date,
+    endDate: (data.endDate as string | undefined) || undefined,
     startTime: (data.startTime as string | null) ?? null,
     endTime: (data.endTime as string | null) ?? null,
     allDay: Boolean(data.allDay),
@@ -73,6 +74,7 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
   return {
     title: ev.title,
     date: ev.date,
+    endDate: ev.endDate ?? null,
     startTime: ev.startTime ?? null,
     endTime: ev.endTime ?? null,
     allDay: ev.allDay,

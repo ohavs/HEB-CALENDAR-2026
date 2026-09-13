@@ -207,6 +207,9 @@ export function buildReminders(
       const occurrences = expandEvents(withReminder, startOfDay(now), horizonEnd);
       for (const [key, list] of occurrences) {
         for (const occ of list) {
+          // אירוע רב־יומי מקבל תזכורת אחת, ביום שהוא מתחיל - לא אחת
+          // לכל יום של החופשה
+          if (occ.spanIndex > 0) continue;
           const mins = occ.reminderMinutes ?? 0;
           const base = occ.allDay
             ? (() => {
@@ -220,7 +223,9 @@ export function buildReminders(
             id: `event-${occ.occurrenceId}`,
             at,
             title: occ.title,
-            body: occ.allDay
+            body: occ.spanLength > 1
+              ? `${occ.spanLength} ימים`
+              : occ.allDay
               ? 'אירוע של כל היום'
               : `${reminderTitle(mins, 'האירוע')} · ${formatTime(base)}${occ.location ? ` · ${occ.location}` : ''}`,
           });
