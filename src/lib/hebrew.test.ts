@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { HDate } from '@hebcal/core';
 import {
   buildDay,
+  clearCalendarCache,
   buildDays,
   dayZmanim,
   hebrewDateAfterSunset,
@@ -357,5 +358,68 @@ describe('buildDays', () => {
         expect(day.times[i].at).toBeGreaterThanOrEqual(day.times[i - 1].at);
       }
     }
+  });
+});
+
+/* ==========================================================================
+   מטמון
+   ========================================================================== */
+
+describe('מטמון החישוב', () => {
+  it('אותה בקשה מחזירה את אותה מפה', () => {
+    clearCalendarCache();
+    const a = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), opts);
+    const b = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), opts);
+    expect(b).toBe(a);
+  });
+
+  it('שינוי סינון מחזיר תוצאה חדשה', () => {
+    clearCalendarCache();
+    const a = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), opts);
+    const b = buildDays(
+      new Date(2026, 8, 1),
+      new Date(2026, 8, 30),
+      buildOptions({ showParsha: false }),
+    );
+    expect(b).not.toBe(a);
+    expect([...b.values()].every((d) => d.parsha === undefined)).toBe(true);
+  });
+
+  it('שינוי עיר מחזיר תוצאה חדשה', () => {
+    clearCalendarCache();
+    const a = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), opts);
+    const b = buildDays(
+      new Date(2026, 8, 1),
+      new Date(2026, 8, 30),
+      buildOptions({ city: TEL_AVIV }),
+    );
+    expect(b).not.toBe(a);
+  });
+
+  it('עיר מותאמת אישית עם אותו מזהה אך קואורדינטות אחרות לא מחזירה מטמון', () => {
+    clearCalendarCache();
+    const here = { ...JERUSALEM, id: 'custom' };
+    const there = { ...JERUSALEM, id: 'custom', latitude: 32.79, longitude: 34.99 };
+    const a = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), buildOptions({ city: here }));
+    const b = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), buildOptions({ city: there }));
+    expect(b).not.toBe(a);
+  });
+
+  it('טווח אחר מחזיר תוצאה חדשה', () => {
+    clearCalendarCache();
+    const a = buildDays(new Date(2026, 8, 1), new Date(2026, 8, 30), opts);
+    const b = buildDays(new Date(2026, 9, 1), new Date(2026, 9, 31), opts);
+    expect(b).not.toBe(a);
+    expect(b.size).toBe(31);
+  });
+
+  it('המטמון לא מחזיק יותר מהתקרה', () => {
+    clearCalendarCache();
+    const first = buildDays(new Date(2020, 0, 1), new Date(2020, 0, 31), opts);
+    for (let m = 0; m < 30; m += 1) {
+      buildDays(new Date(2021, m, 1), new Date(2021, m, 28), opts);
+    }
+    // הישן ביותר נזרק, ולכן אותה בקשה תיבנה מחדש
+    expect(buildDays(new Date(2020, 0, 1), new Date(2020, 0, 31), opts)).not.toBe(first);
   });
 });

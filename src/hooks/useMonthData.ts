@@ -1,7 +1,7 @@
 /** חישוב הנתונים של חודש שלם - מועדים, זמנים ואירועי המשתמש. */
 import { useMemo } from 'react';
 import type { DateKey, DayInfo } from '@/types';
-import { monthGridDays, monthKey } from '@/lib/dates';
+import { addDays, dateKey, monthGridDays, monthKey } from '@/lib/dates';
 import { buildDays } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
 import { expandEvents, type Occurrence } from '@/lib/recurrence';
@@ -13,18 +13,9 @@ function filtersSignature(...values: unknown[]): string {
   return values.join('|');
 }
 
-export type MonthData = {
-  gridDays: Date[];
-  days: Map<DateKey, DayInfo>;
-  occurrences: Map<DateKey, Occurrence[]>;
-};
-
-export function useMonthData(month: Date): MonthData {
-  const settings = useSettings();
-  const events = useEvents();
-  const mk = monthKey(month);
-
-  const signature = filtersSignature(
+/** אותה חתימה, נגזרת מההגדרות. מרוכזת כאן כדי שכל הוק ישתמש בה. */
+function useFiltersSignature(settings: ReturnType<typeof useSettings>): string {
+  return filtersSignature(
     settings.cityId,
     settings.showJewishHolidays,
     settings.showIsraeliHolidays,
@@ -39,6 +30,20 @@ export function useMonthData(month: Date): MonthData {
     settings.havdalahDegrees,
     settings.havdalahMins,
   );
+}
+
+export type MonthData = {
+  gridDays: Date[];
+  days: Map<DateKey, DayInfo>;
+  occurrences: Map<DateKey, Occurrence[]>;
+};
+
+export function useMonthData(month: Date): MonthData {
+  const settings = useSettings();
+  const events = useEvents();
+  const mk = monthKey(month);
+
+  const signature = useFiltersSignature(settings);
 
   const gridDays = useMemo(
     () => monthGridDays(month, settings.weekStart),
@@ -84,4 +89,48 @@ export function useDayData(date: Date | null) {
     return { day, occurrences: [...occurrences.values()].flat() };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, events, settings]);
+}
+
+
+/* ==========================================================================
+   טווח חופשי - תצוגת שבוע וסדר יום
+   ========================================================================== */
+
+export type RangeData = {
+  dates: Date[];
+  days: Map<DateKey, DayInfo>;
+  occurrences: Map<DateKey, Occurrence[]>;
+};
+
+/**
+ * נתוני טווח תאריכים כלשהו. משרת גם את תצוגת השבוע וגם את סדר היום,
+ * ונשען על אותו מטמון של buildDays - ולכן מעבר בין התצוגות אינו מחשב
+ * מחדש את מה שכבר חושב.
+ */
+export function useRangeData(start: Date, end: Date): RangeData {
+  const settings = useSettings();
+  const events = useEvents();
+  const signature = useFiltersSignature(settings);
+  const range = `${dateKey(start)}..${dateKey(end)}`;
+
+  const dates = useMemo(() => {
+    const out: Date[] = [];
+    for (let d = start; d <= end; d = addDays(d, 1)) out.push(d);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
+
+  const days = useMemo(
+    () => buildDays(start, end, { ...toFilters(settings), city: findCity(settings.cityId) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [range, signature],
+  );
+
+  const occurrences = useMemo(
+    () => expandEvents(events, start, end),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, range],
+  );
+
+  return { dates, days, occurrences };
 }

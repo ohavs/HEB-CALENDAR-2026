@@ -11,6 +11,7 @@ export function defaultSettings(): Settings {
   const city = findCity(cityId);
   return {
     theme: 'system',
+    view: 'month',
     showHebrewDates: true,
     showHebrewMonths: true,
     showJewishHolidays: true,

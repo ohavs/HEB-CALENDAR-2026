@@ -1,13 +1,24 @@
 /** כותרת הלוח: פרופיל, שם החודש, חיפוש והוספה - בדיוק כמו בעיצוב הייחוס. */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Plus, Search, User } from 'lucide-react';
+import { CalendarDays, Columns3, LayoutGrid, List, Plus, Search, User } from 'lucide-react';
+import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON, STROKE } from '@/lib/motion';
 
+const VIEW_ICON = { month: LayoutGrid, week: Columns3, agenda: List } as const;
+const VIEW_LABEL: Record<CalendarView, string> = {
+  month: 'חודש',
+  week: 'שבוע',
+  agenda: 'סדר יום',
+};
+
 export function CalendarHeader({
   month,
+  title,
   hebrewMonthLabel,
   showToday,
+  view,
+  onPickView,
   photoURL,
   onProfile,
   onSearch,
@@ -16,8 +27,12 @@ export function CalendarHeader({
   onTitle,
 }: {
   month: Date;
+  /** כיתוב מפורש, כשהתצוגה אינה חודש שלם */
+  title?: string;
   hebrewMonthLabel?: string;
   showToday: boolean;
+  view: CalendarView;
+  onPickView: () => void;
   photoURL: string | null;
   onProfile: () => void;
   onSearch: () => void;
@@ -25,7 +40,8 @@ export function CalendarHeader({
   onToday: () => void;
   onTitle: () => void;
 }) {
-  const label = `${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`;
+  const label = title ?? `${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`;
+  const ViewIcon = VIEW_ICON[view];
 
   return (
     <header className="safe-t shrink-0 gutter-x pb-5 pt-7 lg:pb-6 lg:pt-9">
@@ -91,6 +107,16 @@ export function CalendarHeader({
 
           <motion.button
             type="button"
+            onClick={onPickView}
+            whileTap={{ scale: 0.92 }}
+            aria-label={`תצוגה: ${VIEW_LABEL[view]}`}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
+          >
+            <ViewIcon size={ICON.xl} strokeWidth={2.1} />
+          </motion.button>
+
+          <motion.button
+            type="button"
             onClick={onSearch}
             whileTap={{ scale: 0.92 }}
             aria-label="חיפוש"
@@ -113,3 +139,5 @@ export function CalendarHeader({
     </header>
   );
 }
+
+export { VIEW_LABEL, VIEW_ICON };

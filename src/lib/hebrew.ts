@@ -225,11 +225,83 @@ function isTimed(ev: Event): boolean {
   return typeof (ev as { eventTime?: Date }).eventTime !== 'undefined';
 }
 
+/* ==========================================================================
+   מטמון
+   ========================================================================== */
+
+/**
+ * חישוב חודש מול hebcal עולה כמה מילישניות, ועד כה הוא נעשה מחדש בכל
+ * שינוי הגדרה ובכל חזרה לחודש שכבר נצפה. המטמון כאן שומר את התוצאה לפי
+ * הטווח, חתימת הסינון והעיר.
+ *
+ * `isToday` תלוי בתאריך הנוכחי, ולכן מפתח היום נכנס לחתימה - אחרת מטמון
+ * שנוצר לפני חצות יסמן את היום הלא נכון אחריו. גם קווי האורך והרוחב
+ * נכנסים, כדי שעיר מותאמת אישית שהוחלפה תחת אותו מזהה לא תחזיר זמנים
+ * של המיקום הקודם.
+ *
+ * המפה המוחזרת משותפת לכל הקוראים ואסור לשנות אותה במקום.
+ */
+const CACHE_LIMIT = 24;
+const dayCache = new Map<string, Map<DateKey, DayInfo>>();
+
+function cacheKey(start: Date, end: Date, o: BuildOptions, focusMonth?: Date): string {
+  return [
+    dateKey(start),
+    dateKey(end),
+    focusMonth ? dateKey(focusMonth) : '',
+    dateKey(new Date()),
+    o.city.id,
+    o.city.latitude,
+    o.city.longitude,
+    o.city.tzid,
+    o.city.il,
+    o.showJewishHolidays,
+    o.showIsraeliHolidays,
+    o.showMinorHolidays,
+    o.showFasts,
+    o.showRoshChodesh,
+    o.showParsha,
+    o.showOmer,
+    o.showCandleTimes,
+    o.candleLightingMins,
+    o.havdalahMode,
+    o.havdalahDegrees,
+    o.havdalahMins,
+  ].join('|');
+}
+
+/** מרוקן את המטמון. לשימוש בדיקות ובאיפוס ידני. */
+export function clearCalendarCache(): void {
+  dayCache.clear();
+}
+
 /**
  * בונה מפה של DayInfo לכל יום בטווח.
  * הטווח כולל ימי גלישה, ולכן נשלח גם `focusMonth` כדי לסמן מה שייך לחודש.
  */
 export function buildDays(
+  start: Date,
+  end: Date,
+  options: BuildOptions,
+  focusMonth?: Date,
+): Map<DateKey, DayInfo> {
+  const key = cacheKey(start, end, options, focusMonth);
+  const cached = dayCache.get(key);
+  if (cached) {
+    // רענון סדר ה-LRU: הנצפה לאחרונה חוזר לסוף
+    dayCache.delete(key);
+    dayCache.set(key, cached);
+    return cached;
+  }
+  const built = computeDays(start, end, options, focusMonth);
+  dayCache.set(key, built);
+  if (dayCache.size > CACHE_LIMIT) {
+    dayCache.delete(dayCache.keys().next().value!);
+  }
+  return built;
+}
+
+function computeDays(
   start: Date,
   end: Date,
   options: BuildOptions,

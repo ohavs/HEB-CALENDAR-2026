@@ -1,7 +1,7 @@
 /** שורש האפליקציה - מחבר את המסכים, החלוניות, הסנכרון והתזכורות. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import type { DateKey, UserEvent } from '@/types';
+import type { CalendarView, DateKey, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { addMonths, dateKey, keyToDate, startOfDay } from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
@@ -11,7 +11,7 @@ import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
 import { useEvents, useEventsStore } from '@/store/events';
-import { applyTheme, useSettings } from '@/store/settings';
+import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { CalendarScreen } from '@/components/CalendarScreen';
@@ -28,6 +28,7 @@ import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
+import { OptionPickerSheet } from '@/components/ui/Picker';
 
 const REMINDER_DEBOUNCE_MS = 700;
 
@@ -62,6 +63,7 @@ export default function App() {
   });
   const [cityOpen, setCityOpen] = useState(false);
   const [conflictsOpen, setConflictsOpen] = useState(false);
+  const [viewPickerOpen, setViewPickerOpen] = useState(false);
   /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
     null,
@@ -259,6 +261,7 @@ export default function App() {
                   setYearValue(monthState.month.getFullYear());
                   setYearOpen(true);
                 }}
+                onPickView={() => setViewPickerOpen(true)}
                 photoURL={authUser?.photoURL ?? null}
                 bottomInset={bottomInset}
               />
@@ -304,6 +307,19 @@ export default function App() {
       />
 
       <ConflictSheet open={conflictsOpen} onClose={() => setConflictsOpen(false)} />
+
+      <OptionPickerSheet<CalendarView>
+        open={viewPickerOpen}
+        onClose={() => setViewPickerOpen(false)}
+        title="תצוגת הלוח"
+        value={settings.view}
+        onChange={(view) => useSettingsStore.getState().set('view', view)}
+        options={[
+          { value: 'month', label: 'חודש' },
+          { value: 'week', label: 'שבוע' },
+          { value: 'agenda', label: 'סדר יום' },
+        ]}
+      />
 
       <ScopeSheet
         open={pendingDrop !== null}

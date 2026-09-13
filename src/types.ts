@@ -124,6 +124,9 @@ export type DayInfo = {
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/** איך הלוח מוצג: רשת חודש, ציר שבוע, או רשימה רציפה. */
+export type CalendarView = 'month' | 'week' | 'agenda';
+
 /**
  * מקום שמור של המשתמש ("בית", "עבודה").
  * אפשר לקבל התראה בהגעה אליו, ביציאה ממנו, או בשניהם.
@@ -158,6 +161,8 @@ export type GeoCity = {
 
 export type Settings = {
   theme: ThemeMode;
+  /** תצוגת הלוח האחרונה שנבחרה */
+  view: CalendarView;
   /** הצגת תאריך עברי בתאי הלוח */
   showHebrewDates: boolean;
   /** הצגת שם החודש העברי בכותרת */
