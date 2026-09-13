@@ -31,6 +31,7 @@ import {
 } from '@/lib/notifications';
 import { Segmented, SettingRow, SettingsGroup, Toggle } from './ui/controls';
 import { PlaceEditor } from './PlaceEditor';
+import { BackupRows } from './BackupRows';
 import { radiusLabel } from '@/lib/geofence';
 import type { SavedPlace } from '@/types';
 import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
@@ -592,6 +593,14 @@ export function SettingsScreen({
           icon={<Plus size={ICON.lg} strokeWidth={STROKE} />}
           onClick={() => setPlaceEditor({ open: true, editing: null })}
         />
+      </SettingsGroup>
+
+      {/* ------------------------------ גיבוי ------------------------------ */}
+      <SettingsGroup
+        title="גיבוי"
+        footer="קובץ ICS נפתח בגוגל קלנדר, באאוטלוק ובאפליקציית הלוח של אייפון."
+      >
+        <BackupRows />
       </SettingsGroup>
 
       {/* ---------------------------- אפליקציה ---------------------------- */}
