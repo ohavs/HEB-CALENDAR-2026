@@ -6,7 +6,7 @@ import { DEFAULT_CITY_ID, findCity, guessCityId } from '@/lib/locations';
 
 const STORAGE_KEY = 'heb-cal:settings';
 
-function defaults(): Settings {
+export function defaultSettings(): Settings {
   const cityId = guessCityId();
   const city = findCity(cityId);
   return {
@@ -56,7 +56,7 @@ type SettingsStore = {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (setState) => ({
-      settings: defaults(),
+      settings: defaultSettings(),
       revision: 0,
       updatedAt: 0,
       set: (key, value) =>
@@ -74,7 +74,7 @@ export const useSettingsStore = create<SettingsStore>()(
       replaceAll: (values) =>
         setState((s) => ({ settings: values, revision: s.revision + 1, updatedAt: Date.now() })),
       reset: () =>
-        setState((s) => ({ settings: defaults(), revision: s.revision + 1, updatedAt: Date.now() })),
+        setState((s) => ({ settings: defaultSettings(), revision: s.revision + 1, updatedAt: Date.now() })),
     }),
     {
       name: STORAGE_KEY,

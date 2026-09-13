@@ -131,6 +131,9 @@ function classify(mask: number): HolidayKind {
   if (mask & flags.ROSH_CHODESH) return 'roshchodesh';
   if (mask & flags.PARSHA_HASHAVUA) return 'parsha';
   if (mask & flags.OMER_COUNT) return 'omer';
+  // יום כיפור נושא גם את דגל החג וגם את דגל הצום. הוא יום טוב קודם כול:
+  // אילו היה מסווג כצום, כיבוי הצומות בהגדרות היה מעלים אותו מהלוח.
+  if (mask & flags.CHAG && !(mask & flags.EREV) && !(mask & flags.CHOL_HAMOED)) return 'yomtov';
   if (mask & flags.MAJOR_FAST) return 'majorfast';
   if (mask & flags.MINOR_FAST) return 'minorfast';
   if (mask & flags.SPECIAL_SHABBAT) return 'specialshabbat';

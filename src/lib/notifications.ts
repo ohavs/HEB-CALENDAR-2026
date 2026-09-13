@@ -229,9 +229,12 @@ export function buildReminders(
     }
   }
 
+  // upcomingShabbatot סורק שבועות שלמים ולכן מגיע מעבר לאופק; חותכים כאן
+  // כדי שהאופק המוצהר יהיה גם האופק בפועל.
   const cutoff = now.getTime() - LATE_WINDOW_MS;
+  const horizonCutoff = addDays(startOfDay(now), HORIZON_DAYS + 1).getTime();
   return out
-    .filter((r) => r.at > cutoff)
+    .filter((r) => r.at > cutoff && r.at < horizonCutoff)
     .sort((a, b) => a.at - b.at)
     .slice(0, 250);
 }
