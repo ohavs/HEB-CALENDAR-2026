@@ -115,8 +115,14 @@ async function startSession(uid: string) {
         remote.push(ev);
         syncedAt.set(ev.id, ev.updatedAt);
       }
+      // מה שיש לו שינוי מקומי שטרם נדחף - בדיוק אותו סינון שהדחיפה עושה.
+      // אירוע כזה שנדרס על ידי הענן הוא התנגשות אמיתית.
+      const unpushed = new Set<string>();
+      for (const ev of Object.values(useEventsStore.getState().byId)) {
+        if ((syncedAt.get(ev.id) ?? -1) < ev.updatedAt) unpushed.add(ev.id);
+      }
       applyingRemote = true;
-      useEventsStore.getState().mergeRemote(remote);
+      useEventsStore.getState().mergeRemote(remote, unpushed);
       applyingRemote = false;
     },
     () => {

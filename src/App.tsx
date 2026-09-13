@@ -27,6 +27,7 @@ import { YearPicker } from '@/components/YearPicker';
 import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
+import { ConflictSheet } from '@/components/ConflictSheet';
 
 const REMINDER_DEBOUNCE_MS = 700;
 
@@ -60,6 +61,7 @@ export default function App() {
     editing: null,
   });
   const [cityOpen, setCityOpen] = useState(false);
+  const [conflictsOpen, setConflictsOpen] = useState(false);
   /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
     null,
@@ -127,6 +129,21 @@ export default function App() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.placeAlertsEnabled, settings.places.length]);
+
+  /* ------------------------- התנגשויות סנכרון ------------------------- */
+  const conflictCount = useEventsStore((s) => s.conflicts.length);
+  const lastConflictCount = useRef(conflictCount);
+  useEffect(() => {
+    if (conflictCount > lastConflictCount.current) {
+      toast(
+        conflictCount === 1
+          ? 'אירוע שונה גם במכשיר אחר'
+          : `${conflictCount} אירועים שונו גם במכשיר אחר`,
+        { label: 'הצגה', run: () => setConflictsOpen(true) },
+      );
+    }
+    lastConflictCount.current = conflictCount;
+  }, [conflictCount]);
 
   /* ---------------------------- ניווט בחודשים ---------------------------- */
   const goToMonth = useCallback((month: Date, direction: number) => {
@@ -252,7 +269,11 @@ export default function App() {
             )}
 
             {tab === 'settings' && (
-              <SettingsScreen onPickCity={() => setCityOpen(true)} bottomInset={bottomInset} />
+              <SettingsScreen
+                onPickCity={() => setCityOpen(true)}
+                onOpenConflicts={() => setConflictsOpen(true)}
+                bottomInset={bottomInset}
+              />
             )}
             </motion.main>
           </AnimatePresence>
@@ -281,6 +302,8 @@ export default function App() {
         }}
         onEditEvent={editOccurrence}
       />
+
+      <ConflictSheet open={conflictsOpen} onClose={() => setConflictsOpen(false)} />
 
       <ScopeSheet
         open={pendingDrop !== null}

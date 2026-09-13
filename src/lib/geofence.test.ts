@@ -6,19 +6,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { distanceMeters, evaluatePosition, radiusLabel } from './geofence';
 import type { SavedPlace } from '@/types';
 
-/** אחסון מקומי בזיכרון, כי evaluatePosition זוכרת בו את מצב הכניסה. */
-function installStorage() {
-  const map = new Map<string, string>();
-  (globalThis as { localStorage?: unknown }).localStorage = {
-    getItem: (k: string) => map.get(k) ?? null,
-    setItem: (k: string, v: string) => void map.set(k, v),
-    removeItem: (k: string) => void map.delete(k),
-    clear: () => map.clear(),
-    key: () => null,
-    length: 0,
-  };
-}
-
 const HOME: SavedPlace = {
   id: 'home',
   name: 'בית',
@@ -38,7 +25,8 @@ function north(meters: number) {
 const INSIDE = north(0);
 const FAR = north(5_000);
 
-beforeEach(installStorage);
+// המצב נשמר באחסון המקומי, ולכן מנקים בין בדיקות
+beforeEach(() => localStorage.clear());
 
 describe('distanceMeters', () => {
   it('מרחק אפס לאותה נקודה', () => {

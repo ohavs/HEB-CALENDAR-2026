@@ -6,6 +6,7 @@ import {
   BellRing,
   Check,
   ChevronLeft,
+  CloudOff,
   Download,
   LogOut,
   MapPin,
@@ -18,6 +19,7 @@ import {
 import type { ThemeMode } from '@/types';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
+import { useEventsStore } from '@/store/events';
 import { findCity } from '@/lib/locations';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import {
@@ -119,12 +121,16 @@ function TimeSettingRow({
 
 export function SettingsScreen({
   onPickCity,
+  onOpenConflicts,
   bottomInset,
 }: {
   onPickCity: () => void;
+  /** פתיחת רשימת ההתנגשויות; מוצגת רק כשיש כאלה */
+  onOpenConflicts: () => void;
   bottomInset: number;
 }) {
   const settings = useSettings();
+  const conflictCount = useEventsStore((s) => s.conflicts.length);
   const setValue = useSettingsStore((s) => s.set);
   const { user, status, busy, error, signInWithGoogle, signOut, clearError } = useAuthStore();
 
@@ -210,6 +216,18 @@ export function SettingsScreen({
                 מסונכרן
               </span>
             </div>
+            {conflictCount > 0 && (
+              <SettingRow
+                title="שינויים שהתנגשו"
+                hint={
+                  conflictCount === 1
+                    ? 'אירוע אחד שונה גם במכשיר אחר'
+                    : `${conflictCount} אירועים שונו גם במכשיר אחר`
+                }
+                icon={<CloudOff size={ICON.md} strokeWidth={2.1} />}
+                onClick={onOpenConflicts}
+              />
+            )}
             <SettingRow
               title="יציאה מהחשבון"
               hint="הנתונים יישארו על המכשיר הזה"

@@ -6,6 +6,23 @@ import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 
 const STORAGE_KEY = 'heb-cal:events';
 
+/**
+ * שתי גרסאות של אותו אירוע ששונו בשני מכשירים ללא קשר זו לזו.
+ * הסנכרון הוא last-write-wins, ולכן אחת מהן כבר נדחתה - אבל היא נשמרת
+ * כאן כדי שהמשתמש יוכל להחזיר אותה במקום לגלות שהיא נעלמה.
+ */
+export type SyncConflict = {
+  id: string;
+  /** הגרסה המקומית שהפסידה */
+  local: UserEvent;
+  /** הגרסה שהתקבלה מהענן וניצחה */
+  remote: UserEvent;
+  detectedAt: number;
+};
+
+/** יותר מזה זו כבר ערמה ולא התראה */
+const MAX_CONFLICTS = 20;
+
 export type EventDraft = {
   title: string;
   date: DateKey;
@@ -43,8 +60,20 @@ type EventsStore = {
   cancelOccurrence: (id: string, sourceKey: DateKey) => void;
   /** מחזיר מופע שבוטל או שהוזז למקומו המקורי */
   restoreOccurrence: (id: string, sourceKey: DateKey) => void;
-  /** מיזוג נתונים מהענן - מנצח ה-updatedAt המאוחר */
-  mergeRemote: (remote: UserEvent[]) => void;
+  /**
+   * מיזוג נתונים מהענן - מנצח ה-updatedAt המאוחר.
+   * `unpushed` הוא קבוצת המזהים שיש להם שינוי מקומי שטרם נדחף. אירוע
+   * כזה שנדרס על ידי הענן הוא התנגשות אמיתית, ולא סתם עדכון.
+   */
+  mergeRemote: (remote: UserEvent[], unpushed?: Set<string>) => void;
+
+  /* ---------- התנגשויות סנכרון ---------- */
+  conflicts: SyncConflict[];
+  /** מחזיר את הגרסה המקומית שהפסידה, עם חותמת זמן חדשה כדי שתנצח */
+  keepLocalVersion: (id: string) => void;
+  /** מוותר על הגרסה המקומית ומשאיר את זו שהגיעה מהענן */
+  dismissConflict: (id: string) => void;
+  clearConflicts: () => void;
   /** מחיקת כל הנתונים המקומיים (יציאה מהחשבון) */
   clearLocal: () => void;
 };
@@ -136,21 +165,55 @@ export const useEventsStore = create<EventsStore>()(
           };
         }),
 
-      mergeRemote: (remote) =>
+      conflicts: [],
+
+      mergeRemote: (remote, unpushed) =>
         setState((s) => {
           const next = { ...s.byId };
+          const found: SyncConflict[] = [];
           let changed = false;
           for (const r of remote) {
             const local = next[r.id];
-            if (!local || r.updatedAt > local.updatedAt) {
-              next[r.id] = r;
-              changed = true;
+            if (local && r.updatedAt <= local.updatedAt) continue;
+            // המקומי מפסיד. אם היה בו שינוי שטרם נדחף, המשתמש עומד לאבד
+            // עבודה אמיתית - שומרים את הגרסה שנדחתה ומדווחים.
+            if (local && unpushed?.has(r.id) && !local.deleted) {
+              found.push({ id: r.id, local, remote: r, detectedAt: Date.now() });
             }
+            next[r.id] = r;
+            changed = true;
           }
-          return changed ? { byId: next, revision: s.revision + 1 } : s;
+          if (!changed) return s;
+          return {
+            byId: next,
+            revision: s.revision + 1,
+            conflicts: found.length
+              ? [...found, ...s.conflicts.filter((c) => !found.some((f) => f.id === c.id))].slice(
+                  0,
+                  MAX_CONFLICTS,
+                )
+              : s.conflicts,
+          };
         }),
 
-      clearLocal: () => setState((s) => ({ byId: {}, revision: s.revision + 1 })),
+      keepLocalVersion: (id) =>
+        setState((s) => {
+          const conflict = s.conflicts.find((c) => c.id === id);
+          if (!conflict) return s;
+          return {
+            byId: { ...s.byId, [id]: { ...conflict.local, updatedAt: Date.now() } },
+            revision: s.revision + 1,
+            conflicts: s.conflicts.filter((c) => c.id !== id),
+          };
+        }),
+
+      dismissConflict: (id) =>
+        setState((s) => ({ conflicts: s.conflicts.filter((c) => c.id !== id) })),
+
+      clearConflicts: () => setState(() => ({ conflicts: [] })),
+
+      clearLocal: () =>
+        setState((s) => ({ byId: {}, revision: s.revision + 1, conflicts: [] })),
     }),
     { name: STORAGE_KEY, version: 2 },
   ),
