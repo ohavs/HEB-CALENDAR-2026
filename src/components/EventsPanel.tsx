@@ -18,6 +18,7 @@ import {
 } from 'framer-motion';
 import { useRef } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
+import { useOverlayHistory } from '@/lib/overlayHistory';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
@@ -219,6 +220,8 @@ export function EventsPanel({
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
   const controls = useDragControls();
+  // חלונית פתוחה היא מצב שאפשר לחזור ממנו, בדיוק כמו גיליון
+  useOverlayHistory(open, () => onOpenChange(false));
   const { scrollRef, handleProps, contentProps } = useSheetDrag(controls);
   const y = useMotionValue(0);
   const collapsedY = Math.max(0, height - PEEK_HEIGHT);

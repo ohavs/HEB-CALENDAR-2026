@@ -35,6 +35,8 @@ import { YearPicker } from '@/components/YearPicker';
 import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
 import { announce, setAnnouncer } from '@/lib/announce';
+import { useOverlayHistory } from '@/lib/overlayHistory';
+import { consumeLaunch } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
 import { OptionPickerSheet } from '@/components/ui/Picker';
@@ -141,6 +143,24 @@ export default function App() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.placeAlertsEnabled, settings.places.length]);
+
+  /*
+   * קיצורי דרך וקישורים עמוקים. רץ פעם אחת, אחרי שהמסך כבר קיים, והכתובת
+   * מנוקה כדי שרענון לא יחזור על הפעולה.
+   */
+  useEffect(() => {
+    const intent = consumeLaunch();
+    if (intent.tab) setTab(intent.tab);
+    if (intent.date) goToDate(intent.date);
+    if (intent.compose) openEditor(intent.compose);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /*
+   * כפתור החזרה על לשונית שאינה הלוח מחזיר ללוח, כמקובל באנדרואיד, ורק
+   * חזרה נוספת יוצאת מהאפליקציה.
+   */
+  useOverlayHistory(tab !== 'calendar', () => setTab('calendar'));
 
   /* ----------------------- הכרזות לקורא מסך ----------------------- */
   useEffect(() => {

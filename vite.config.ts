@@ -38,9 +38,11 @@ export default defineConfig({
           { src: 'icons/maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // הפרמטרים נקראים ב-src/lib/launchParams.ts
         shortcuts: [
           { name: 'זמני שבת', short_name: 'שבת', url: '/?tab=shabbat' },
           { name: 'היום', short_name: 'היום', url: '/?tab=calendar&go=today' },
+          { name: 'אירוע חדש', short_name: 'אירוע', url: '/?tab=calendar&compose=today' },
         ],
       },
       workbox: {

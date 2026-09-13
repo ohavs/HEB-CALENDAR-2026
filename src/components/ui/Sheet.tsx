@@ -15,6 +15,7 @@ import { useCallback, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
+import { useOverlayHistory } from '@/lib/overlayHistory';
 import { GLIDE, ICON, STROKE } from '@/lib/motion';
 
 const CLOSE_OFFSET = 110;
@@ -74,6 +75,10 @@ export function Sheet({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // כפתור החזרה של אנדרואיד, והחלקת "חזרה" בדפדפן הנייד, סוגרים את
+  // הגיליון במקום לצאת מהאפליקציה. כל גיליון באפליקציה עובר דרך כאן.
+  useOverlayHistory(open, onClose);
 
   const onDragEnd = useCallback(
     (_: unknown, info: PanInfo) => {
