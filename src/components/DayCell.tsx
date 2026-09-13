@@ -71,6 +71,7 @@ function DayCellInner({
 }: Props) {
   const isDropTarget = useIsDropTarget(day.key);
   const dim = !day.inCurrentMonth;
+  const compact = settings.density === 'compact';
 
   const holidays = settings.showJewishHolidays ? day.holidays : [];
   // מועד ראשון תמיד מוצג; השאר מתחלקים עם האירועים לפי המקום שנשאר
@@ -153,28 +154,58 @@ function DayCellInner({
 
       {/* מועדים, אירועים וזמנים */}
       <span className="mt-1 flex min-h-0 flex-col gap-[3px]">
-        {shownHolidays.map((h, i) => (
-          <span
-            key={h.id}
-            className={`text-tiny leading-[1.2] ${holidayTone(h.kind)} ${
-              i === 0 ? 'line-clamp-2' : 'truncate'
-            }`}
-          >
-            {h.shortTitle}
-          </span>
-        ))}
+        {/*
+          במצב קומפקטי התא מוותר על הכיתובים: מועד אחד בשורה קצרה,
+          והאירועים כנקודות צבע. במסך צר זה ההבדל בין תא שאפשר לקרוא
+          לבין ארבעה כיתובים חתוכים.
+        */}
+        {compact ? (
+          <>
+            {shownHolidays.slice(0, 1).map((h) => (
+              <span
+                key={h.id}
+                className={`truncate text-tiny leading-[1.2] ${holidayTone(h.kind)}`}
+              >
+                {h.shortTitle}
+              </span>
+            ))}
+            {occurrences.length > 0 && (
+              <span className="mt-0.5 flex flex-wrap justify-center gap-[3px]">
+                {occurrences.slice(0, 4).map((occ) => (
+                  <span
+                    key={occ.occurrenceId}
+                    className={`ev ev-${occ.color} ev-dot h-1.5 w-1.5 rounded-full`}
+                  />
+                ))}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            {shownHolidays.map((h, i) => (
+              <span
+                key={h.id}
+                className={`text-tiny leading-[1.2] ${holidayTone(h.kind)} ${
+                  i === 0 ? 'line-clamp-2' : 'truncate'
+                }`}
+              >
+                {h.shortTitle}
+              </span>
+            ))}
 
-        {shownEvents.map((occ) => (
-          <MiniEventChip
-            key={occ.occurrenceId}
-            occurrence={occ}
-            // פס רב־יומי נושא כותרת בתחילתו, ושוב בתחילת כל שורת שבוע -
-            // אחרת השורה השנייה של החופשה היא פס צבע בלי שם
-            labelled={occ.spanIndex === 0 || day.date.getDay() === settings.weekStart}
-          />
-        ))}
+            {shownEvents.map((occ) => (
+              <MiniEventChip
+                key={occ.occurrenceId}
+                occurrence={occ}
+                // פס רב־יומי נושא כותרת בתחילתו, ושוב בתחילת כל שורת שבוע -
+                // אחרת השורה השנייה של החופשה היא פס צבע בלי שם
+                labelled={occ.spanIndex === 0 || day.date.getDay() === settings.weekStart}
+              />
+            ))}
+          </>
+        )}
 
-        {hidden > 0 && (
+        {!compact && hidden > 0 && (
           <span className="text-micro font-medium leading-none text-faint">+{hidden}</span>
         )}
 

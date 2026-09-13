@@ -16,7 +16,7 @@ import {
   Sun,
   SunMoon,
 } from 'lucide-react';
-import type { ThemeMode } from '@/types';
+import type { Density, ThemeMode } from '@/types';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
 import { useEventsStore } from '@/store/events';
@@ -305,6 +305,21 @@ export function SettingsScreen({
             options={[
               { value: '0', label: 'ראשון' },
               { value: '1', label: 'שני' },
+            ]}
+          />
+        </SettingRow>
+
+        <SettingRow
+          title="צפיפות הלוח"
+          hint="קומפקטי מראה נקודות צבע במקום כיתובים, ומפנה מקום בתא"
+        >
+          <Segmented<Density>
+            value={settings.density}
+            onChange={(v) => setValue('density', v)}
+            size="sm"
+            options={[
+              { value: 'comfortable', label: 'מרווח' },
+              { value: 'compact', label: 'קומפקטי' },
             ]}
           />
         </SettingRow>

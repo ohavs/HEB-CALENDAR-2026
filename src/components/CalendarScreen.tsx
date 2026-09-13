@@ -33,6 +33,7 @@ import { MonthGrid, WeekdayHeader } from './MonthGrid';
 import { WeekView } from './WeekView';
 import { AgendaView } from './AgendaView';
 import { DockedDayPanel, EventsPanel } from './EventsPanel';
+import { OfflineBar } from './OfflineBar';
 import { GLIDE } from '@/lib/motion';
 
 /** מרחק/מהירות החלקה שמעבירים חודש */
@@ -278,6 +279,8 @@ export function CalendarScreen({
               onToday={goToToday}
               onTitle={onOpenYear}
             />
+
+            <OfflineBar />
 
             {body()}
           </div>

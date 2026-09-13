@@ -12,6 +12,7 @@ export function defaultSettings(): Settings {
   return {
     theme: 'system',
     view: 'month',
+    density: 'comfortable',
     showHebrewDates: true,
     showHebrewMonths: true,
     showJewishHolidays: true,

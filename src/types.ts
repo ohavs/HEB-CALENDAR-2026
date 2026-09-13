@@ -136,6 +136,14 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type CalendarView = 'month' | 'week' | 'agenda';
 
 /**
+ * צפיפות תא הלוח.
+ * התא בטלפון הוא כ-55px רוחב, ושם ארוך תמיד ייחתך בו. במקום להילחם על
+ * זה בתוך התא, המשתמש בוחר: מרווח מראה כותרת אחת ברורה, קומפקטי מראה
+ * נקודות צבע בלבד ומפנה מקום לעוד ימים.
+ */
+export type Density = 'comfortable' | 'compact';
+
+/**
  * מקום שמור של המשתמש ("בית", "עבודה").
  * אפשר לקבל התראה בהגעה אליו, ביציאה ממנו, או בשניהם.
  */
@@ -171,6 +179,8 @@ export type Settings = {
   theme: ThemeMode;
   /** תצוגת הלוח האחרונה שנבחרה */
   view: CalendarView;
+  /** צפיפות תאי הלוח */
+  density: Density;
   /** הצגת תאריך עברי בתאי הלוח */
   showHebrewDates: boolean;
   /** הצגת שם החודש העברי בכותרת */
