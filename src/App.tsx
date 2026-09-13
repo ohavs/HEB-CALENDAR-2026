@@ -5,7 +5,9 @@ import type { DateKey, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { addMonths, dateKey, keyToDate, startOfDay } from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
-import { askServiceWorkerToFlush, syncReminders } from '@/lib/notifications';
+import { askServiceWorkerToFlush, notifyNow, syncReminders } from '@/lib/notifications';
+import { startGeofenceWatch } from '@/lib/geofence';
+import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
 import { useEvents, useEventsStore } from '@/store/events';
@@ -97,6 +99,28 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [settings, events]);
+
+  /* ------------------------ מיקום מדויק ומקומות ------------------------ */
+  // המיקום המדויק נשמר בהגדרות; כאן רושמים אותו למודול המיקומים
+  useEffect(() => {
+    setCustomCity(settings.customLocation);
+  }, [settings.customLocation]);
+
+  const placesRef = useRef(settings.places);
+  placesRef.current = settings.places;
+
+  useEffect(() => {
+    if (!settings.placeAlertsEnabled || settings.places.length === 0) return;
+    return startGeofenceWatch({
+      getPlaces: () => placesRef.current,
+      onEvents: (events) => {
+        for (const e of events) {
+          void notifyNow(e.title, e.body, `place-${e.place.id}-${e.kind}`);
+        }
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.placeAlertsEnabled, settings.places.length]);
 
   /* ---------------------------- ניווט בחודשים ---------------------------- */
   const goToMonth = useCallback((month: Date, direction: number) => {

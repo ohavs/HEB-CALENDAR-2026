@@ -92,7 +92,7 @@ export function SearchSheet({
                 }}
                 className="flex w-full items-center gap-3.5 px-4 py-4 text-right"
               >
-                <span className={`ev ev-${e.color} ev-bar h-10 w-1 shrink-0 rounded-full`} />
+                <span className={`ev ev-${e.color} ev-solid h-2.5 w-2.5 shrink-0 rounded-md`} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body font-medium text-ink">
                     {e.title}

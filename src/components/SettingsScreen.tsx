@@ -9,7 +9,9 @@ import {
   Download,
   LogOut,
   MapPin,
+  MapPinned,
   Moon,
+  Plus,
   Sun,
   SunMoon,
 } from 'lucide-react';
@@ -26,6 +28,9 @@ import {
   type PermissionState,
 } from '@/lib/notifications';
 import { Segmented, SettingRow, SettingsGroup, Toggle } from './ui/controls';
+import { PlaceEditor } from './PlaceEditor';
+import { radiusLabel } from '@/lib/geofence';
+import type { SavedPlace } from '@/types';
 import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
@@ -125,6 +130,23 @@ export function SettingsScreen({
   const [permission, setPermission] = useState<PermissionState>(() => notificationState());
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const [testSent, setTestSent] = useState(false);
+  const [placeEditor, setPlaceEditor] = useState<{ open: boolean; editing: SavedPlace | null }>({
+    open: false,
+    editing: null,
+  });
+
+  const savePlace = (place: SavedPlace) => {
+    const rest = settings.places.filter((p) => p.id !== place.id);
+    setValue('places', [...rest, place].sort((a, b) => a.createdAt - b.createdAt));
+    if (!settings.placeAlertsEnabled) setValue('placeAlertsEnabled', true);
+  };
+
+  const deletePlace = (id: string) => {
+    setValue(
+      'places',
+      settings.places.filter((p) => p.id !== id),
+    );
+  };
 
   useEffect(() => {
     const onBeforeInstall = (e: Event) => {
@@ -496,6 +518,48 @@ export function SettingsScreen({
         />
       </SettingsGroup>
 
+      {/* ----------------------------- מקומות ----------------------------- */}
+      <SettingsGroup
+        title="מקומות"
+        footer="בדפדפן הזיהוי פועל כשהאפליקציה פתוחה או פעילה ברקע. באפליקציית האנדרואיד הוא יעבוד גם כשהיא סגורה."
+      >
+        <SettingRow
+          title="התראות הגעה ויציאה"
+          hint="מעקב אחרי המיקום כדי לזהות מתי הגעתם או יצאתם"
+        >
+          <Toggle
+            label="התראות מקום"
+            checked={settings.placeAlertsEnabled}
+            onChange={(v) => setValue('placeAlertsEnabled', v)}
+          />
+        </SettingRow>
+
+        {settings.places.map((place) => (
+          <SettingRow
+            key={place.id}
+            title={place.name}
+            hint={[
+              radiusLabel(place.radius),
+              place.notifyOnArrive ? 'בהגעה' : null,
+              place.notifyOnLeave ? 'ביציאה' : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            icon={<MapPinned size={19} strokeWidth={2.1} />}
+            onClick={() => setPlaceEditor({ open: true, editing: place })}
+          >
+            <ChevronLeft size={19} strokeWidth={2.3} className="text-faint" />
+          </SettingRow>
+        ))}
+
+        <SettingRow
+          title="הוספת מקום"
+          hint="בית, עבודה, בית כנסת"
+          icon={<Plus size={19} strokeWidth={2.3} />}
+          onClick={() => setPlaceEditor({ open: true, editing: null })}
+        />
+      </SettingsGroup>
+
       {/* ---------------------------- אפליקציה ---------------------------- */}
       <SettingsGroup title="אפליקציה">
         {installPrompt && (
@@ -516,6 +580,14 @@ export function SettingsScreen({
           </p>
         </div>
       </SettingsGroup>
+
+      <PlaceEditor
+        open={placeEditor.open}
+        onClose={() => setPlaceEditor((p) => ({ ...p, open: false }))}
+        editing={placeEditor.editing}
+        onSave={savePlace}
+        onDelete={deletePlace}
+      />
     </div>
   );
 }

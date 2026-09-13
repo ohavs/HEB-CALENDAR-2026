@@ -9,8 +9,15 @@
  * כדי לא לדרוש רסטור מחדש בכל פריים, ושקיפות התוכן נגזרת ישירות ממיקום
  * הגרירה כ-motion value - בלי רינדור מחדש של React תוך כדי התנועה.
  */
-import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import {
+  motion,
+  useDragControls,
+  useMotionValue,
+  useTransform,
+  type PanInfo,
+} from 'framer-motion';
 import { useRef } from 'react';
+import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
@@ -205,6 +212,8 @@ export function EventsPanel({
   bottomInset: number;
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
+  const controls = useDragControls();
+  const { scrollRef, handleProps, contentProps } = useSheetDrag(controls);
   const y = useMotionValue(0);
   const collapsedY = Math.max(0, height - PEEK_HEIGHT);
 
@@ -241,6 +250,8 @@ export function EventsPanel({
       animate={{ y: open ? 0 : collapsedY }}
       transition={{ type: 'spring', stiffness: 460, damping: 42, mass: 0.7 }}
       drag="y"
+      dragListener={false}
+      dragControls={controls}
       dragConstraints={{ top: 0, bottom: collapsedY }}
       dragElastic={{ top: 0.02, bottom: 0.06 }}
       onDragEnd={onDragEnd}
@@ -250,6 +261,7 @@ export function EventsPanel({
         type="button"
         onClick={() => onOpenChange(!open)}
         className="shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-3.5 text-right active:cursor-grabbing"
+        {...handleProps}
       >
         <span className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-hairline" />
         <span className="flex items-center gap-3">
@@ -272,8 +284,10 @@ export function EventsPanel({
       </button>
 
       <motion.div
+        ref={scrollRef}
         className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5"
         style={{ opacity: contentOpacity, pointerEvents: open ? 'auto' : 'none' }}
+        {...contentProps}
       >
         <DayPanelContent
           day={day}

@@ -35,6 +35,9 @@ function defaults(): Settings {
     notifyHolidayEveTime: '20:00',
     weekStart: 0,
     defaultEventColor: 'violet',
+    customLocation: null,
+    places: [],
+    placeAlertsEnabled: false,
   };
 }
 

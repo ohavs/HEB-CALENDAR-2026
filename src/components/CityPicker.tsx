@@ -1,7 +1,7 @@
 /** בוחר עיר לחישוב הזמנים, עם חיפוש ואיתור לפי מיקום המכשיר. */
 import { useMemo, useState } from 'react';
 import { Check, Crosshair, Search } from 'lucide-react';
-import { CITIES, citiesByRegion, nearestCity } from '@/lib/locations';
+import { CITIES, CUSTOM_CITY_ID, citiesByRegion, deviceTimeZone, nearestCity } from '@/lib/locations';
 import { useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 
@@ -29,8 +29,46 @@ export function CityPicker({
   const select = (id: string) => {
     const city = CITIES.find((c) => c.id === id);
     // ברירת מחדל הגיונית לדקות הדלקת נרות לפי הארץ
-    patch({ cityId: id, ...(city ? { candleLightingMins: city.il ? 40 : 18 } : {}) });
+    patch({
+      cityId: id,
+      customLocation: null,
+      ...(city ? { candleLightingMins: city.il ? 40 : 18 } : {}),
+    });
     onClose();
+  };
+
+  /** שימוש בקואורדינטות המדויקות של המכשיר במקום עיר מהרשימה */
+  const useExactLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocateError('הדפדפן לא תומך באיתור מיקום');
+      return;
+    }
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const near = nearestCity(pos.coords.latitude, pos.coords.longitude, 400);
+        patch({
+          cityId: CUSTOM_CITY_ID,
+          customLocation: {
+            id: CUSTOM_CITY_ID,
+            name: near ? `המיקום שלי (ליד ${near.name})` : 'המיקום שלי',
+            region: 'מיקום מדויק',
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            tzid: deviceTimeZone(),
+            il: near?.il ?? deviceTimeZone() === 'Asia/Jerusalem',
+          },
+        });
+        onClose();
+      },
+      () => {
+        setLocating(false);
+        setLocateError('לא הצלחנו לאתר את המיקום');
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
   };
 
   const locate = () => {
@@ -68,15 +106,26 @@ export function CityPicker({
         />
       </div>
 
-      <button
-        type="button"
-        onClick={locate}
-        disabled={locating}
-        className="mb-5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-4 text-label font-semibold text-brand-ink disabled:opacity-60"
-      >
-        <Crosshair size={19} strokeWidth={2.3} />
-        {locating ? 'מאתר…' : 'לפי המיקום שלי'}
-      </button>
+      <div className="mb-5 flex flex-col gap-2.5">
+        <button
+          type="button"
+          onClick={locate}
+          disabled={locating}
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-4 text-label font-semibold text-brand-ink disabled:opacity-60"
+        >
+          <Crosshair size={19} strokeWidth={2.3} />
+          {locating ? 'מאתר…' : 'העיר הקרובה אליי'}
+        </button>
+        <button
+          type="button"
+          onClick={useExactLocation}
+          disabled={locating}
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-well py-4 text-label font-semibold text-ink disabled:opacity-60"
+        >
+          <Crosshair size={19} strokeWidth={2.3} className="text-muted" />
+          המיקום המדויק שלי
+        </button>
+      </div>
 
       {locateError && (
         <p className="mb-4 rounded-2xl bg-well px-4 py-3.5 text-caption text-muted">{locateError}</p>

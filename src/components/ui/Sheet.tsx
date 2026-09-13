@@ -11,9 +11,10 @@ import {
   useReducedMotion,
   type PanInfo,
 } from 'framer-motion';
-import { useCallback, useEffect, useRef, type PointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useSheetDrag } from '@/hooks/useSheetDrag';
 
 const CLOSE_OFFSET = 110;
 const CLOSE_VELOCITY = 520;
@@ -50,8 +51,7 @@ export function Sheet({
   className = '',
 }: SheetProps) {
   const controls = useDragControls();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const pointerStart = useRef<{ y: number; dragging: boolean } | null>(null);
+  const { scrollRef, handleProps, contentProps } = useSheetDrag(controls);
   const reduceMotion = useReducedMotion();
 
   // נעילת גלילת הרקע כל עוד החלונית פתוחה
@@ -80,31 +80,6 @@ export function Sheet({
     },
     [onClose],
   );
-
-  /* גרירה שמתחילה מגוף התוכן, רק כשהוא גלול עד למעלה */
-  const onContentPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    const el = scrollRef.current;
-    pointerStart.current = { y: e.clientY, dragging: false };
-    if (el && el.scrollTop > 0) pointerStart.current = null;
-  };
-
-  const onContentPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    const start = pointerStart.current;
-    const el = scrollRef.current;
-    if (!start || start.dragging || !el) return;
-    if (el.scrollTop > 0) {
-      pointerStart.current = null;
-      return;
-    }
-    if (e.clientY - start.y > 10) {
-      start.dragging = true;
-      controls.start(e);
-    }
-  };
-
-  const onContentPointerUp = () => {
-    pointerStart.current = null;
-  };
 
   return createPortal(
     <AnimatePresence>
@@ -140,7 +115,7 @@ export function Sheet({
             {/* ידית אחיזה - אזור הגרירה העיקרי */}
             <div
               className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-2.5 active:cursor-grabbing"
-              onPointerDown={(e) => controls.start(e)}
+              {...handleProps}
             >
               <div className="h-1.5 w-10 rounded-full bg-hairline" />
             </div>
@@ -148,7 +123,7 @@ export function Sheet({
             {(title || showCloseButton || headerAction) && (
               <div
                 className="flex shrink-0 touch-none items-start gap-3.5 px-6 pb-3 pt-1"
-                onPointerDown={(e) => controls.start(e)}
+                {...handleProps}
               >
                 {showCloseButton && (
                   <button
@@ -182,10 +157,7 @@ export function Sheet({
             <div
               ref={scrollRef}
               className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-3"
-              onPointerDown={onContentPointerDown}
-              onPointerMove={onContentPointerMove}
-              onPointerUp={onContentPointerUp}
-              onPointerCancel={onContentPointerUp}
+              {...contentProps}
             >
               {children}
             </div>

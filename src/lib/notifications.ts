@@ -102,6 +102,11 @@ async function show(title: string, body: string, tag: string): Promise<void> {
   }
 }
 
+/** שליחת התראה מיידית (למשל בהגעה למקום שמור). */
+export async function notifyNow(title: string, body: string, tag: string): Promise<void> {
+  await show(title, body, tag);
+}
+
 export async function showTestNotification(): Promise<void> {
   await show('לוח שנה עברי', 'ההתראות פעילות. כאן תופיע התזכורת שלך.', 'heb-cal-test');
 }

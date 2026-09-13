@@ -25,17 +25,16 @@ export function DragLayer() {
           transition={{ type: 'spring', stiffness: 520, damping: 32 }}
         >
           <div
-            className={`ev ev-${occurrence.color} flex w-[132px] items-center gap-1.5 rounded-xl px-2.5 py-2 shadow-lift`}
+            className={`ev ev-${occurrence.color} w-[140px] rounded-xl px-3 py-2.5 shadow-lift`}
           >
-            <span className="ev-bar h-4 w-[3px] shrink-0 rounded-full" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-tiny font-semibold leading-tight">
-                {occurrence.title}
-              </span>
-              {!occurrence.allDay && occurrence.startTime && (
-                <span className="tnum block text-micro opacity-75">{occurrence.startTime}</span>
-              )}
+            <span className="block truncate text-caption font-semibold leading-tight">
+              {occurrence.title}
             </span>
+            {!occurrence.allDay && occurrence.startTime && (
+              <span className="tnum mt-1 block text-tiny font-medium opacity-75">
+                {occurrence.startTime}
+              </span>
+            )}
           </div>
           {overKey && (
             <div className="mt-1.5 text-center">

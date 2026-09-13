@@ -96,6 +96,24 @@ export type DayInfo = {
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/**
+ * מקום שמור של המשתמש ("בית", "עבודה").
+ * אפשר לקבל התראה בהגעה אליו, ביציאה ממנו, או בשניהם.
+ */
+export type SavedPlace = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  /** רדיוס הזיהוי במטרים */
+  radius: number;
+  notifyOnArrive: boolean;
+  notifyOnLeave: boolean;
+  /** הודעה מותאמת, או ריק לברירת המחדל */
+  message?: string;
+  createdAt: number;
+};
+
 export type GeoCity = {
   id: string;
   /** שם בעברית */
@@ -155,6 +173,12 @@ export type Settings = {
   weekStart: 0 | 1;
   /** ברירת מחדל לצבע אירוע חדש */
   defaultEventColor: EventColor;
+  /** מיקום מדויק של המכשיר לחישוב זמנים, במקום עיר מהרשימה */
+  customLocation: GeoCity | null;
+  /** מקומות שמורים להתראות הגעה ויציאה */
+  places: SavedPlace[];
+  /** האם לעקוב אחרי המיקום כדי לזהות הגעה ויציאה */
+  placeAlertsEnabled: boolean;
 };
 
 /** תת-קבוצה מההגדרות שמשמשת את מנוע הלוח העברי. */
