@@ -58,6 +58,10 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
     reminderMinutes:
       typeof data.reminderMinutes === 'number' ? data.reminderMinutes : null,
     repeat: (data.repeat as UserEvent['repeat']) ?? 'none',
+    exceptions:
+      data.exceptions && typeof data.exceptions === 'object'
+        ? (data.exceptions as UserEvent['exceptions'])
+        : undefined,
     createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
     updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
     deleted: data.deleted === true,
@@ -77,6 +81,7 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
     color: ev.color,
     reminderMinutes: ev.reminderMinutes,
     repeat: ev.repeat,
+    exceptions: ev.exceptions ?? null,
     createdAt: ev.createdAt,
     updatedAt: ev.updatedAt,
     deleted: ev.deleted === true,

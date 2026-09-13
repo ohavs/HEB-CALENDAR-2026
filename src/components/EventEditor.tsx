@@ -6,9 +6,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, CalendarDays, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
-import type { DateKey, EventColor, UserEvent } from '@/types';
+import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import { REPEAT_LABELS, type Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, REMINDER_OPTIONS, useEventsStore, type EventDraft } from '@/store/events';
+import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { useSettings } from '@/store/settings';
@@ -55,16 +56,26 @@ export function EventEditor({
   editing: Occurrence | UserEvent | null;
 }) {
   const settings = useSettings();
-  const { add, update, remove } = useEventsStore();
+  const { add, update, remove, updateOccurrence, cancelOccurrence } = useEventsStore();
   const [draft, setDraft] = useState<EventDraft>(() =>
     emptyDraft(date, settings.defaultEventColor),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** איזו שאלת היקף פתוחה, כשעורכים מופע בתוך סדרה חוזרת */
+  const [askScope, setAskScope] = useState<'save' | 'delete' | null>(null);
+
+  /**
+   * עריכה של מופע בתוך סדרה חוזרת חייבת לשאול על מה היא חלה. אירוע
+   * חד־פעמי, והמופע הראשון שהוא גם האירוע עצמו, לא מעלים את השאלה.
+   */
+  const occurrence = editing && 'sourceKey' in editing ? editing : null;
+  const isSeriesMember = Boolean(occurrence && occurrence.repeat !== 'none');
 
   // מאתחלים את הטופס בכל פתיחה
   useEffect(() => {
     if (!open) return;
     setConfirmDelete(false);
+    setAskScope(null);
     if (editing) {
       setDraft({
         title: editing.title,
@@ -85,34 +96,73 @@ export function EventEditor({
 
   const patch = (values: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...values }));
 
-  const onSave = () => {
-    const title = draft.title.trim();
-    if (!title) return;
-    const payload: EventDraft = {
-      ...draft,
-      title,
-      location: draft.location?.trim() || undefined,
-      notes: draft.notes?.trim() || undefined,
-      startTime: draft.allDay ? null : draft.startTime,
-      endTime: draft.allDay ? null : draft.endTime,
-    };
-    if (editing) {
-      const baseId = 'baseId' in editing ? editing.baseId : editing.id;
-      update(baseId, payload);
-    } else {
-      add(payload);
+  const payloadOf = (): EventDraft => ({
+    ...draft,
+    title: draft.title.trim(),
+    location: draft.location?.trim() || undefined,
+    notes: draft.notes?.trim() || undefined,
+    startTime: draft.allDay ? null : draft.startTime,
+    endTime: draft.allDay ? null : draft.endTime,
+  });
+
+  /** שמירה על המופע הזה בלבד: רק השדות שבאמת השתנו נרשמים כחריג. */
+  const saveOccurrence = () => {
+    if (!occurrence) return;
+    const p = payloadOf();
+    const exception: EventException = {};
+    if (p.title !== occurrence.title) exception.title = p.title;
+    if (p.allDay !== occurrence.allDay) exception.allDay = p.allDay;
+    if (p.startTime !== occurrence.startTime) exception.startTime = p.startTime;
+    if (p.endTime !== occurrence.endTime) exception.endTime = p.endTime;
+    if ((p.location ?? '') !== (occurrence.location ?? '')) exception.location = p.location;
+    if ((p.notes ?? '') !== (occurrence.notes ?? '')) exception.notes = p.notes;
+    if (p.color !== occurrence.color) exception.color = p.color;
+    if (p.reminderMinutes !== occurrence.reminderMinutes) {
+      exception.reminderMinutes = p.reminderMinutes;
     }
+    // שינוי התאריך במופע בודד הוא הזזה שלו, לא של הסדרה
+    if (p.date !== occurrence.date) exception.movedTo = p.date;
+    updateOccurrence(occurrence.baseId, occurrence.sourceKey, exception);
+  };
+
+  const applyScope = (scope: EditScope) => {
+    if (scope === 'series') update(occurrence!.baseId, payloadOf());
+    else saveOccurrence();
+    onClose();
+  };
+
+  const applyDeleteScope = (scope: EditScope) => {
+    if (scope === 'series') remove(occurrence!.baseId);
+    else cancelOccurrence(occurrence!.baseId, occurrence!.sourceKey);
+    onClose();
+  };
+
+  const onSave = () => {
+    if (!draft.title.trim()) return;
+    if (!editing) {
+      add(payloadOf());
+      onClose();
+      return;
+    }
+    if (isSeriesMember) {
+      setAskScope('save');
+      return;
+    }
+    update('baseId' in editing ? editing.baseId : editing.id, payloadOf());
     onClose();
   };
 
   const onDelete = () => {
     if (!editing) return;
+    if (isSeriesMember) {
+      setAskScope('delete');
+      return;
+    }
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
     }
-    const baseId = 'baseId' in editing ? editing.baseId : editing.id;
-    remove(baseId);
+    remove('baseId' in editing ? editing.baseId : editing.id);
     onClose();
   };
 
@@ -143,13 +193,13 @@ export function EventEditor({
             onClick={onDelete}
             whileTap={{ scale: 0.95 }}
             className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
-              confirmDelete
+              !isSeriesMember && confirmDelete
                 ? 'bg-[rgb(240_118_149)] text-white'
                 : 'bg-well text-[rgb(194_60_90)]'
             }`}
           >
             <Trash2 size={ICON.md} strokeWidth={STROKE} />
-            {confirmDelete ? 'למחוק?' : 'מחיקה'}
+            {!isSeriesMember && confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
       }
@@ -264,6 +314,29 @@ export function EventEditor({
           placeholder="פרטים נוספים"
         />
       </div>
+
+      <ScopeSheet
+        open={askScope === 'save'}
+        onClose={() => setAskScope(null)}
+        onChoose={applyScope}
+        title="על מה לשמור?"
+        occurrenceLabel="המופע הזה בלבד"
+        occurrenceHint={`השינוי יחול רק על ${dayTitleLabel(eventDate)}`}
+        seriesLabel="כל הסדרה"
+        seriesHint="השינוי יחול על כל המופעים, כולל אלה שכבר עברו"
+      />
+
+      <ScopeSheet
+        open={askScope === 'delete'}
+        onClose={() => setAskScope(null)}
+        onChoose={applyDeleteScope}
+        title="מה למחוק?"
+        occurrenceLabel="המופע הזה בלבד"
+        occurrenceHint="שאר המופעים יישארו במקומם"
+        seriesLabel="את כל הסדרה"
+        seriesHint="כל המופעים יימחקו. אי אפשר לבטל"
+        destructive
+      />
     </Sheet>
   );
 }

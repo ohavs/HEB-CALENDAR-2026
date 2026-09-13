@@ -18,10 +18,14 @@ service cloud.firestore {
         && d.createdAt is number
         && (!('notes' in d) || d.notes == null || (d.notes is string && d.notes.size() <= 4000))
         && (!('location' in d) || d.location == null || (d.location is string && d.location.size() <= 300))
+        // חריגים למופעים בודדים בסדרה חוזרת. חסם על מספרם כדי שמסמך
+        // אחד לא יוכל לתפוח בלי גבול.
+        && (!('exceptions' in d) || d.exceptions == null
+            || (d.exceptions is map && d.exceptions.keys().size() <= 400))
         && d.keys().hasOnly([
              'title', 'date', 'startTime', 'endTime', 'allDay', 'location',
-             'notes', 'color', 'reminderMinutes', 'repeat', 'createdAt',
-             'updatedAt', 'deleted'
+             'notes', 'color', 'reminderMinutes', 'repeat', 'exceptions',
+             'createdAt', 'updatedAt', 'deleted'
            ]);
     }
 

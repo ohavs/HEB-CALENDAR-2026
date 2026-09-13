@@ -26,6 +26,7 @@ import { SearchSheet } from '@/components/SearchSheet';
 import { YearPicker } from '@/components/YearPicker';
 import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
+import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 
 const REMINDER_DEBOUNCE_MS = 700;
 
@@ -39,6 +40,7 @@ export default function App() {
   const settings = useSettings();
   const events = useEvents();
   const move = useEventsStore((s) => s.move);
+  const moveOccurrence = useEventsStore((s) => s.moveOccurrence);
   const authUser = useAuthStore((s) => s.user);
   const initAuth = useAuthStore((s) => s.init);
 
@@ -58,6 +60,10 @@ export default function App() {
     editing: null,
   });
   const [cityOpen, setCityOpen] = useState(false);
+  /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
+  const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
+    null,
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [yearOpen, setYearOpen] = useState(false);
   const [yearValue, setYearValue] = useState(today.getFullYear());
@@ -141,16 +147,17 @@ export default function App() {
   useEffect(() => {
     setDragCallbacks({
       onDrop: (baseId, to, occurrence) => {
+        setSelectedDate(keyToDate(to));
+        // גרירת מופע בסדרה חוזרת עמומה בכוונתה: שואלים לפני שמזיזים
+        if (occurrence.repeat !== 'none') {
+          setPendingDrop({ occurrence, to });
+          return;
+        }
         const previous = useEventsStore.getState().byId[baseId]?.date;
         move(baseId, to);
-        setSelectedDate(keyToDate(to));
         toast(
-          occurrence.isRecurring
-            ? `הסדרה "${occurrence.title}" הועברה`
-            : `"${occurrence.title}" הועבר`,
-          previous
-            ? { label: 'ביטול', run: () => move(baseId, previous) }
-            : undefined,
+          `"${occurrence.title}" הועבר`,
+          previous ? { label: 'ביטול', run: () => move(baseId, previous) } : undefined,
         );
       },
       onEdge: (edge) => {
@@ -161,6 +168,32 @@ export default function App() {
       },
     });
   }, [move]);
+
+  /** תשובה לשאלת ההיקף אחרי גרירה של מופע בסדרה חוזרת. */
+  const applyDropScope = useCallback(
+    (scope: EditScope) => {
+      if (!pendingDrop) return;
+      const { occurrence, to } = pendingDrop;
+      if (scope === 'series') {
+        const previous = useEventsStore.getState().byId[occurrence.baseId]?.date;
+        move(occurrence.baseId, to);
+        toast(
+          `הסדרה "${occurrence.title}" הועברה`,
+          previous
+            ? { label: 'ביטול', run: () => move(occurrence.baseId, previous) }
+            : undefined,
+        );
+      } else {
+        moveOccurrence(occurrence.baseId, occurrence.sourceKey, to);
+        toast(`"${occurrence.title}" הועבר למועד הזה בלבד`, {
+          label: 'ביטול',
+          run: () => moveOccurrence(occurrence.baseId, occurrence.sourceKey, occurrence.sourceKey),
+        });
+      }
+      setPendingDrop(null);
+    },
+    [move, moveOccurrence, pendingDrop],
+  );
 
   /* ------------------------------- חלוניות ------------------------------- */
   const openEditor = useCallback((date: DateKey) => {
@@ -247,6 +280,17 @@ export default function App() {
           if (dayViewDate) openEditor(dateKey(dayViewDate));
         }}
         onEditEvent={editOccurrence}
+      />
+
+      <ScopeSheet
+        open={pendingDrop !== null}
+        onClose={() => setPendingDrop(null)}
+        onChoose={applyDropScope}
+        title="מה להזיז?"
+        occurrenceLabel="המופע הזה בלבד"
+        occurrenceHint="שאר המופעים יישארו במועדם"
+        seriesLabel="את כל הסדרה"
+        seriesHint="כל המופעים יזוזו באותו הפרש"
       />
 
       <EventEditor

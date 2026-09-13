@@ -5,7 +5,13 @@
  * תשפ״ו (2026) שנה פשוטה, תשפ״ז (2027) שנה מעוברת.
  */
 import { describe, expect, it } from 'vitest';
-import { eventsOnDay, expandEvents, sortOccurrences, REPEAT_LABELS } from './recurrence';
+import {
+  eventsOnDay,
+  expandEvents,
+  isOccurrenceKey,
+  sortOccurrences,
+  REPEAT_LABELS,
+} from './recurrence';
 import { dateKey, keyToDate } from './dates';
 import { event } from '@/test/factories';
 
@@ -219,5 +225,211 @@ describe('עקביות מפתחות', () => {
     for (const key of keysFor(ev, '2026-09-01', '2026-10-31')) {
       expect(dateKey(keyToDate(key))).toBe(key);
     }
+  });
+});
+
+/* ==========================================================================
+   חריגים למופע יחיד
+   ========================================================================== */
+
+describe('ביטול מופע יחיד', () => {
+  it('המופע שבוטל נעלם והשאר נשארים', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { cancelled: true } },
+    });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).toEqual([
+      '2026-09-07',
+      '2026-09-21',
+      '2026-09-28',
+    ]);
+  });
+
+  it('אפשר לבטל גם את המופע הראשון', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-07': { cancelled: true } },
+    });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).not.toContain('2026-09-07');
+  });
+
+  it('ביטול של אירוע חד־פעמי מעלים אותו', () => {
+    const ev = event({
+      date: '2026-09-13',
+      repeat: 'none',
+      exceptions: { '2026-09-13': { cancelled: true } },
+    });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).toEqual([]);
+  });
+});
+
+describe('הזזת מופע יחיד', () => {
+  it('המופע מופיע ביעד ולא במקור', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { movedTo: '2026-09-16' } },
+    });
+    const keys = keysFor(ev, '2026-09-01', '2026-09-30');
+    expect(keys).toContain('2026-09-16');
+    expect(keys).not.toContain('2026-09-14');
+    expect(keys).toContain('2026-09-21'); // שאר הסדרה לא זזה
+  });
+
+  it('מופע שהוזז מחוץ לחלון הנצפה אל תוכו כן מופיע', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-28': { movedTo: '2026-10-02' } },
+    });
+    // החלון מתחיל אחרי המקור ומסתיים אחרי היעד
+    expect(keysFor(ev, '2026-10-01', '2026-10-31')).toContain('2026-10-02');
+  });
+
+  it('מופע שהוזז אל מחוץ לחלון לא מופיע בו', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { movedTo: '2026-10-20' } },
+    });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).not.toContain('2026-09-14');
+  });
+
+  it('המזהה של המופע נשאר לפי התאריך המקורי גם אחרי ההזזה', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { movedTo: '2026-09-16' } },
+    });
+    const occ = eventsOnDay([ev], keyToDate('2026-09-16'))[0];
+    expect(occ.sourceKey).toBe('2026-09-14');
+    expect(occ.occurrenceId).toBe(`${ev.id}@2026-09-14`);
+    expect(occ.date).toBe('2026-09-16');
+  });
+
+  it('ביטול גובר על הזזה', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { movedTo: '2026-09-16', cancelled: true } },
+    });
+    const keys = keysFor(ev, '2026-09-01', '2026-09-30');
+    expect(keys).not.toContain('2026-09-14');
+    expect(keys).not.toContain('2026-09-16');
+  });
+
+  it('אפשר להזיז את המופע הראשון בלי להזיז את הסדרה', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-07': { movedTo: '2026-09-08' } },
+    });
+    const keys = keysFor(ev, '2026-09-01', '2026-09-30');
+    expect(keys).toContain('2026-09-08');
+    expect(keys).toContain('2026-09-14');
+    expect(keys).not.toContain('2026-09-07');
+  });
+});
+
+describe('שינוי שדות במופע יחיד', () => {
+  it('שינוי שעה חל על המופע בלבד', () => {
+    const ev = event({
+      date: '2026-09-07',
+      startTime: '20:00',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { startTime: '21:30' } },
+    });
+    expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].startTime).toBe('21:30');
+    expect(eventsOnDay([ev], keyToDate('2026-09-21'))[0].startTime).toBe('20:00');
+  });
+
+  it('שינוי כותרת חל על המופע בלבד', () => {
+    const ev = event({
+      date: '2026-09-07',
+      title: 'שיעור',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { title: 'שיעור מיוחד' } },
+    });
+    expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].title).toBe('שיעור מיוחד');
+    expect(eventsOnDay([ev], keyToDate('2026-09-21'))[0].title).toBe('שיעור');
+  });
+
+  it('ערך null בחריג נשמר ולא נחשב כהיעדר', () => {
+    const ev = event({
+      date: '2026-09-07',
+      startTime: '20:00',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { allDay: true, startTime: null } },
+    });
+    const occ = eventsOnDay([ev], keyToDate('2026-09-14'))[0];
+    expect(occ.allDay).toBe(true);
+    expect(occ.startTime).toBeNull();
+  });
+
+  it('המופע מסומן כבעל חריג', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { title: 'אחר' } },
+    });
+    expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].hasException).toBe(true);
+    expect(eventsOnDay([ev], keyToDate('2026-09-21'))[0].hasException).toBe(false);
+  });
+
+  it('החריג לא משנה את האירוע המקורי', () => {
+    const ev = event({
+      date: '2026-09-07',
+      title: 'שיעור',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { title: 'אחר' } },
+    });
+    eventsOnDay([ev], keyToDate('2026-09-14'));
+    expect(ev.title).toBe('שיעור');
+  });
+});
+
+describe('חריג יתום', () => {
+  it('חריג על תאריך שאינו מופע של הסדרה נזרק', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      // יום שלישי - הסדרה היא של ימי שני
+      exceptions: { '2026-09-15': { movedTo: '2026-09-17' } },
+    });
+    expect(keysFor(ev, '2026-09-01', '2026-09-30')).not.toContain('2026-09-17');
+  });
+
+  it('isOccurrenceKey מזהה מופע אמיתי', () => {
+    const ev = event({ date: '2026-09-07', repeat: 'weekly' });
+    expect(isOccurrenceKey(ev, '2026-09-14')).toBe(true);
+    expect(isOccurrenceKey(ev, '2026-09-15')).toBe(false);
+    expect(isOccurrenceKey(ev, '2026-09-07')).toBe(true);
+  });
+
+  it('אירוע חד־פעמי הוא מופע של עצמו בלבד', () => {
+    const ev = event({ date: '2026-09-13', repeat: 'none' });
+    expect(isOccurrenceKey(ev, '2026-09-13')).toBe(true);
+    expect(isOccurrenceKey(ev, '2026-09-20')).toBe(false);
+  });
+});
+
+describe('חריגים בחזרה עברית', () => {
+  it('הזזת מופע עברי בודד לא משפיעה על השנים הבאות', () => {
+    const ev = event({
+      date: '2026-11-15',
+      repeat: 'hebrew-yearly',
+    });
+    const natural = keysFor(ev, '2027-01-01', '2027-12-31');
+    expect(natural).toHaveLength(1);
+    const moved = event({
+      ...ev,
+      exceptions: { [natural[0]]: { movedTo: '2027-12-25' } },
+    });
+    const after = keysFor(moved, '2027-01-01', '2027-12-31');
+    expect(after).toEqual(['2027-12-25']);
+    // השנה שאחריה חוזרת לתאריך העברי הרגיל
+    expect(keysFor(moved, '2028-01-01', '2028-12-31')).toHaveLength(1);
   });
 });

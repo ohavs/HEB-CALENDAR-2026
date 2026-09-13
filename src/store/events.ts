@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { DateKey, EventColor, UserEvent } from '@/types';
+import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 
 const STORAGE_KEY = 'heb-cal:events';
 
@@ -33,6 +33,16 @@ type EventsStore = {
   /** מעביר אירוע ליום אחר (גרירה בלוח) */
   move: (id: string, to: DateKey) => void;
   remove: (id: string) => void;
+
+  /* ---------- מופע יחיד בסדרה חוזרת ---------- */
+  /** משנה מופע אחד בלבד, בלי לגעת בשאר הסדרה */
+  updateOccurrence: (id: string, sourceKey: DateKey, patch: EventException) => void;
+  /** מעביר מופע אחד ליום אחר */
+  moveOccurrence: (id: string, sourceKey: DateKey, to: DateKey) => void;
+  /** מבטל מופע אחד */
+  cancelOccurrence: (id: string, sourceKey: DateKey) => void;
+  /** מחזיר מופע שבוטל או שהוזז למקומו המקורי */
+  restoreOccurrence: (id: string, sourceKey: DateKey) => void;
   /** מיזוג נתונים מהענן - מנצח ה-updatedAt המאוחר */
   mergeRemote: (remote: UserEvent[]) => void;
   /** מחיקת כל הנתונים המקומיים (יציאה מהחשבון) */
@@ -56,10 +66,16 @@ export const useEventsStore = create<EventsStore>()(
         setState((s) => {
           const existing = s.byId[id];
           if (!existing) return s;
-          return {
-            byId: { ...s.byId, [id]: { ...existing, ...patch, updatedAt: Date.now() } },
-            revision: s.revision + 1,
-          };
+          const next: UserEvent = { ...existing, ...patch, updatedAt: Date.now() };
+          // שינוי יום הבסיס או כלל החזרה מזיז את כל הסדרה, והחריגים
+          // הישנים מצביעים על תאריכים שכבר לא קיימים בה
+          if (
+            (patch.date !== undefined && patch.date !== existing.date) ||
+            (patch.repeat !== undefined && patch.repeat !== existing.repeat)
+          ) {
+            delete next.exceptions;
+          }
+          return { byId: { ...s.byId, [id]: next }, revision: s.revision + 1 };
         }),
 
       move: (id, to) => {
@@ -70,6 +86,41 @@ export const useEventsStore = create<EventsStore>()(
           revision: s.revision + 1,
         }));
       },
+
+      updateOccurrence: (id, sourceKey, patch) =>
+        setState((s) => {
+          const existing = s.byId[id];
+          if (!existing) return s;
+          const exceptions = {
+            ...existing.exceptions,
+            [sourceKey]: { ...existing.exceptions?.[sourceKey], ...patch },
+          };
+          return {
+            byId: { ...s.byId, [id]: { ...existing, exceptions, updatedAt: Date.now() } },
+            revision: s.revision + 1,
+          };
+        }),
+
+      moveOccurrence: (id, sourceKey, to) => {
+        // הזזה חזרה למקום המקורי מוחקת את החריג במקום לשמור אותו כזהות
+        if (sourceKey === to) getState().restoreOccurrence(id, sourceKey);
+        else getState().updateOccurrence(id, sourceKey, { movedTo: to });
+      },
+
+      cancelOccurrence: (id, sourceKey) =>
+        getState().updateOccurrence(id, sourceKey, { cancelled: true }),
+
+      restoreOccurrence: (id, sourceKey) =>
+        setState((s) => {
+          const existing = s.byId[id];
+          if (!existing?.exceptions?.[sourceKey]) return s;
+          const exceptions = { ...existing.exceptions };
+          delete exceptions[sourceKey];
+          const next: UserEvent = { ...existing, updatedAt: Date.now() };
+          if (Object.keys(exceptions).length) next.exceptions = exceptions;
+          else delete next.exceptions;
+          return { byId: { ...s.byId, [id]: next }, revision: s.revision + 1 };
+        }),
 
       remove: (id) =>
         setState((s) => {
@@ -101,7 +152,7 @@ export const useEventsStore = create<EventsStore>()(
 
       clearLocal: () => setState((s) => ({ byId: {}, revision: s.revision + 1 })),
     }),
-    { name: STORAGE_KEY, version: 1 },
+    { name: STORAGE_KEY, version: 2 },
   ),
 );
 

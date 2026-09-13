@@ -23,6 +23,11 @@ export type UserEvent = {
   reminderMinutes: number | null;
   /** חזרתיות בסיסית */
   repeat: RepeatRule;
+  /**
+   * חריגים למופעים בודדים בסדרה, לפי התאריך המקורי של המופע.
+   * ריק או חסר ברוב האירועים, ולכן לא נשמר כשאין בו צורך.
+   */
+  exceptions?: Record<DateKey, EventException>;
   createdAt: number;
   updatedAt: number;
   /** מסומן כמחוק לצורך סנכרון (tombstone) */
@@ -30,6 +35,29 @@ export type UserEvent = {
 };
 
 export type RepeatRule = 'none' | 'weekly' | 'monthly' | 'yearly' | 'hebrew-yearly';
+
+/**
+ * חריג למופע יחיד בסדרה חוזרת.
+ *
+ * המפתח במפת החריגים הוא תמיד התאריך שבו המופע *היה אמור* לחול, גם אחרי
+ * שהוזז. כך זהות המופע נשמרת: אפשר להזיז אותו שוב, לבטל אותו, או להחזיר
+ * אותו למקומו, בלי שהחריג ייווצר מחדש ביום אחר.
+ */
+export type EventException = {
+  /** המופע בוטל - הוא פשוט לא יופיע */
+  cancelled?: boolean;
+  /** המופע הועבר ליום אחר */
+  movedTo?: DateKey;
+  /* שינויים נקודתיים שחלים על המופע הזה בלבד */
+  title?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  allDay?: boolean;
+  location?: string;
+  notes?: string;
+  color?: EventColor;
+  reminderMinutes?: number | null;
+};
 
 /** סוגי מועדים מהלוח העברי. */
 export type HolidayKind =

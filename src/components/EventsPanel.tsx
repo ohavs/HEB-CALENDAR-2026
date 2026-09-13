@@ -261,7 +261,9 @@ export function EventsPanel({
       <button
         type="button"
         onClick={() => onOpenChange(!open)}
-        className="shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-3.5 text-right active:cursor-grabbing"
+        aria-label={open ? 'סגירת אירועי היום' : 'פתיחת אירועי היום'}
+        aria-expanded={open}
+        className="focus-ring-inset shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-3.5 text-right active:cursor-grabbing"
         {...handleProps}
       >
         <span className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-hairline" />
