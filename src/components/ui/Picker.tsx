@@ -398,17 +398,7 @@ export function DatePickerSheet({
       <div className="pb-4">
         {/* ניווט חודשים */}
         <div className="mb-4 flex items-center justify-between">
-          <button
-            type="button"
-            aria-label="החודש הבא"
-            onClick={() => setMonth((m) => addMonths(m, 1))}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
-          >
-            <ChevronLeft size={20} strokeWidth={2.3} />
-          </button>
-          <span className="text-title font-semibold text-ink">
-            {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
-          </span>
+          {/* ב-RTL הזמן זורם שמאלה: אחורה בימין, קדימה בשמאל */}
           <button
             type="button"
             aria-label="החודש הקודם"
@@ -416,6 +406,17 @@ export function DatePickerSheet({
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
             <ChevronRight size={20} strokeWidth={2.3} />
+          </button>
+          <span className="text-title font-semibold text-ink">
+            {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
+          </span>
+          <button
+            type="button"
+            aria-label="החודש הבא"
+            onClick={() => setMonth((m) => addMonths(m, 1))}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
+          >
+            <ChevronLeft size={20} strokeWidth={2.3} />
           </button>
         </div>
 
