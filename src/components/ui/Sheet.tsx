@@ -15,11 +15,12 @@ import { useCallback, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
+import { GLIDE, ICON, STROKE } from '@/lib/motion';
 
 const CLOSE_OFFSET = 110;
 const CLOSE_VELOCITY = 520;
 
-const SPRING = { type: 'spring' as const, stiffness: 420, damping: 38, mass: 0.9 };
+const SPRING = GLIDE;
 
 export type SheetProps = {
   open: boolean;
@@ -98,7 +99,7 @@ export function Sheet({
           />
 
           <motion.div
-            className={`relative mx-auto flex max-h-[92svh] w-full max-w-[640px] flex-col rounded-t-sheet bg-surface shadow-sheet lg:mb-6 lg:max-w-[720px] lg:rounded-sheet ${
+            className={`relative mx-auto flex max-h-[92svh] w-full max-w-[640px] flex-col rounded-t-sheet bg-surface shadow-overlay lg:mb-6 lg:max-w-[720px] lg:rounded-sheet ${
               size === 'tall' ? 'h-[88svh]' : ''
             } ${className}`}
             initial={reduceMotion ? { opacity: 0 } : { y: '100%' }}
@@ -133,7 +134,7 @@ export function Sheet({
                     aria-label="סגירה"
                     className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-muted transition-colors active:bg-hairline"
                   >
-                    <X size={20} strokeWidth={2.2} />
+                    <X size={ICON.lg} strokeWidth={STROKE} />
                   </button>
                 )}
                 <div className="min-w-0 flex-1">

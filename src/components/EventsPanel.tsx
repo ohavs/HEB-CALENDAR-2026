@@ -24,6 +24,7 @@ import type { Occurrence } from '@/lib/recurrence';
 import { dayTitleLabel, relativeDayLabel } from '@/lib/dates';
 import { EventCard } from './EventChip';
 import { useElementSize } from '@/hooks/useElementSize';
+import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
 
 /** כמה מהחלונית נשאר גלוי כשהיא מקופלת */
 const PEEK_HEIGHT = 84;
@@ -77,7 +78,7 @@ function DayPanelContent({
               .join(' · ') || 'לתצוגת יום מורחבת'}
           </span>
         </span>
-        <ChevronLeft size={20} strokeWidth={2.3} className="shrink-0 text-faint" />
+        <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
       </button>
 
       {/* מועדים - שורות עם נקודת צבע, לא גלולות */}
@@ -151,7 +152,7 @@ function DayPanelContent({
             onClick={onAddEvent}
             className="mt-3.5 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
           >
-            <Plus size={18} strokeWidth={2.5} />
+            <Plus size={ICON.md} strokeWidth={STROKE} />
             הוספת אירוע
           </button>
         </div>
@@ -178,7 +179,7 @@ function summaryOf(day: DayInfo | undefined, count: number): string {
 export function DockedDayPanel(props: ContentProps) {
   const { day } = props;
   return (
-    <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-soft xl:w-[420px]">
+    <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-raised xl:w-[420px]">
       <header className="shrink-0 border-b border-hairline px-5 py-5">
         <h2 className="text-title font-semibold leading-tight text-ink">
           {day ? relativeDayLabel(day.date) : ''}
@@ -245,10 +246,10 @@ export function EventsPanel({
   return (
     <motion.div
       ref={ref}
-      className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-panel"
+      className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-overlay"
       style={{ y, bottom: bottomInset, willChange: 'transform' }}
       animate={{ y: open ? 0 : collapsedY }}
-      transition={{ type: 'spring', stiffness: 460, damping: 42, mass: 0.7 }}
+      transition={GLIDE}
       drag="y"
       dragListener={false}
       dragControls={controls}
@@ -275,10 +276,10 @@ export function EventsPanel({
           </span>
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={SNAP}
             className="shrink-0 text-faint"
           >
-            <ChevronUp size={22} strokeWidth={2.3} />
+            <ChevronUp size={ICON.xl} strokeWidth={STROKE} />
           </motion.span>
         </span>
       </button>

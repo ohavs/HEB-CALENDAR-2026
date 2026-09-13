@@ -15,6 +15,7 @@ import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
 import { DateField, SelectField, TextArea, TextField, TimeField } from './ui/fields';
+import { ICON, STROKE } from '@/lib/motion';
 
 const COLOR_SWATCH: Record<EventColor, string> = {
   violet: 'ev-violet',
@@ -147,7 +148,7 @@ export function EventEditor({
                 : 'bg-well text-[rgb(194_60_90)]'
             }`}
           >
-            <Trash2 size={17} strokeWidth={2.3} />
+            <Trash2 size={ICON.md} strokeWidth={STROKE} />
             {confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
@@ -196,7 +197,7 @@ export function EventEditor({
           label="תאריך"
           value={draft.date}
           onChange={(d) => patch({ date: d })}
-          icon={<CalendarDays size={15} strokeWidth={2.3} />}
+          icon={<CalendarDays size={ICON.sm} strokeWidth={STROKE} />}
           hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
           weekStart={settings.weekStart}
         />
@@ -204,7 +205,7 @@ export function EventEditor({
         {/* כל היום */}
         <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
           <span className="flex items-center gap-2.5 text-body font-medium text-ink">
-            <Clock size={19} strokeWidth={2.2} className="text-muted" />
+            <Clock size={ICON.lg} strokeWidth={STROKE} className="text-muted" />
             כל היום
           </span>
           <Toggle label="כל היום" checked={draft.allDay} onChange={(allDay) => patch({ allDay })} />
@@ -234,14 +235,14 @@ export function EventEditor({
           value={draft.location ?? ''}
           onChange={(location) => patch({ location })}
           placeholder="לא הוגדר"
-          icon={<MapPin size={15} strokeWidth={2.3} />}
+          icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
         />
 
         <SelectField<UserEvent['repeat']>
           label="חזרה"
           value={draft.repeat}
           onChange={(repeat) => patch({ repeat })}
-          icon={<Repeat size={15} strokeWidth={2.3} />}
+          icon={<Repeat size={ICON.sm} strokeWidth={STROKE} />}
           options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
             value: r,
             label: REPEAT_LABELS[r],
@@ -252,7 +253,7 @@ export function EventEditor({
           label="תזכורת"
           value={String(draft.reminderMinutes)}
           onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-          icon={<Bell size={15} strokeWidth={2.3} />}
+          icon={<Bell size={ICON.sm} strokeWidth={STROKE} />}
           options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
         />
 

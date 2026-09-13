@@ -10,6 +10,7 @@ import { findCity } from '@/lib/locations';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { EventCard } from './EventChip';
+import { ICON, SNAP, STROKE } from '@/lib/motion';
 
 export function DayView({
   open,
@@ -63,7 +64,7 @@ export function DayView({
             onClick={() => onNavigate(addDays(day.date, -1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={20} strokeWidth={2.3} />
+            <ChevronRight size={ICON.lg} strokeWidth={STROKE} />
           </button>
           <button
             type="button"
@@ -71,7 +72,7 @@ export function DayView({
             onClick={() => onNavigate(addDays(day.date, 1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={20} strokeWidth={2.3} />
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} />
           </button>
         </div>
       }
@@ -81,7 +82,7 @@ export function DayView({
           onClick={onAddEvent}
           className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={ICON.md} strokeWidth={STROKE} />
           אירוע חדש ב{relativeDayLabel(day.date)}
         </button>
       }
@@ -174,14 +175,14 @@ export function DayView({
           onClick={() => setShowZmanim((v) => !v)}
           className="flex w-full items-center gap-3 px-4 py-4 text-right"
         >
-          <Sun size={19} strokeWidth={2.2} className="shrink-0 text-muted" />
+          <Sun size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-muted" />
           <span className="flex-1 text-body font-medium text-ink">זמני היום ב{city.name}</span>
           <motion.span
             animate={{ rotate: showZmanim ? 90 : 0 }}
             className="shrink-0 text-faint"
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={SNAP}
           >
-            <ChevronLeft size={17} strokeWidth={2.3} />
+            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
           </motion.span>
         </button>
         {zmanim && (

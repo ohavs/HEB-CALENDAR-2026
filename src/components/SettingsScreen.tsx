@@ -32,6 +32,7 @@ import { PlaceEditor } from './PlaceEditor';
 import { radiusLabel } from '@/lib/geofence';
 import type { SavedPlace } from '@/types';
 import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
+import { ICON, STROKE } from '@/lib/motion';
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
 type InstallPrompt = Event & { prompt: () => Promise<void> };
@@ -212,7 +213,7 @@ export function SettingsScreen({
             <SettingRow
               title="יציאה מהחשבון"
               hint="הנתונים יישארו על המכשיר הזה"
-              icon={<LogOut size={17} strokeWidth={2.1} />}
+              icon={<LogOut size={ICON.md} strokeWidth={2.1} />}
               onClick={() => void signOut()}
             />
           </>
@@ -258,9 +259,9 @@ export function SettingsScreen({
             onChange={(v) => setValue('theme', v)}
             size="sm"
             options={[
-              { value: 'light', label: 'בהיר', icon: <Sun size={13} strokeWidth={2.4} /> },
-              { value: 'dark', label: 'כהה', icon: <Moon size={13} strokeWidth={2.4} /> },
-              { value: 'system', label: 'מערכת', icon: <SunMoon size={13} strokeWidth={2.4} /> },
+              { value: 'light', label: 'בהיר', icon: <Sun size={ICON.xs} strokeWidth={STROKE} /> },
+              { value: 'dark', label: 'כהה', icon: <Moon size={ICON.xs} strokeWidth={STROKE} /> },
+              { value: 'system', label: 'מערכת', icon: <SunMoon size={ICON.xs} strokeWidth={STROKE} /> },
             ]}
           />
         </SettingRow>
@@ -366,10 +367,10 @@ export function SettingsScreen({
         <SettingRow
           title="עיר"
           hint={findCity(settings.cityId).name}
-          icon={<MapPin size={17} strokeWidth={2.1} />}
+          icon={<MapPin size={ICON.md} strokeWidth={2.1} />}
           onClick={onPickCity}
         >
-          <ChevronLeft size={17} strokeWidth={2.3} className="text-faint" />
+          <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="text-faint" />
         </SettingRow>
         <NumberSettingRow
           title="הדלקת נרות"
@@ -429,7 +430,7 @@ export function SettingsScreen({
             onClick={() => void askPermission()}
             className="flex w-full items-center gap-3.5 px-5 py-4 text-right lg:px-6"
           >
-            <BellRing size={17} strokeWidth={2.1} className="shrink-0 text-brand" />
+            <BellRing size={ICON.md} strokeWidth={2.1} className="shrink-0 text-brand" />
             <span className="min-w-0 flex-1">
               <span className="block text-body font-medium text-ink">אישור התראות</span>
               <span className="mt-0.5 block text-caption text-muted">
@@ -509,9 +510,9 @@ export function SettingsScreen({
           title={testSent ? 'נשלחה התראת בדיקה' : 'שליחת התראת בדיקה'}
           icon={
             testSent ? (
-              <Check size={17} strokeWidth={2.6} className="text-[rgb(52_179_138)]" />
+              <Check size={ICON.md} strokeWidth={2.6} className="text-[rgb(52_179_138)]" />
             ) : (
-              <Bell size={17} strokeWidth={2.1} />
+              <Bell size={ICON.md} strokeWidth={2.1} />
             )
           }
           onClick={() => void sendTest()}
@@ -545,17 +546,17 @@ export function SettingsScreen({
             ]
               .filter(Boolean)
               .join(' · ')}
-            icon={<MapPinned size={19} strokeWidth={2.1} />}
+            icon={<MapPinned size={ICON.lg} strokeWidth={2.1} />}
             onClick={() => setPlaceEditor({ open: true, editing: place })}
           >
-            <ChevronLeft size={19} strokeWidth={2.3} className="text-faint" />
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="text-faint" />
           </SettingRow>
         ))}
 
         <SettingRow
           title="הוספת מקום"
           hint="בית, עבודה, בית כנסת"
-          icon={<Plus size={19} strokeWidth={2.3} />}
+          icon={<Plus size={ICON.lg} strokeWidth={STROKE} />}
           onClick={() => setPlaceEditor({ open: true, editing: null })}
         />
       </SettingsGroup>
@@ -566,7 +567,7 @@ export function SettingsScreen({
           <SettingRow
             title="התקנת האפליקציה במכשיר"
             hint="פתיחה ממסך הבית, גם בלי אינטרנט"
-            icon={<Download size={17} strokeWidth={2.1} />}
+            icon={<Download size={ICON.md} strokeWidth={2.1} />}
             onClick={() => {
               void installPrompt.prompt();
               setInstallPrompt(null);

@@ -16,6 +16,7 @@ import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { CalendarHeader } from './CalendarHeader';
 import { MonthGrid, WeekdayHeader } from './MonthGrid';
 import { DockedDayPanel, EventsPanel } from './EventsPanel';
+import { GLIDE } from '@/lib/motion';
 
 /** מרחק/מהירות החלקה שמעבירים חודש */
 const SWIPE_DISTANCE = 58;
@@ -142,7 +143,7 @@ export function CalendarScreen({
                   animate="center"
                   exit="exit"
                   transition={{
-                    x: { type: 'spring', stiffness: 380, damping: 36 },
+                    x: GLIDE,
                     opacity: { duration: 0.18 },
                   }}
                   drag={dragActive ? false : 'x'}

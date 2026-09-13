@@ -9,6 +9,7 @@ import { radiusLabel, readCurrentPosition } from '@/lib/geofence';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
 import { NumberField, TextField } from './ui/fields';
+import { ICON, STROKE } from '@/lib/motion';
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
@@ -122,7 +123,7 @@ export function PlaceEditor({
               confirmDelete ? 'bg-[rgb(240_118_149)] text-white' : 'bg-well text-[rgb(194_60_90)]'
             }`}
           >
-            <Trash2 size={17} strokeWidth={2.3} />
+            <Trash2 size={ICON.md} strokeWidth={STROKE} />
             {confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
@@ -139,7 +140,7 @@ export function PlaceEditor({
           value={draft.name}
           onChange={(name) => patch({ name })}
           placeholder="לדוגמה: בית"
-          icon={<MapPin size={15} strokeWidth={2.3} />}
+          icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
           size="lg"
         />
 
@@ -158,7 +159,7 @@ export function PlaceEditor({
             disabled={locating}
             className="mt-3.5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-3.5 text-label font-semibold text-brand-ink disabled:opacity-60"
           >
-            <Crosshair size={18} strokeWidth={2.3} />
+            <Crosshair size={ICON.md} strokeWidth={STROKE} />
             {locating ? 'מאתר…' : hasCoords ? 'עדכון למיקום הנוכחי' : 'קביעה לפי המיקום שלי'}
           </motion.button>
           {error && <p className="mt-2.5 text-caption text-[rgb(194_60_90)]">{error}</p>}

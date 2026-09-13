@@ -4,6 +4,7 @@ import { Check, Crosshair, Search } from 'lucide-react';
 import { CITIES, CUSTOM_CITY_ID, citiesByRegion, deviceTimeZone, nearestCity } from '@/lib/locations';
 import { useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
+import { ICON, STROKE } from '@/lib/motion';
 
 export function CityPicker({
   open,
@@ -96,7 +97,7 @@ export function CityPicker({
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="עיר לחישוב הזמנים">
       <div className="mb-3.5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
-        <Search size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
+        <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           type="search"
           value={query}
@@ -113,7 +114,7 @@ export function CityPicker({
           disabled={locating}
           className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-4 text-label font-semibold text-brand-ink disabled:opacity-60"
         >
-          <Crosshair size={19} strokeWidth={2.3} />
+          <Crosshair size={ICON.lg} strokeWidth={STROKE} />
           {locating ? 'מאתר…' : 'העיר הקרובה אליי'}
         </button>
         <button
@@ -122,7 +123,7 @@ export function CityPicker({
           disabled={locating}
           className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-well py-4 text-label font-semibold text-ink disabled:opacity-60"
         >
-          <Crosshair size={19} strokeWidth={2.3} className="text-muted" />
+          <Crosshair size={ICON.lg} strokeWidth={STROKE} className="text-muted" />
           המיקום המדויק שלי
         </button>
       </div>
@@ -146,7 +147,7 @@ export function CityPicker({
               >
                 <span className="flex-1 text-body text-ink">{c.name}</span>
                 {c.id === cityId && (
-                  <Check size={20} strokeWidth={2.6} className="shrink-0 text-brand" />
+                  <Check size={ICON.lg} strokeWidth={2.6} className="shrink-0 text-brand" />
                 )}
               </button>
             ))}

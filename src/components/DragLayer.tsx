@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useTransform } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { ghostX, ghostY, useDragStore } from '@/lib/dragEngine';
 import { GREG_MONTHS_HE, keyToDate } from '@/lib/dates';
+import { SNAP } from '@/lib/motion';
 
 export function DragLayer() {
   const occurrence = useDragStore((s) => s.occurrence);
@@ -22,10 +23,10 @@ export function DragLayer() {
           initial={{ opacity: 0, scale: 0.86 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ type: 'spring', stiffness: 520, damping: 32 }}
+          transition={SNAP}
         >
           <div
-            className={`ev ev-${occurrence.color} w-[140px] rounded-xl px-3 py-2.5 shadow-lift`}
+            className={`ev ev-${occurrence.color} w-[140px] rounded-xl px-3 py-2.5 shadow-floating`}
           >
             <span className="block truncate text-caption font-semibold leading-tight">
               {occurrence.title}

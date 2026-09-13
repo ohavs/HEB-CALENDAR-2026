@@ -103,6 +103,18 @@
     background: rgb(var(--c-brand) / 0.2);
   }
 
+  /* מי שביקש פחות תנועה מקבל מעברים מיידיים, כולל גלילה חלקה */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* מיקוד נגיש אך שקט */
   :focus-visible {
     outline: 2px solid rgb(var(--c-brand) / 0.55);
@@ -267,6 +279,28 @@
     width: 100%;
     color: inherit;
     font: inherit;
+  }
+
+  /*
+   * הטבעת חוזרת בניווט מקלדת. בלי הכלל הזה field-reset מבטלת את
+   * :focus-visible שב-base, כי שכבת ה-utilities גוברת עליה - ובדסקטופ
+   * נראה כאילו השדה לא מגיב.
+   */
+  .field-reset:focus-visible {
+    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline-offset: 2px;
+  }
+
+  /* טבעת מיקוד לרכיב שמצייר את הקופסה בעצמו (שורת הגדרה, תא בלוח) */
+  .focus-ring:focus-visible {
+    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline-offset: 2px;
+  }
+
+  /* טבעת פנימית, למקום שאין בו מרווח לטבעת חיצונית */
+  .focus-ring-inset:focus-visible {
+    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline-offset: -2px;
   }
 
   .field-reset::-webkit-calendar-picker-indicator {

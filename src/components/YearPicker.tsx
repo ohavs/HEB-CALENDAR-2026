@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { GREG_MONTHS_HE, dateKey, isSameDay, monthGridDays, orderedWeekdays } from '@/lib/dates';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
+import { ICON, STROKE } from '@/lib/motion';
 
 export function YearPicker({
   open,
@@ -61,7 +62,7 @@ export function YearPicker({
             onClick={() => onYearChange(year - 1)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={18} strokeWidth={2.3} />
+            <ChevronRight size={ICON.md} strokeWidth={STROKE} />
           </button>
           <button
             type="button"
@@ -69,7 +70,7 @@ export function YearPicker({
             onClick={() => onYearChange(year + 1)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={18} strokeWidth={2.3} />
+            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
           </button>
         </div>
       }

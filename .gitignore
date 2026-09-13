@@ -36,3 +36,6 @@ pnpm-debug.log*
 logs/
 *.log
 dist-preview/
+
+# תוצרי בנייה של TypeScript
+*.tsbuildinfo

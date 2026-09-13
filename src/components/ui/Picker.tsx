@@ -25,6 +25,7 @@ import {
   orderedWeekdays,
 } from '@/lib/dates';
 import { useDateMarkers } from '@/hooks/useDateMarkers';
+import { ICON, STROKE, TAP } from '@/lib/motion';
 
 /* ==========================================================================
    מפעיל - הכפתור שמציג את הערך הנוכחי ופותח את הבורר
@@ -48,7 +49,7 @@ export function ValueButton({
       onClick={onClick}
       aria-label={ariaLabel}
       whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+      transition={TAP}
       className={`flex shrink-0 items-center gap-2 rounded-2xl bg-well px-4 transition-colors active:bg-hairline ${
         tone === 'strong'
           ? 'tnum py-3 text-title font-semibold text-ink'
@@ -56,7 +57,7 @@ export function ValueButton({
       }`}
     >
       {value}
-      <ChevronLeft size={17} strokeWidth={2.4} className="text-faint" />
+      <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="text-faint" />
     </motion.button>
   );
 }
@@ -347,7 +348,7 @@ export function OptionPickerSheet<T extends string | number>({
                 {o.hint && <span className="mt-0.5 block text-caption text-muted">{o.hint}</span>}
               </span>
               {active && (
-                <Check size={20} strokeWidth={2.6} className="shrink-0 text-brand" />
+                <Check size={ICON.lg} strokeWidth={2.6} className="shrink-0 text-brand" />
               )}
             </motion.button>
           );
@@ -405,7 +406,7 @@ export function DatePickerSheet({
             onClick={() => setMonth((m) => addMonths(m, -1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={20} strokeWidth={2.3} />
+            <ChevronRight size={ICON.lg} strokeWidth={STROKE} />
           </button>
           <span className="text-title font-semibold text-ink">
             {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
@@ -416,7 +417,7 @@ export function DatePickerSheet({
             onClick={() => setMonth((m) => addMonths(m, 1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={20} strokeWidth={2.3} />
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} />
           </button>
         </div>
 

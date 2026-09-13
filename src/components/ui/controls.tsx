@@ -1,6 +1,7 @@
 /** רכיבי בקרה קטנים ואחידים לכל האפליקציה. */
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { SNAP, TAP } from '@/lib/motion';
 
 /* ---------------------------------- מתג ---------------------------------- */
 
@@ -32,9 +33,9 @@ export function Toggle({
         המסלול: 58 (רוחב) − 28 (ידית) − 3 (שוליים) = 27.
       */}
       <motion.span
-        className="absolute top-[3px] block h-7 w-7 rounded-full bg-white shadow-chip"
+        className="absolute top-[3px] block h-7 w-7 rounded-full bg-white shadow-raised"
         animate={{ right: checked ? 27 : 3 }}
-        transition={{ type: 'spring', stiffness: 700, damping: 34 }}
+        transition={TAP}
       />
     </button>
   );
@@ -87,7 +88,7 @@ export function SettingsGroup({
           {title}
         </h3>
       )}
-      <div className="divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-soft">
+      <div className="divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
         {children}
       </div>
       {footer && <p className="mt-2.5 px-2 text-caption leading-relaxed text-muted">{footer}</p>}
@@ -129,7 +130,7 @@ export function Segmented<T extends string>({
               <motion.span
                 layoutId={`seg-${options.map((o) => o.value).join('-')}`}
                 className="absolute inset-0 rounded-xl bg-brand"
-                transition={{ type: 'spring', stiffness: 480, damping: 36 }}
+                transition={SNAP}
               />
             )}
             <span className="relative flex items-center justify-center gap-1.5">
@@ -159,7 +160,7 @@ export function PrimaryButton({
   tone?: 'brand' | 'danger' | 'quiet';
 }) {
   const tones = {
-    brand: 'bg-brand text-white shadow-soft',
+    brand: 'bg-brand text-white shadow-raised',
     danger: 'bg-[rgb(240_118_149)] text-white',
     quiet: 'bg-well text-ink',
   } as const;
@@ -169,7 +170,7 @@ export function PrimaryButton({
       onClick={onClick}
       disabled={disabled}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
-      transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+      transition={TAP}
       className={`w-full rounded-2xl py-4 text-label font-semibold transition-opacity ${tones[tone]} ${
         disabled ? 'opacity-50' : ''
       }`}

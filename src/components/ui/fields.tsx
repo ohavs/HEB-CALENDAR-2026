@@ -17,6 +17,7 @@ import {
   type PickerOption,
 } from './Picker';
 import { GREG_MONTHS_HE } from '@/lib/dates';
+import { ICON, STROKE, TAP } from '@/lib/motion';
 
 /* ------------------------------ מעטפת שדה ------------------------------ */
 
@@ -69,7 +70,7 @@ function PickerField({
       type="button"
       onClick={onOpen}
       whileTap={{ scale: 0.99 }}
-      transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+      transition={TAP}
       className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-3.5 text-right transition-colors active:bg-hairline"
     >
       <span className="min-w-0 flex-1">
@@ -80,7 +81,7 @@ function PickerField({
         <span className="block truncate text-body font-semibold text-ink">{display}</span>
         {hint && <span className="mt-1.5 block truncate text-caption text-faint">{hint}</span>}
       </span>
-      <ChevronLeft size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
+      <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
     </motion.button>
   );
 }

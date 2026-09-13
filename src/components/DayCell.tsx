@@ -12,6 +12,7 @@ import type { DayInfo, HolidayKind, Settings } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { MiniEventChip } from './EventChip';
 import { useIsDropTarget } from '@/lib/dragEngine';
+import { SNAP, TAP } from '@/lib/motion';
 
 /** צבע הכיתוב של מועד לפי סוגו. */
 function holidayTone(kind: HolidayKind): string {
@@ -86,7 +87,7 @@ function DayCellInner({
         <motion.span
           layoutId="drop-target"
           className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-brand bg-brand/10"
-          transition={{ type: 'spring', stiffness: 600, damping: 40 }}
+          transition={TAP}
         />
       )}
 
@@ -96,7 +97,7 @@ function DayCellInner({
           <motion.span
             layoutId={`day-selection-${layoutGroupId}`}
             className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand"
-            transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+            transition={SNAP}
           />
         )}
         {day.isToday && !selected && (

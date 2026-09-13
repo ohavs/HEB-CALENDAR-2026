@@ -6,6 +6,7 @@ import { upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
 import { dayTitleLabel, startOfDay } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
+import { ICON, STROKE } from '@/lib/motion';
 
 /** "מתקיים כעת", "בעוד 4 שעות", "מחר", "בעוד יומיים" */
 function countdownLabel(entry: ShabbatEntry, now = Date.now()): string {
@@ -61,9 +62,9 @@ export function ShabbatScreen({
           type="button"
           onClick={onPickCity}
           whileTap={{ scale: 0.96 }}
-          className="flex shrink-0 items-center gap-2 rounded-2xl bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-soft"
+          className="flex shrink-0 items-center gap-2 rounded-2xl bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-raised"
         >
-          <MapPin size={16} strokeWidth={2.3} className="text-brand" />
+          <MapPin size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
           {city.name}
         </motion.button>
       </header>
@@ -73,7 +74,7 @@ export function ShabbatScreen({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-5 overflow-hidden rounded-3xl bg-surface shadow-soft"
+          className="mb-5 overflow-hidden rounded-3xl bg-surface shadow-raised"
         >
           <div className="bg-brand px-6 pb-5 pt-5 text-white">
             <p className="text-caption opacity-85">
@@ -89,7 +90,7 @@ export function ShabbatScreen({
           <div className="grid grid-cols-2 divide-x divide-x-reverse divide-hairline">
             <div className="px-6 py-5">
               <p className="flex items-center gap-2 text-caption text-muted">
-                <Sunset size={16} strokeWidth={2.3} className="text-[rgb(var(--c-shabbat))]" />
+                <Sunset size={ICON.sm} strokeWidth={STROKE} className="text-[rgb(var(--c-shabbat))]" />
                 הדלקת נרות
               </p>
               <p className="tnum mt-2 text-display font-semibold leading-none text-ink">
@@ -98,7 +99,7 @@ export function ShabbatScreen({
             </div>
             <div className="px-6 py-5">
               <p className="flex items-center gap-2 text-caption text-muted">
-                <Moon size={16} strokeWidth={2.3} className="text-brand" />
+                <Moon size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
                 יציאה / הבדלה
               </p>
               <p className="tnum mt-2 text-display font-semibold leading-none text-ink">
@@ -131,7 +132,7 @@ export function ShabbatScreen({
         השבועות הבאים
       </h3>
 
-      <div className="mb-4 divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-soft">
+      <div className="mb-4 divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
         {rest.map((entry, i) => (
           <motion.div
             key={entry.startKey}

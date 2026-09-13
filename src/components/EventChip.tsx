@@ -9,6 +9,7 @@ import { MapPin, Repeat } from 'lucide-react';
 import type { Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
+import { ICON, STROKE, TAP } from '@/lib/motion';
 
 /** צ׳יפ זעיר לתוך תא בלוח - שורה אחת, רקע בגוון האירוע. */
 export function MiniEventChip({
@@ -61,7 +62,7 @@ export function EventCard({
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.985 }}
-      transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+      transition={TAP}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
       className={`ev ev-${occurrence.color} flex w-full items-center gap-3.5 rounded-2xl p-3 text-right`}
     >
@@ -92,7 +93,7 @@ export function EventCard({
             {occurrence.title}
           </span>
           {occurrence.repeat !== 'none' && (
-            <Repeat size={15} className="shrink-0 opacity-60" strokeWidth={2.4} />
+            <Repeat size={ICON.sm} className="shrink-0 opacity-60" strokeWidth={STROKE} />
           )}
         </span>
 
@@ -100,7 +101,7 @@ export function EventCard({
           {meta && <span className="tnum font-medium">{meta}</span>}
           {occurrence.location && (
             <span className="flex min-w-0 items-center gap-1.5">
-              <MapPin size={14} strokeWidth={2.4} className="shrink-0" />
+              <MapPin size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />
               <span className="truncate">{occurrence.location}</span>
             </span>
           )}

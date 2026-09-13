@@ -8,6 +8,7 @@ import { toFilters, useSettings } from '@/store/settings';
 import { useEvents } from '@/store/events';
 import type { UserEvent } from '@/types';
 import { Sheet } from './ui/Sheet';
+import { ICON, STROKE } from '@/lib/motion';
 
 export function SearchSheet({
   open,
@@ -55,7 +56,7 @@ export function SearchSheet({
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="חיפוש">
       <div className="mb-5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
-        <Search size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
+        <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           type="search"
           value={query}
@@ -125,7 +126,7 @@ export function SearchSheet({
                 className="flex w-full items-center gap-3.5 px-4 py-4 text-right"
               >
                 <span className="w-5 shrink-0 text-center text-body">
-                  {h.emoji ?? <CalendarDays size={15} className="text-faint" />}
+                  {h.emoji ?? <CalendarDays size={ICON.sm} className="text-faint" />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body font-medium text-ink">

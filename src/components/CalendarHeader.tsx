@@ -2,6 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Plus, Search, User } from 'lucide-react';
 import { GREG_MONTHS_HE } from '@/lib/dates';
+import { ICON, STROKE } from '@/lib/motion';
 
 export function CalendarHeader({
   month,
@@ -40,7 +41,7 @@ export function CalendarHeader({
             <img src={photoURL} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-muted">
-              <User size={20} strokeWidth={2.2} />
+              <User size={ICON.lg} strokeWidth={STROKE} />
             </span>
           )}
         </motion.button>
@@ -83,7 +84,7 @@ export function CalendarHeader({
                 aria-label="חזרה להיום"
                 className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-muted lg:h-12 lg:w-12"
               >
-                <CalendarDays size={21} strokeWidth={2.1} />
+                <CalendarDays size={ICON.xl} strokeWidth={2.1} />
               </motion.button>
             )}
           </AnimatePresence>
@@ -95,7 +96,7 @@ export function CalendarHeader({
             aria-label="חיפוש"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
           >
-            <Search size={21} strokeWidth={2.1} />
+            <Search size={ICON.xl} strokeWidth={2.1} />
           </motion.button>
 
           <motion.button
@@ -103,9 +104,9 @@ export function CalendarHeader({
             onClick={onAdd}
             whileTap={{ scale: 0.9 }}
             aria-label="אירוע חדש"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-soft lg:h-[52px] lg:w-[52px]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-raised lg:h-[52px] lg:w-[52px]"
           >
-            <Plus size={23} strokeWidth={2.4} />
+            <Plus size={ICON.xl} strokeWidth={STROKE} />
           </motion.button>
         </div>
       </div>
