@@ -40,7 +40,13 @@ service cloud.firestore {
       }
 
       match /meta/{docId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        // חסם גודל: המסמך היחיד שנכתב כאן הוא ההגדרות, שהן עשרות שדות.
+        // בלי חסם, לקוח פרוץ יכול לנפח אותו בלי גבול על חשבון הבעלים.
+        allow write: if isOwner(uid)
+          && request.resource.data.keys().size() <= 40
+          && (!('settings' in request.resource.data)
+              || request.resource.data.settings.keys().size() <= 60);
       }
 
       // כל נתיב אחר תחת המשתמש - רק הבעלים
