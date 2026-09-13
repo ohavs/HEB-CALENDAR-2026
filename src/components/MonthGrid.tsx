@@ -101,7 +101,7 @@ export function MonthGrid({
       const next = ref.current?.querySelector<HTMLElement>(`[data-day-key="${key}"]`);
       next?.focus();
     },
-    [data.days, onNavigate, settings.weekStart],
+    [data.days, onNavigate, ref, settings.weekStart],
   );
 
   return (

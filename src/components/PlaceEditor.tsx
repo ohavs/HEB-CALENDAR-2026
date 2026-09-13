@@ -68,7 +68,7 @@ export function PlaceEditor({
 
   const patch = (values: Partial<Draft>) => setDraft((d) => ({ ...d, ...values }));
 
-  const useMyLocation = async () => {
+  const readMyLocation = async () => {
     setLocating(true);
     setError(null);
     try {
@@ -155,7 +155,7 @@ export function PlaceEditor({
           <motion.button
             type="button"
             whileTap={{ scale: 0.98 }}
-            onClick={() => void useMyLocation()}
+            onClick={() => void readMyLocation()}
             disabled={locating}
             className="mt-3.5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-3.5 text-label font-semibold text-brand-ink disabled:opacity-60"
           >

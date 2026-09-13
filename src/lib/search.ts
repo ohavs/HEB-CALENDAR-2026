@@ -37,7 +37,7 @@ export function normalize(text: string): string {
     .replace(DASHES, ' ')
     .replace(NIKUD, '')
     .replace(MARKS, '')
-    .replace(/[\s ]+/g, ' ')
+    .replace(/[\s\u00A0]+/g, ' ')
     .trim()
     .toLowerCase()
     .replace(/[ךםןףץ]/g, (c) => FINAL_LETTERS[c]);

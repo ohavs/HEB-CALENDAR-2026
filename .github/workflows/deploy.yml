@@ -16,6 +16,8 @@
 #
 # אם אחד הסודות החובה חסר, השלב הראשון ייכשל עם רשימה מדויקת של מה שחסר,
 # במקום להיכשל באמצע הפריסה.
+#
+# הבדיקות והלינטר רצים לפני הבנייה: מה שנשבר לא מגיע לאוויר.
 
 name: Deploy to Firebase Hosting
 
@@ -78,6 +80,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # שער לפני הפריסה: בדיקה שנשברה לא אמורה להגיע לאוויר.
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
 
       - name: Typecheck and build
         env:

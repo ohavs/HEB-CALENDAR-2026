@@ -167,7 +167,7 @@ describe('ייבוא', () => {
   it('תווים מוברחים מפוענחים', () => {
     const { events } = fromICS(
       wrap(
-        ['BEGIN:VEVENT', 'SUMMARY:א\; ב\\, ג', 'DESCRIPTION:שורה\\nשנייה',
+        ['BEGIN:VEVENT', 'SUMMARY:א\\; ב\\, ג', 'DESCRIPTION:שורה\\nשנייה',
          'DTSTART:20260913T090000', 'END:VEVENT'].join('\r\n'),
       ),
     );
