@@ -32,7 +32,7 @@ export function MiniEventChip({
   );
 }
 
-/** צ׳יפ מלא לרשימת האירועים ולתצוגת היום. */
+/** כרטיס אירוע מלא לרשימות ולתצוגת היום. */
 export function EventCard({
   occurrence,
   onClick,
@@ -54,39 +54,40 @@ export function EventCard({
       whileTap={{ scale: 0.985 }}
       transition={{ type: 'spring', stiffness: 600, damping: 32 }}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
-      className={`ev ev-${occurrence.color} block w-full rounded-2xl p-3 text-right`}
+      className={`ev ev-${occurrence.color} flex w-full items-stretch gap-3.5 overflow-hidden rounded-2xl p-4 text-right`}
     >
-      <div className="flex items-start gap-2.5">
-        <span className="ev-bar mt-1 h-[calc(100%-4px)] min-h-[22px] w-[3px] shrink-0 rounded-full" />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-label font-semibold leading-snug">
-              {occurrence.title}
-            </span>
-            {occurrence.repeat !== 'none' && (
-              <Repeat size={12} className="shrink-0 opacity-60" strokeWidth={2.4} />
-            )}
+      {/* פס הצבע במלוא גובה הכרטיס */}
+      <span className="ev-bar w-1 shrink-0 rounded-full" />
+
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-title font-semibold leading-snug">
+            {occurrence.title}
           </span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-tiny opacity-80">
-            {occurrence.allDay ? (
-              <span>כל היום</span>
-            ) : (
-              <span className="tnum flex items-center gap-1">
-                <Clock size={11.5} strokeWidth={2.4} />
-                {occurrence.startTime}
-                {occurrence.endTime ? `–${occurrence.endTime}` : ''}
-                {duration ? ` · ${duration}` : ''}
-              </span>
-            )}
-            {occurrence.location && (
-              <span className="flex min-w-0 items-center gap-1">
-                <MapPin size={11.5} strokeWidth={2.4} className="shrink-0" />
-                <span className="truncate">{occurrence.location}</span>
-              </span>
-            )}
-          </span>
+          {occurrence.repeat !== 'none' && (
+            <Repeat size={14} className="shrink-0 opacity-60" strokeWidth={2.4} />
+          )}
         </span>
-      </div>
+
+        <span className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption opacity-85">
+          {occurrence.allDay ? (
+            <span className="font-medium">כל היום</span>
+          ) : (
+            <span className="tnum flex items-center gap-1.5 font-medium">
+              <Clock size={14} strokeWidth={2.4} />
+              {occurrence.startTime}
+              {occurrence.endTime ? `–${occurrence.endTime}` : ''}
+              {duration ? ` · ${duration}` : ''}
+            </span>
+          )}
+          {occurrence.location && (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <MapPin size={14} strokeWidth={2.4} className="shrink-0" />
+              <span className="truncate">{occurrence.location}</span>
+            </span>
+          )}
+        </span>
+      </span>
     </motion.button>
   );
 }

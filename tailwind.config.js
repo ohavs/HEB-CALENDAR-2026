@@ -44,6 +44,8 @@ export default {
         soft: '0 1px 2px rgb(16 18 40 / 0.04), 0 8px 24px -8px rgb(16 18 40 / 0.10)',
         lift: '0 2px 6px rgb(16 18 40 / 0.06), 0 18px 40px -12px rgb(16 18 40 / 0.18)',
         sheet: '0 -8px 40px -12px rgb(16 18 40 / 0.22)',
+        // צל קטן דיו כדי שלא יידרש רסטור מחדש בכל פריים של הגרירה
+        panel: '0 -1px 3px rgb(16 18 40 / 0.05), 0 -10px 22px -14px rgb(16 18 40 / 0.18)',
         chip: '0 1px 2px rgb(16 18 40 / 0.05)',
       },
       transitionTimingFunction: {

@@ -21,7 +21,7 @@ export function TabBar({
 }) {
   return (
     <nav
-      className="safe-b absolute inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface lg:inset-x-auto lg:bottom-6 lg:left-1/2 lg:w-auto lg:-translate-x-1/2 lg:rounded-full lg:border lg:p-1.5 lg:shadow-lift"
+      className="safe-b absolute inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface lg:inset-x-auto lg:bottom-6 lg:left-1/2 lg:w-auto lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:p-1.5 lg:shadow-lift"
       style={{ minHeight: TAB_BAR_HEIGHT }}
     >
       <div className="flex items-stretch lg:gap-1">
@@ -32,14 +32,14 @@ export function TabBar({
               key={id}
               type="button"
               onClick={() => onChange(id)}
-              className="relative flex flex-1 flex-col items-center gap-1 pb-2.5 pt-3 lg:flex-none lg:flex-row lg:gap-2.5 lg:rounded-full lg:px-6 lg:py-3"
+              className="relative flex flex-1 flex-col items-center gap-1 pb-2.5 pt-3 lg:flex-none lg:flex-row lg:gap-2.5 lg:rounded-2xl lg:px-6 lg:py-3"
               aria-current={isActive ? 'page' : undefined}
             >
               {/* בטלפון: פס דק מעל הלשונית. במסך רחב: גלולה מלאה מאחורי התוכן. */}
               {isActive && (
                 <motion.span
                   layoutId="tab-indicator"
-                  className="absolute -top-px h-[3px] w-10 rounded-full bg-brand lg:inset-0 lg:h-auto lg:w-auto lg:rounded-full lg:bg-brand-soft"
+                  className="absolute -top-px h-[3px] w-10 rounded-full bg-brand lg:inset-0 lg:h-auto lg:w-auto lg:rounded-2xl lg:bg-brand-soft"
                   transition={{ type: 'spring', stiffness: 480, damping: 34 }}
                 />
               )}

@@ -183,8 +183,9 @@ export function buildReminders(
       );
       if (!notable.length) continue;
       const eve = addDays(day.date, -1);
+      const [evH, evM] = settings.notifyHolidayEveTime.split(':').map(Number);
       const at = new Date(eve);
-      at.setHours(settings.notifyHolidayEveHour, 0, 0, 0);
+      at.setHours(evH, evM, 0, 0);
       out.push({
         id: `holiday-${day.key}`,
         at: at.getTime(),

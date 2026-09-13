@@ -198,8 +198,9 @@
     display: none;
   }
 
+  /* שורת הכותרת: מרווח נדיב מהקצה, ומעליו גם אזור הבטיחות של המכשיר */
   .safe-t {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
   }
   .safe-b {
     padding-bottom: env(safe-area-inset-bottom, 0px);

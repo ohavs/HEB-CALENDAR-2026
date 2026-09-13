@@ -61,7 +61,7 @@ export function ShabbatScreen({
           type="button"
           onClick={onPickCity}
           whileTap={{ scale: 0.96 }}
-          className="flex shrink-0 items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-soft"
+          className="flex shrink-0 items-center gap-2 rounded-2xl bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-soft"
         >
           <MapPin size={16} strokeWidth={2.3} className="text-brand" />
           {city.name}
@@ -110,14 +110,14 @@ export function ShabbatScreen({
           {(next.parsha || next.holidays.length > 0) && (
             <div className="flex flex-wrap gap-2 border-t border-hairline px-6 py-4">
               {next.parsha && (
-                <span className="rounded-full bg-brand-soft px-3.5 py-1.5 text-caption font-medium text-brand-ink">
+                <span className="rounded-xl bg-brand-soft px-3.5 py-2 text-caption font-medium text-brand-ink">
                   פרשת {next.parsha}
                 </span>
               )}
               {next.holidays.map((h) => (
                 <span
                   key={h}
-                  className="rounded-full bg-well px-3.5 py-1.5 text-caption font-medium text-muted"
+                  className="rounded-xl bg-well px-3.5 py-2 text-caption font-medium text-muted"
                 >
                   {h}
                 </span>

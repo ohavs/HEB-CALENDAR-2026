@@ -61,17 +61,17 @@ export function DayView({
             type="button"
             aria-label="היום הקודם"
             onClick={() => onNavigate(addDays(day.date, -1))}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={18} strokeWidth={2.3} />
+            <ChevronRight size={20} strokeWidth={2.3} />
           </button>
           <button
             type="button"
             aria-label="היום הבא"
             onClick={() => onNavigate(addDays(day.date, 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={18} strokeWidth={2.3} />
+            <ChevronLeft size={20} strokeWidth={2.3} />
           </button>
         </div>
       }
@@ -79,7 +79,7 @@ export function DayView({
         <button
           type="button"
           onClick={onAddEvent}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 text-body font-semibold text-white"
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white"
         >
           <Plus size={18} strokeWidth={2.5} />
           אירוע חדש ב{relativeDayLabel(day.date)}
@@ -92,12 +92,12 @@ export function DayView({
           {day.holidays.map((h) => (
             <div
               key={h.id}
-              className="flex items-center gap-3 rounded-2xl bg-brand-soft px-4 py-3"
+              className="flex items-center gap-3.5 rounded-2xl bg-brand-soft px-4 py-4"
             >
               {h.emoji && <span className="text-heading leading-none">{h.emoji}</span>}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body font-semibold text-brand-ink">{h.title}</p>
-                {h.restWork && <p className="text-tiny text-brand-ink/70">אסור בעשיית מלאכה</p>}
+                {h.restWork && <p className="mt-0.5 text-caption text-brand-ink/70">אסור בעשיית מלאכה</p>}
               </div>
             </div>
           ))}
@@ -108,15 +108,15 @@ export function DayView({
       {(day.parsha || day.omerDay) && (
         <div className="mb-4 flex gap-2">
           {day.parsha && (
-            <div className="flex-1 rounded-2xl bg-well px-4 py-3">
-              <p className="text-tiny text-muted">פרשת השבוע</p>
-              <p className="text-label font-semibold text-ink">{day.parsha}</p>
+            <div className="flex-1 rounded-2xl bg-well px-4 py-3.5">
+              <p className="text-caption text-muted">פרשת השבוע</p>
+              <p className="mt-1 text-body font-semibold text-ink">{day.parsha}</p>
             </div>
           )}
           {day.omerDay && (
-            <div className="flex-1 rounded-2xl bg-well px-4 py-3">
-              <p className="text-tiny text-muted">ספירת העומר</p>
-              <p className="text-label font-semibold text-ink">יום {day.omerDay}</p>
+            <div className="flex-1 rounded-2xl bg-well px-4 py-3.5">
+              <p className="text-caption text-muted">ספירת העומר</p>
+              <p className="mt-1 text-body font-semibold text-ink">יום {day.omerDay}</p>
             </div>
           )}
         </div>
@@ -130,7 +130,7 @@ export function DayView({
             .map((t) => (
               <div
                 key={t.id}
-                className={`rounded-2xl px-4 py-3 ${
+                className={`rounded-2xl px-4 py-3.5 ${
                   t.kind === 'candles'
                     ? 'bg-[rgb(var(--c-shabbat)/0.1)]'
                     : t.kind === 'havdalah'
@@ -138,8 +138,8 @@ export function DayView({
                       : 'bg-well'
                 }`}
               >
-                <p className="truncate text-tiny text-muted">{t.title}</p>
-                <p className="tnum text-title font-semibold text-ink">{t.time}</p>
+                <p className="truncate text-caption text-muted">{t.title}</p>
+                <p className="tnum mt-1 text-heading font-semibold text-ink">{t.time}</p>
               </div>
             ))}
         </div>
@@ -147,7 +147,7 @@ export function DayView({
 
       {/* אירועים */}
       <div className="mb-4">
-        <h3 className="mb-2 text-caption font-semibold uppercase tracking-wide text-faint">
+        <h3 className="mb-2.5 text-caption font-semibold uppercase tracking-wide text-faint">
           אירועים
         </h3>
         {occurrences.length ? (
@@ -161,7 +161,7 @@ export function DayView({
             ))}
           </div>
         ) : (
-          <p className="rounded-2xl border border-dashed border-hairline px-4 py-5 text-center text-caption text-muted">
+          <p className="rounded-2xl border border-dashed border-hairline px-4 py-7 text-center text-body text-muted">
             אין אירועים ביום הזה
           </p>
         )}
@@ -172,10 +172,10 @@ export function DayView({
         <button
           type="button"
           onClick={() => setShowZmanim((v) => !v)}
-          className="flex w-full items-center gap-2.5 px-4 py-3 text-right"
+          className="flex w-full items-center gap-3 px-4 py-4 text-right"
         >
-          <Sun size={17} strokeWidth={2.2} className="shrink-0 text-muted" />
-          <span className="flex-1 text-label font-medium text-ink">זמני היום ב{city.name}</span>
+          <Sun size={19} strokeWidth={2.2} className="shrink-0 text-muted" />
+          <span className="flex-1 text-body font-medium text-ink">זמני היום ב{city.name}</span>
           <motion.span
             animate={{ rotate: showZmanim ? 90 : 0 }}
             className="shrink-0 text-faint"
@@ -192,9 +192,9 @@ export function DayView({
             className="overflow-hidden border-t border-hairline px-4 pb-2 pt-1"
           >
             {(Object.keys(ZMANIM_LABELS) as (keyof typeof ZMANIM_LABELS)[]).map((k) => (
-              <div key={k} className="flex items-center justify-between py-[5px]">
-                <dt className="text-caption text-muted">{ZMANIM_LABELS[k]}</dt>
-                <dd className="tnum text-label font-medium text-ink">{zmanim[k]}</dd>
+              <div key={k} className="flex items-center justify-between py-2">
+                <dt className="text-label text-muted">{ZMANIM_LABELS[k]}</dt>
+                <dd className="tnum text-label font-semibold text-ink">{zmanim[k]}</dd>
               </div>
             ))}
           </motion.dl>
@@ -203,7 +203,7 @@ export function DayView({
 
       {/* תאריך עברי אחרי השקיעה */}
       {eveningDate && (
-        <p className="mb-2 px-1 text-tiny leading-relaxed text-faint">
+        <p className="mb-2 px-1 text-caption leading-relaxed text-faint">
           מהשקיעה מתחיל {eveningDate.full}
         </p>
       )}

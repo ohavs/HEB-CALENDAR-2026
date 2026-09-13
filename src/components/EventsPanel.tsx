@@ -4,8 +4,12 @@
  * בטלפון זו חלונית תחתונה: מקופלת כברירת מחדל ומציגה רק ידית וסיכום קצר,
  * כך שהלוח נשאר נקי. מושכים למעלה כדי לפתוח וגוררים למטה כדי לסגור.
  * במסך רחב אותו תוכן יושב כעמודה קבועה לצד הלוח, בלי גרירה.
+ *
+ * ביצועים: החלונית מקודמת לשכבה משלה (will-change), הצל שלה קטן מספיק
+ * כדי לא לדרוש רסטור מחדש בכל פריים, ושקיפות התוכן נגזרת ישירות ממיקום
+ * הגרירה כ-motion value - בלי רינדור מחדש של React תוך כדי התנועה.
  */
-import { motion, useMotionValue, type PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { useRef } from 'react';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
 import type { DayInfo } from '@/types';
@@ -15,9 +19,11 @@ import { EventCard } from './EventChip';
 import { useElementSize } from '@/hooks/useElementSize';
 
 /** כמה מהחלונית נשאר גלוי כשהיא מקופלת */
-const PEEK_HEIGHT = 78;
+const PEEK_HEIGHT = 84;
 const SNAP_OFFSET = 70;
 const SNAP_VELOCITY = 420;
+/** מרחק המשיכה שבו התוכן מגיע לשקיפות מלאה */
+const FADE_DISTANCE = 90;
 
 type ContentProps = {
   day: DayInfo | undefined;
@@ -44,15 +50,15 @@ function DayPanelContent({
   const havdalah = day.times.find((t) => t.kind === 'havdalah');
 
   return (
-    <>
+    <div className="space-y-3">
       {/* כניסה לתצוגת היום המורחבת */}
       <button
         type="button"
         onClick={onOpenDay}
-        className="mb-3.5 flex w-full items-center gap-2.5 rounded-2xl bg-well px-4 py-3.5 text-right"
+        className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-4 text-right transition-colors active:bg-hairline"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-label font-semibold text-ink">
+          <span className="block truncate text-body font-semibold text-ink">
             {day.hebrewFull}
           </span>
           <span className="mt-1 block truncate text-caption text-muted">
@@ -64,39 +70,54 @@ function DayPanelContent({
               .join(' · ') || 'לתצוגת יום מורחבת'}
           </span>
         </span>
-        <ChevronLeft size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
+        <ChevronLeft size={20} strokeWidth={2.3} className="shrink-0 text-faint" />
       </button>
 
+      {/* מועדים - שורות עם נקודת צבע, לא גלולות */}
       {day.holidays.length > 0 && (
-        <div className="mb-3.5 flex flex-wrap gap-2">
-          {day.holidays.map((h) => (
-            <span
+        <div className="overflow-hidden rounded-2xl bg-brand-soft">
+          {day.holidays.map((h, i) => (
+            <div
               key={h.id}
-              className="rounded-full bg-brand-soft px-3.5 py-1.5 text-caption font-medium text-brand-ink"
+              className={`flex items-center gap-3 px-4 py-3.5 ${
+                i > 0 ? 'border-t border-brand/10' : ''
+              }`}
             >
-              {h.emoji ? `${h.emoji} ` : ''}
-              {h.title}
-            </span>
+              <span className="text-title leading-none">{h.emoji ?? '✦'}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-body font-semibold text-brand-ink">
+                  {h.title}
+                </span>
+                {h.restWork && (
+                  <span className="mt-0.5 block text-caption text-brand-ink/70">
+                    אסור בעשיית מלאכה
+                  </span>
+                )}
+              </span>
+            </div>
           ))}
         </div>
       )}
 
+      {/* זמני שבת */}
       {(candles || havdalah) && (
-        <div className="mb-3.5 flex gap-2.5">
+        <div className="flex gap-3">
           {candles && (
-            <div className="flex-1 rounded-2xl bg-[rgb(var(--c-shabbat)/0.1)] px-4 py-3">
-              <span className="block text-caption text-[rgb(var(--c-shabbat))]">
+            <div className="flex-1 rounded-2xl bg-[rgb(var(--c-shabbat)/0.1)] px-4 py-3.5">
+              <span className="block text-caption font-medium text-[rgb(var(--c-shabbat))]">
                 🕯 {candles.title}
               </span>
-              <span className="tnum mt-0.5 block text-title font-semibold text-ink">
+              <span className="tnum mt-1 block text-heading font-semibold text-ink">
                 {candles.time}
               </span>
             </div>
           )}
           {havdalah && (
-            <div className="flex-1 rounded-2xl bg-brand-soft px-4 py-3">
-              <span className="block text-caption text-brand-ink">✦ {havdalah.title}</span>
-              <span className="tnum mt-0.5 block text-title font-semibold text-ink">
+            <div className="flex-1 rounded-2xl bg-brand-soft px-4 py-3.5">
+              <span className="block text-caption font-medium text-brand-ink">
+                ✦ {havdalah.title}
+              </span>
+              <span className="tnum mt-1 block text-heading font-semibold text-ink">
                 {havdalah.time}
               </span>
             </div>
@@ -104,6 +125,7 @@ function DayPanelContent({
         </div>
       )}
 
+      {/* אירועים */}
       {occurrences.length > 0 ? (
         <div className="space-y-2.5">
           {occurrences.map((occ) => (
@@ -115,19 +137,19 @@ function DayPanelContent({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-hairline px-4 py-8 text-center">
-          <p className="text-caption text-muted">אין אירועים ביום הזה</p>
+        <div className="rounded-2xl border border-dashed border-hairline px-4 py-9 text-center">
+          <p className="text-body text-muted">אין אירועים ביום הזה</p>
           <button
             type="button"
             onClick={onAddEvent}
-            className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-soft px-5 py-2.5 text-caption font-semibold text-brand-ink"
+            className="mt-3.5 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={18} strokeWidth={2.5} />
             הוספת אירוע
           </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -150,15 +172,13 @@ export function DockedDayPanel(props: ContentProps) {
   const { day } = props;
   return (
     <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-soft xl:w-[420px]">
-      <header className="shrink-0 border-b border-hairline px-5 py-4">
+      <header className="shrink-0 border-b border-hairline px-5 py-5">
         <h2 className="text-title font-semibold leading-tight text-ink">
           {day ? relativeDayLabel(day.date) : ''}
         </h2>
-        <p className="mt-1 text-caption text-muted">
-          {day ? dayTitleLabel(day.date) : ''}
-        </p>
+        <p className="mt-1 text-caption text-muted">{day ? dayTitleLabel(day.date) : ''}</p>
       </header>
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <DayPanelContent {...props} />
       </div>
     </aside>
@@ -187,10 +207,22 @@ export function EventsPanel({
   const { ref, height } = useElementSize<HTMLDivElement>();
   const y = useMotionValue(0);
   const collapsedY = Math.max(0, height - PEEK_HEIGHT);
-  const dragging = useRef(false);
+
+  // שומרים את נקודת הקיפול ב-ref כדי שהטרנספורם יקרא ערך עדכני
+  // בלי ליצור את עצמו מחדש בכל מדידה.
+  const collapsedRef = useRef(collapsedY);
+  collapsedRef.current = collapsedY;
+
+  // שקיפות התוכן נגזרת ממיקום הגרירה בפועל: התוכן מתגלה תוך כדי המשיכה
+  // ולא קופץ בסופה. זהו motion value, ולכן אין רינדור מחדש תוך כדי תנועה.
+  const contentOpacity = useTransform(y, (v) => {
+    const collapsed = collapsedRef.current;
+    if (collapsed <= 0) return 1;
+    const progress = (collapsed - v) / FADE_DISTANCE;
+    return Math.min(1, Math.max(0, progress));
+  });
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    dragging.current = false;
     if (open) {
       if (info.offset.y > SNAP_OFFSET || info.velocity.y > SNAP_VELOCITY) onOpenChange(false);
       else onOpenChange(true);
@@ -204,28 +236,25 @@ export function EventsPanel({
   return (
     <motion.div
       ref={ref}
-      className="absolute inset-x-0 z-30 mx-auto flex h-[62svh] max-w-[640px] flex-col rounded-t-sheet bg-surface shadow-sheet"
-      style={{ y, bottom: bottomInset }}
+      className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-panel"
+      style={{ y, bottom: bottomInset, willChange: 'transform' }}
       animate={{ y: open ? 0 : collapsedY }}
-      transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+      transition={{ type: 'spring', stiffness: 460, damping: 42, mass: 0.7 }}
       drag="y"
       dragConstraints={{ top: 0, bottom: collapsedY }}
       dragElastic={{ top: 0.02, bottom: 0.06 }}
-      onDragStart={() => {
-        dragging.current = true;
-      }}
       onDragEnd={onDragEnd}
     >
       {/* ידית + סיכום - גם כפתור פתיחה וסגירה */}
       <button
         type="button"
         onClick={() => onOpenChange(!open)}
-        className="shrink-0 cursor-grab touch-none px-5 pb-2 pt-3 text-right active:cursor-grabbing"
+        className="shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-3.5 text-right active:cursor-grabbing"
       >
-        <span className="mx-auto mb-2.5 block h-1.5 w-11 rounded-full bg-hairline" />
-        <span className="flex items-center gap-2.5">
+        <span className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-hairline" />
+        <span className="flex items-center gap-3">
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-label font-semibold leading-tight text-ink">
+            <span className="block truncate text-body font-semibold leading-tight text-ink">
               {day ? relativeDayLabel(day.date) : ''}
             </span>
             <span className="mt-1 block truncate text-caption leading-none text-muted">
@@ -237,17 +266,14 @@ export function EventsPanel({
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="shrink-0 text-faint"
           >
-            <ChevronUp size={20} strokeWidth={2.3} />
+            <ChevronUp size={22} strokeWidth={2.3} />
           </motion.span>
         </span>
       </button>
 
-      {/* התוכן נעלם כשהחלונית מקופלת, כדי שלא ייראה מבעד לסרגל הלשוניות */}
       <motion.div
         className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5"
-        animate={{ opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.18 }}
-        style={{ pointerEvents: open ? 'auto' : 'none' }}
+        style={{ opacity: contentOpacity, pointerEvents: open ? 'auto' : 'none' }}
       >
         <DayPanelContent
           day={day}

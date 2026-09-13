@@ -50,7 +50,7 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
           className="pointer-events-none absolute inset-x-4 z-[55] flex justify-center"
           style={{ bottom: bottomInset + 80 }}
         >
-          <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl bg-ink px-4 py-2.5 shadow-lift">
+          <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl bg-ink px-5 py-3.5 shadow-lift">
             <span className="truncate text-label font-medium text-canvas">{message}</span>
             {actionLabel && onAction && (
               <button

@@ -149,8 +149,8 @@ export type Settings = {
   notifyEvents: boolean;
   /** תזכורת בערב שלפני מועד או צום ("מחר: פורים") */
   notifyHolidayEve: boolean;
-  /** השעה שבה תישלח תזכורת המועד, 0-23 */
-  notifyHolidayEveHour: number;
+  /** השעה שבה תישלח תזכורת המועד, בפורמט HH:mm */
+  notifyHolidayEveTime: string;
   /** יום ראשון בשבוע: 0=ראשון (ברירת מחדל בישראל) */
   weekStart: 0 | 1;
   /** ברירת מחדל לצבע אירוע חדש */

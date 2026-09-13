@@ -1,10 +1,11 @@
 /**
- * יצירה ועריכה של אירוע - בפריסה של עיצוב הייחוס:
- * כותרת גדולה, צ׳יפים לבחירת צבע, מקום, שעות, חזרה, תזכורת וכפתור ראשי.
+ * יצירה ועריכה של אירוע.
+ * כל שדה שבוחרים בו ערך (תאריך, שעות, חזרה, תזכורת) פותח בורר משלנו
+ * ולא פקד מובנה של הדפדפן, כדי לשמור על מראה אחיד בכל מכשיר.
  */
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
+import { Bell, CalendarDays, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, UserEvent } from '@/types';
 import { REPEAT_LABELS, type Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, REMINDER_OPTIONS, useEventsStore, type EventDraft } from '@/store/events';
@@ -13,8 +14,7 @@ import { hebrewDateParts } from '@/lib/hebrew';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
-import { TimeField } from './ui/TimeField';
-import { DateField, Select, TextArea, TextField } from './ui/fields';
+import { DateField, SelectField, TextArea, TextField, TimeField } from './ui/fields';
 
 const COLOR_SWATCH: Record<EventColor, string> = {
   violet: 'ev-violet',
@@ -140,14 +140,14 @@ export function EventEditor({
           <motion.button
             type="button"
             onClick={onDelete}
-            whileTap={{ scale: 0.92 }}
-            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-caption font-semibold transition-colors ${
+            whileTap={{ scale: 0.95 }}
+            className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
               confirmDelete
                 ? 'bg-[rgb(240_118_149)] text-white'
                 : 'bg-well text-[rgb(194_60_90)]'
             }`}
           >
-            <Trash2 size={15} strokeWidth={2.3} />
+            <Trash2 size={17} strokeWidth={2.3} />
             {confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
@@ -158,8 +158,7 @@ export function EventEditor({
         </PrimaryButton>
       }
     >
-      {/* כותרת */}
-      <div className="mb-4">
+      <div className="space-y-3 pb-2">
         <TextField
           label="כותרת"
           value={draft.title}
@@ -167,108 +166,96 @@ export function EventEditor({
           placeholder="לדוגמה: ארוחת שבת אצל סבתא"
           size="lg"
         />
-      </div>
 
-      {/* צבעים */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        {EVENT_COLORS.map((c) => {
-          const active = draft.color === c.id;
-          return (
-            <motion.button
-              key={c.id}
-              type="button"
-              onClick={() => patch({ color: c.id })}
-              whileTap={{ scale: 0.92 }}
-              className={`ev ${COLOR_SWATCH[c.id]} rounded-full px-3.5 py-1.5 text-caption font-medium transition-shadow ${
-                active ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : ''
-              }`}
-            >
-              {c.label}
-            </motion.button>
-          );
-        })}
-      </div>
+        {/* צבע - ריבועים מעוגלים, לא גלולות */}
+        <div className="rounded-2xl bg-well px-4 py-3.5">
+          <span className="mb-3 block text-caption font-medium text-muted">צבע</span>
+          <div className="flex flex-wrap gap-2.5">
+            {EVENT_COLORS.map((c) => {
+              const active = draft.color === c.id;
+              return (
+                <motion.button
+                  key={c.id}
+                  type="button"
+                  onClick={() => patch({ color: c.id })}
+                  whileTap={{ scale: 0.92 }}
+                  aria-label={c.label}
+                  aria-pressed={active}
+                  className={`ev ${COLOR_SWATCH[c.id]} flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${
+                    active ? 'ring-2 ring-brand ring-offset-2 ring-offset-well' : ''
+                  }`}
+                >
+                  <span className="ev-dot block h-4 w-4 rounded-lg" />
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
 
-      {/* תאריך */}
-      <div className="mb-4">
         <DateField
           label="תאריך"
           value={draft.date}
-          onChange={(date) => patch({ date })}
-          hint={`${dayTitleLabel(eventDate)} · ${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
+          onChange={(d) => patch({ date: d })}
+          icon={<CalendarDays size={15} strokeWidth={2.3} />}
+          hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
+          weekStart={settings.weekStart}
         />
-      </div>
 
-      {/* מקום */}
-      <div className="mb-4">
+        {/* כל היום */}
+        <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
+          <span className="flex items-center gap-2.5 text-body font-medium text-ink">
+            <Clock size={19} strokeWidth={2.2} className="text-muted" />
+            כל היום
+          </span>
+          <Toggle label="כל היום" checked={draft.allDay} onChange={(allDay) => patch({ allDay })} />
+        </div>
+
+        {!draft.allDay && (
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <TimeField
+                label="שעת התחלה"
+                value={draft.startTime ?? '09:00'}
+                onChange={onStartChange}
+              />
+            </div>
+            <div className="flex-1">
+              <TimeField
+                label="שעת סיום"
+                value={draft.endTime ?? '10:00'}
+                onChange={(endTime: string) => patch({ endTime })}
+              />
+            </div>
+          </div>
+        )}
+
         <TextField
           label="מקום"
           value={draft.location ?? ''}
           onChange={(location) => patch({ location })}
           placeholder="לא הוגדר"
-          icon={<MapPin size={14} strokeWidth={2.3} />}
+          icon={<MapPin size={15} strokeWidth={2.3} />}
         />
-      </div>
 
-      {/* כל היום */}
-      <div className="mb-4 flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
-        <span className="flex items-center gap-2.5 text-body font-medium text-ink">
-          <Clock size={18} strokeWidth={2.2} className="text-muted" />
-          כל היום
-        </span>
-        <Toggle
-          label="כל היום"
-          checked={draft.allDay}
-          onChange={(allDay) => patch({ allDay })}
+        <SelectField<UserEvent['repeat']>
+          label="חזרה"
+          value={draft.repeat}
+          onChange={(repeat) => patch({ repeat })}
+          icon={<Repeat size={15} strokeWidth={2.3} />}
+          options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
+            value: r,
+            label: REPEAT_LABELS[r],
+          }))}
         />
-      </div>
 
-      {/* שעות */}
-      {!draft.allDay && (
-        <div className="mb-4 flex gap-3">
-          <TimeField
-            label="שעת התחלה"
-            value={draft.startTime ?? '09:00'}
-            onChange={onStartChange}
-          />
-          <TimeField
-            label="שעת סיום"
-            value={draft.endTime ?? '10:00'}
-            onChange={(endTime) => patch({ endTime })}
-          />
-        </div>
-      )}
+        <SelectField<string>
+          label="תזכורת"
+          value={String(draft.reminderMinutes)}
+          onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
+          icon={<Bell size={15} strokeWidth={2.3} />}
+          options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+        />
 
-      {/* חזרה ותזכורת */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <div className="flex-1">
-          <Select<UserEvent['repeat']>
-            label="חזרה"
-            value={draft.repeat}
-            onChange={(repeat) => patch({ repeat })}
-            icon={<Repeat size={14} strokeWidth={2.3} />}
-            options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
-              value: r,
-              label: REPEAT_LABELS[r],
-            }))}
-          />
-        </div>
-        <div className="flex-1">
-          <Select<string>
-            label="תזכורת"
-            value={String(draft.reminderMinutes)}
-            onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-            icon={<Bell size={14} strokeWidth={2.3} />}
-            options={REMINDER_OPTIONS.map((o) => ({
-              value: String(o.value),
-              label: o.label,
-            }))}
-          />
-        </div>
-      </div>
-
-      {/* הערות */}
-      <div className="mb-2">
         <TextArea
           label="הערות"
           value={draft.notes ?? ''}
@@ -276,7 +263,6 @@ export function EventEditor({
           placeholder="פרטים נוספים"
         />
       </div>
-
     </Sheet>
   );
 }

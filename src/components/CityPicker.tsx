@@ -57,14 +57,14 @@ export function CityPicker({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="עיר לחישוב הזמנים">
-      <div className="mb-3 flex items-center gap-2 rounded-2xl bg-well px-3.5 py-2.5">
-        <Search size={16} strokeWidth={2.3} className="shrink-0 text-faint" />
+      <div className="mb-3.5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+        <Search size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="חיפוש עיר"
-          className="w-full border-none bg-transparent p-0 text-body text-ink outline-none placeholder:text-faint"
+          className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
         />
       </div>
 
@@ -72,19 +72,19 @@ export function CityPicker({
         type="button"
         onClick={locate}
         disabled={locating}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-soft py-3 text-label font-semibold text-brand-ink disabled:opacity-60"
+        className="mb-5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-4 text-label font-semibold text-brand-ink disabled:opacity-60"
       >
-        <Crosshair size={16} strokeWidth={2.3} />
+        <Crosshair size={19} strokeWidth={2.3} />
         {locating ? 'מאתר…' : 'לפי המיקום שלי'}
       </button>
 
       {locateError && (
-        <p className="mb-3 rounded-2xl bg-well px-4 py-3 text-caption text-muted">{locateError}</p>
+        <p className="mb-4 rounded-2xl bg-well px-4 py-3.5 text-caption text-muted">{locateError}</p>
       )}
 
       {groups.map((group) => (
         <section key={group.region} className="mb-4">
-          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-2 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
             {group.region}
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -93,11 +93,11 @@ export function CityPicker({
                 key={c.id}
                 type="button"
                 onClick={() => select(c.id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-right"
+                className="flex w-full items-center gap-3 px-4 py-4 text-right"
               >
                 <span className="flex-1 text-body text-ink">{c.name}</span>
                 {c.id === cityId && (
-                  <Check size={17} strokeWidth={2.6} className="shrink-0 text-brand" />
+                  <Check size={20} strokeWidth={2.6} className="shrink-0 text-brand" />
                 )}
               </button>
             ))}

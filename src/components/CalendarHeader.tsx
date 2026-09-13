@@ -27,7 +27,7 @@ export function CalendarHeader({
   const label = `${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`;
 
   return (
-    <header className="safe-t shrink-0 gutter-x pb-4 pt-5 lg:pb-5 lg:pt-8">
+    <header className="safe-t shrink-0 gutter-x pb-5 pt-7 lg:pb-6 lg:pt-9">
       <div className="flex items-center gap-2.5 lg:gap-3.5">
         <motion.button
           type="button"

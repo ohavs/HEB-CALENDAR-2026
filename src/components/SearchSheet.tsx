@@ -54,15 +54,15 @@ export function SearchSheet({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="חיפוש">
-      <div className="mb-4 flex items-center gap-2 rounded-2xl bg-well px-3.5 py-2.5">
-        <Search size={16} strokeWidth={2.3} className="shrink-0 text-faint" />
+      <div className="mb-5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+        <Search size={19} strokeWidth={2.3} className="shrink-0 text-faint" />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="אירוע, חג או מועד"
           autoFocus
-          className="w-full border-none bg-transparent p-0 text-body text-ink outline-none placeholder:text-faint"
+          className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
         />
       </div>
 
@@ -78,7 +78,7 @@ export function SearchSheet({
 
       {matchedEvents.length > 0 && (
         <section className="mb-5">
-          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-2 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
             האירועים שלי
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -90,14 +90,14 @@ export function SearchSheet({
                   onPickEvent(e);
                   onClose();
                 }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-right"
+                className="flex w-full items-center gap-3.5 px-4 py-4 text-right"
               >
-                <span className={`ev ev-${e.color} h-8 w-1.5 shrink-0 rounded-full`} />
+                <span className={`ev ev-${e.color} ev-bar h-10 w-1 shrink-0 rounded-full`} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-label font-medium text-ink">
+                  <span className="block truncate text-body font-medium text-ink">
                     {e.title}
                   </span>
-                  <span className="block truncate text-tiny text-muted">
+                  <span className="mt-0.5 block truncate text-caption text-muted">
                     {dayTitleLabel(keyToDate(e.date))}
                     {e.startTime ? ` · ${e.startTime}` : ''}
                   </span>
@@ -110,7 +110,7 @@ export function SearchSheet({
 
       {holidays.length > 0 && (
         <section className="mb-4">
-          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-2 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
             חגים ומועדים
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -122,16 +122,16 @@ export function SearchSheet({
                   onPickDate(h.date);
                   onClose();
                 }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-right"
+                className="flex w-full items-center gap-3.5 px-4 py-4 text-right"
               >
                 <span className="w-5 shrink-0 text-center text-body">
                   {h.emoji ?? <CalendarDays size={15} className="text-faint" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-label font-medium text-ink">
+                  <span className="block truncate text-body font-medium text-ink">
                     {h.title}
                   </span>
-                  <span className="block truncate text-tiny text-muted">
+                  <span className="mt-0.5 block truncate text-caption text-muted">
                     {dayTitleLabel(h.date)} · {h.hebrewDate}
                   </span>
                 </span>

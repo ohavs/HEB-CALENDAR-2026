@@ -39,7 +39,7 @@ export function DragLayer() {
           </div>
           {overKey && (
             <div className="mt-1.5 text-center">
-              <span className="rounded-full bg-ink/80 px-2 py-0.5 text-micro font-medium text-canvas">
+              <span className="rounded-xl bg-ink/85 px-2.5 py-1 text-tiny font-medium text-canvas">
                 {(() => {
                   const d = keyToDate(overKey);
                   return `העברה ל־${d.getDate()} ב${GREG_MONTHS_HE[d.getMonth()]}`;

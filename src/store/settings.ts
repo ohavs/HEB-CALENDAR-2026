@@ -32,7 +32,7 @@ function defaults(): Settings {
     notifyHavdalahMins: 0,
     notifyEvents: true,
     notifyHolidayEve: false,
-    notifyHolidayEveHour: 20,
+    notifyHolidayEveTime: '20:00',
     weekStart: 0,
     defaultEventColor: 'violet',
   };
@@ -78,11 +78,18 @@ export const useSettingsStore = create<SettingsStore>()(
       version: 1,
       // ממזגים עם ברירות המחדל כדי שהוספת הגדרה חדשה לא תשבור משתמשים קיימים
       merge: (persisted, current) => {
-        const p = persisted as { settings?: Partial<Settings> } | undefined;
-        const stored = persisted as { settings?: Partial<Settings>; updatedAt?: number } | undefined;
+        const stored = persisted as
+          | { settings?: Partial<Settings> & { notifyHolidayEveHour?: number }; updatedAt?: number }
+          | undefined;
+        const saved = { ...(stored?.settings ?? {}) };
+        // הגירה: פעם שמרנו שעה שלמה, עכשיו שעה מלאה
+        if (saved.notifyHolidayEveTime === undefined && typeof saved.notifyHolidayEveHour === 'number') {
+          saved.notifyHolidayEveTime = `${String(saved.notifyHolidayEveHour).padStart(2, '0')}:00`;
+        }
+        delete saved.notifyHolidayEveHour;
         return {
           ...current,
-          settings: { ...current.settings, ...(p?.settings ?? {}) },
+          settings: { ...current.settings, ...saved },
           updatedAt: stored?.updatedAt ?? 0,
         };
       },

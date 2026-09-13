@@ -25,10 +25,91 @@ import {
   showTestNotification,
   type PermissionState,
 } from '@/lib/notifications';
-import { Segmented, SettingRow, SettingsGroup, Stepper, Toggle } from './ui/controls';
+import { Segmented, SettingRow, SettingsGroup, Toggle } from './ui/controls';
+import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
 type InstallPrompt = Event & { prompt: () => Promise<void> };
+
+/* -------------------------------------------------------------------------
+   שורות הגדרה שבוחרים בהן ערך: הערך הוא כפתור שפותח בורר גלגלת,
+   במקום כפתורי + ו- זעירים.
+   ------------------------------------------------------------------------- */
+
+function NumberSettingRow({
+  title,
+  hint,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  suffix,
+}: {
+  title: string;
+  hint?: string;
+  value: number;
+  onChange: (next: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <SettingRow title={title} hint={hint}>
+        <ValueButton
+          value={suffix ? `${value} ${suffix}` : String(value)}
+          onClick={() => setOpen(true)}
+          ariaLabel={title}
+        />
+      </SettingRow>
+      <NumberPickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        subtitle={hint}
+        value={value}
+        onChange={onChange}
+        min={min}
+        max={max}
+        step={step}
+        suffix={suffix}
+      />
+    </>
+  );
+}
+
+function TimeSettingRow({
+  title,
+  hint,
+  value,
+  onChange,
+}: {
+  title: string;
+  hint?: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <SettingRow title={title} hint={hint}>
+        <ValueButton value={value} onClick={() => setOpen(true)} ariaLabel={title} tone="strong" />
+      </SettingRow>
+      <TimePickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        subtitle={hint}
+        value={value}
+        onChange={onChange}
+        minuteStep={5}
+      />
+    </>
+  );
+}
 
 export function SettingsScreen({
   onPickCity,
@@ -102,7 +183,7 @@ export function SettingsScreen({
                 </span>
                 <span className="block truncate text-caption text-muted">{user.email}</span>
               </span>
-              <span className="shrink-0 rounded-full bg-[rgb(52_179_138)]/15 px-2.5 py-1 text-tiny font-semibold text-[rgb(25_125_95)]">
+              <span className="shrink-0 rounded-xl bg-[rgb(52_179_138)]/15 px-3 py-1.5 text-caption font-semibold text-[rgb(25_125_95)]">
                 מסונכרן
               </span>
             </div>
@@ -268,16 +349,16 @@ export function SettingsScreen({
         >
           <ChevronLeft size={17} strokeWidth={2.3} className="text-faint" />
         </SettingRow>
-        <SettingRow title="הדלקת נרות" hint="דקות לפני השקיעה">
-          <Stepper
-            value={settings.candleLightingMins}
-            onChange={(v) => setValue('candleLightingMins', v)}
-            min={0}
-            max={60}
-            step={1}
-            suffix="דק׳"
-          />
-        </SettingRow>
+        <NumberSettingRow
+          title="הדלקת נרות"
+          hint="דקות לפני השקיעה"
+          value={settings.candleLightingMins}
+          onChange={(v) => setValue('candleLightingMins', v)}
+          min={0}
+          max={60}
+          suffix="דק׳"
+        />
+
         <SettingRow title="חישוב הבדלה">
           <Segmented<'degrees' | 'minutes'>
             value={settings.havdalahMode}
@@ -290,27 +371,28 @@ export function SettingsScreen({
           />
         </SettingRow>
         {settings.havdalahMode === 'degrees' ? (
-          <SettingRow title="מעלות לצאת הכוכבים" hint="8.5° = שלושה כוכבים קטנים">
-            <Stepper
-              value={settings.havdalahDegrees}
-              onChange={(v) => setValue('havdalahDegrees', Math.round(v * 100) / 100)}
-              min={5}
-              max={9}
-              step={0.5}
-              suffix="°"
-            />
-          </SettingRow>
+        <NumberSettingRow
+          title="מעלות לצאת הכוכבים"
+          hint="8.5° = שלושה כוכבים קטנים"
+          value={settings.havdalahDegrees}
+          onChange={(v) => setValue('havdalahDegrees', v)}
+          min={5}
+          max={9}
+          step={0.5}
+          suffix="°"
+        />
+
         ) : (
-          <SettingRow title="דקות אחרי השקיעה" hint="נהוג 42, 50 או 72 דקות">
-            <Stepper
-              value={settings.havdalahMins}
-              onChange={(v) => setValue('havdalahMins', v)}
-              min={20}
-              max={90}
-              step={1}
-              suffix="דק׳"
-            />
-          </SettingRow>
+        <NumberSettingRow
+          title="דקות אחרי השקיעה"
+          hint="נהוג 42, 50 או 72 דקות"
+          value={settings.havdalahMins}
+          onChange={(v) => setValue('havdalahMins', v)}
+          min={20}
+          max={90}
+          suffix="דק׳"
+        />
+
         )}
       </SettingsGroup>
 
@@ -343,16 +425,17 @@ export function SettingsScreen({
           />
         </SettingRow>
         {settings.notifyCandleLighting && (
-          <SettingRow title="מתי להזכיר" hint="דקות לפני הדלקת נרות">
-            <Stepper
-              value={settings.notifyCandleLightingMins}
-              onChange={(v) => setValue('notifyCandleLightingMins', v)}
-              min={0}
-              max={180}
-              step={5}
-              suffix="דק׳"
-            />
-          </SettingRow>
+        <NumberSettingRow
+          title="מתי להזכיר"
+          hint="דקות לפני הדלקת נרות"
+          value={settings.notifyCandleLightingMins}
+          onChange={(v) => setValue('notifyCandleLightingMins', v)}
+          min={0}
+          max={180}
+          step={5}
+          suffix="דק׳"
+        />
+
         )}
 
         <SettingRow title="ביציאת שבת וחג">
@@ -363,16 +446,17 @@ export function SettingsScreen({
           />
         </SettingRow>
         {settings.notifyHavdalah && (
-          <SettingRow title="מתי להזכיר" hint="דקות לפני ההבדלה">
-            <Stepper
-              value={settings.notifyHavdalahMins}
-              onChange={(v) => setValue('notifyHavdalahMins', v)}
-              min={0}
-              max={60}
-              step={5}
-              suffix="דק׳"
-            />
-          </SettingRow>
+        <NumberSettingRow
+          title="מתי להזכיר"
+          hint="דקות לפני ההבדלה"
+          value={settings.notifyHavdalahMins}
+          onChange={(v) => setValue('notifyHavdalahMins', v)}
+          min={0}
+          max={60}
+          step={5}
+          suffix="דק׳"
+        />
+
         )}
 
         <SettingRow title="בערב שלפני מועד או צום" hint='לדוגמה: "מחר: צום גדליה"'>
@@ -383,16 +467,12 @@ export function SettingsScreen({
           />
         </SettingRow>
         {settings.notifyHolidayEve && (
-          <SettingRow title="שעת התזכורת">
-            <Stepper
-              value={settings.notifyHolidayEveHour}
-              onChange={(v) => setValue('notifyHolidayEveHour', v)}
-              min={5}
-              max={23}
-              step={1}
-              suffix=":00"
-            />
-          </SettingRow>
+        <TimeSettingRow
+          title="שעת התזכורת"
+          hint="בערב שלפני המועד"
+          value={settings.notifyHolidayEveTime}
+          onChange={(v) => setValue('notifyHolidayEveTime', v)}
+        />
         )}
 
         <SettingRow title="תזכורות לאירועים שלי">

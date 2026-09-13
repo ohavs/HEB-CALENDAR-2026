@@ -110,7 +110,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div
-      className={`relative flex gap-1 rounded-full bg-well p-1 ${
+      className={`relative flex gap-1 rounded-2xl bg-well p-1 ${
         size === 'sm' ? 'text-caption' : 'text-label'
       }`}
     >
@@ -121,14 +121,14 @@ export function Segmented<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`relative flex-1 whitespace-nowrap rounded-full px-3.5 py-2 font-medium transition-colors ${
+            className={`relative flex-1 whitespace-nowrap rounded-xl px-3.5 py-2.5 font-medium transition-colors ${
               active ? 'text-white' : 'text-muted'
             }`}
           >
             {active && (
               <motion.span
                 layoutId={`seg-${options.map((o) => o.value).join('-')}`}
-                className="absolute inset-0 rounded-full bg-brand"
+                className="absolute inset-0 rounded-xl bg-brand"
                 transition={{ type: 'spring', stiffness: 480, damping: 36 }}
               />
             )}
@@ -139,50 +139,6 @@ export function Segmented<T extends string>({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-/* -------------------------- מספרון לשורת הגדרה -------------------------- */
-
-export function Stepper({
-  value,
-  onChange,
-  min = 0,
-  max = 120,
-  step = 1,
-  suffix,
-}: {
-  value: number;
-  onChange: (next: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  suffix?: string;
-}) {
-  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n * 100) / 100));
-  return (
-    <div className="flex items-center gap-1 rounded-full bg-well p-1">
-      <button
-        type="button"
-        aria-label="הפחתה"
-        onClick={() => onChange(clamp(value - step))}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-title font-medium leading-none text-muted transition-colors active:bg-hairline lg:h-9 lg:w-9"
-      >
-        −
-      </button>
-      <span className="tnum min-w-[62px] text-center text-label font-semibold text-ink">
-        {value}
-        {suffix ? ` ${suffix}` : ''}
-      </span>
-      <button
-        type="button"
-        aria-label="הוספה"
-        onClick={() => onChange(clamp(value + step))}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-title font-medium leading-none text-muted transition-colors active:bg-hairline lg:h-9 lg:w-9"
-      >
-        +
-      </button>
     </div>
   );
 }
@@ -240,7 +196,7 @@ export function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-caption font-medium transition-colors ${
+      className={`rounded-xl px-4 py-2.5 text-caption font-medium transition-colors ${
         active ? 'bg-brand text-white' : 'bg-well text-muted'
       } ${className}`}
     >

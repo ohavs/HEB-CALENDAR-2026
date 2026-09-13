@@ -102,7 +102,7 @@ export function YearPicker({
                     className="flex items-center justify-center py-0.5"
                   >
                     <span
-                      className={`tnum flex h-[22px] w-[22px] items-center justify-center rounded-full text-tiny ${
+                      className={`tnum flex h-7 w-7 items-center justify-center rounded-xl text-caption ${
                         !inMonth
                           ? 'text-faint/50'
                           : isToday
