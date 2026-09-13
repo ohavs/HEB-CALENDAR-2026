@@ -8,11 +8,24 @@
  */
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import type { DayInfo, HolidayKind, Settings } from '@/types';
+import type { DayInfo, HolidayItem, HolidayKind, Settings } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { MiniEventChip } from './EventChip';
 import { useIsDropTarget } from '@/lib/dragEngine';
 import { SNAP, TAP } from '@/lib/motion';
+
+/**
+ * מה שקורא מסך מקריא על התא. הכיתוב הקודם היה המספר והתאריך העברי
+ * בלבד, כך שמשתמש עיוור לא ידע שיש ביום הזה חג או אירועים.
+ */
+function cellLabel(day: DayInfo, holidays: HolidayItem[], eventCount: number): string {
+  const parts = [`${day.date.getDate()} ${day.hebrewFull}`];
+  if (day.isToday) parts.push('היום');
+  for (const h of holidays) parts.push(h.title);
+  if (eventCount === 1) parts.push('אירוע אחד');
+  else if (eventCount > 1) parts.push(`${eventCount} אירועים`);
+  return parts.join(', ');
+}
 
 /** צבע הכיתוב של מועד לפי סוגו. */
 function holidayTone(kind: HolidayKind): string {
@@ -39,6 +52,11 @@ type Props = {
   capacity: number;
   onSelect: (day: DayInfo) => void;
   layoutGroupId: string;
+  /**
+   * רק תא אחד ברשת נושא tabIndex=0 בכל רגע (roving tabindex), כדי
+   * שהמקלדת לא תצטרך לעבור דרך 42 תאים כדי לצאת מהלוח.
+   */
+  focusable: boolean;
 };
 
 function DayCellInner({
@@ -49,6 +67,7 @@ function DayCellInner({
   capacity,
   onSelect,
   layoutGroupId,
+  focusable,
 }: Props) {
   const isDropTarget = useIsDropTarget(day.key);
   const dim = !day.inCurrentMonth;
@@ -75,13 +94,16 @@ function DayCellInner({
   return (
     <button
       type="button"
+      role="gridcell"
       data-day-key={day.key}
+      tabIndex={focusable ? 0 : -1}
       onClick={() => onSelect(day)}
-      className={`relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center outline-none transition-colors ${
+      className={`focus-ring-inset relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center transition-colors ${
         dim ? 'opacity-45' : ''
       } ${day.isShabbat && !dim ? 'bg-brand/[0.045]' : ''}`}
-      aria-label={`${day.date.getDate()} ${day.hebrewFull}`}
-      aria-pressed={selected}
+      aria-label={cellLabel(day, shownHolidays, occurrences.length)}
+      aria-selected={selected}
+      aria-current={day.isToday ? 'date' : undefined}
     >
       {isDropTarget && (
         <motion.span

@@ -3,7 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import type { CalendarView, DateKey, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
-import { addMonths, dateKey, keyToDate, startOfDay } from '@/lib/dates';
+import {
+  addDays,
+  addMonths,
+  dateKey,
+  dayTitleLabel,
+  keyToDate,
+  startOfDay,
+  GREG_MONTHS_HE,
+} from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
 import { askServiceWorkerToFlush, notifyNow, syncReminders } from '@/lib/notifications';
 import { startGeofenceWatch } from '@/lib/geofence';
@@ -26,6 +34,7 @@ import { SearchSheet } from '@/components/SearchSheet';
 import { YearPicker } from '@/components/YearPicker';
 import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
+import { announce, setAnnouncer } from '@/lib/announce';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
 import { OptionPickerSheet } from '@/components/ui/Picker';
@@ -64,6 +73,7 @@ export default function App() {
   const [cityOpen, setCityOpen] = useState(false);
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [viewPickerOpen, setViewPickerOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
   /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
     null,
@@ -132,6 +142,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.placeAlertsEnabled, settings.places.length]);
 
+  /* ----------------------- הכרזות לקורא מסך ----------------------- */
+  useEffect(() => {
+    setAnnouncer(setAnnouncement);
+    return () => setAnnouncer(null);
+  }, []);
+
   /* ------------------------- התנגשויות סנכרון ------------------------- */
   const conflictCount = useEventsStore((s) => s.conflicts.length);
   const lastConflictCount = useRef(conflictCount);
@@ -150,6 +166,8 @@ export default function App() {
   /* ---------------------------- ניווט בחודשים ---------------------------- */
   const goToMonth = useCallback((month: Date, direction: number) => {
     setMonthState({ month, direction });
+    // מעבר חודש משנה את כל המסך בלי להזיז את המיקוד, ולכן הוא מוכרז
+    announce(`${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`);
   }, []);
 
   const goToDate = useCallback((date: Date) => {
@@ -223,6 +241,22 @@ export default function App() {
     setEditor({ open: true, date: occurrence.date, editing: occurrence });
   }, []);
 
+  /**
+   * הזזה במקלדת - Alt+חיצים על כרטיס אירוע. זו החלופה לגרירה, שאין לה
+   * שום מקבילה במקלדת. מופע בסדרה חוזרת מוזז לבדו: מי שמנווט במקלדת
+   * לא אמור להיתקל בדיאלוג באמצע רצף הקשות.
+   */
+  const moveEventByKeyboard = useCallback(
+    (occurrence: Occurrence, days: number) => {
+      const to = dateKey(addDays(keyToDate(occurrence.spanStart), days));
+      if (occurrence.repeat === 'none') move(occurrence.baseId, to);
+      else moveOccurrence(occurrence.baseId, occurrence.sourceKey, to);
+      setSelectedDate(keyToDate(to));
+      announce(`"${occurrence.title}" הועבר ל${dayTitleLabel(keyToDate(to))}`);
+    },
+    [move, moveOccurrence],
+  );
+
   // בדסקטופ סרגל הלשוניות צף מעל התוכן, ולכן צריך מרווח מעט גדול יותר
   const bottomInset = isDesktop ? TAB_BAR_HEIGHT + 28 : TAB_BAR_HEIGHT;
 
@@ -255,6 +289,7 @@ export default function App() {
                 onOpenDayView={setDayViewDate}
                 onAddEvent={openEditor}
                 onEditEvent={editOccurrence}
+                onMoveEvent={moveEventByKeyboard}
                 onProfile={() => setTab('settings')}
                 onSearch={() => setSearchOpen(true)}
                 onOpenYear={() => {
@@ -284,6 +319,14 @@ export default function App() {
 
         <TabBar active={tab} onChange={setTab} />
         <Toaster bottomInset={bottomInset} />
+
+        {/*
+          אזור ה-live היחיד באפליקציה. פעולות שמשנות את המסך בלי להזיז את
+          המיקוד (הזזה בחיצים, מעבר חודש) מדווחות דרכו.
+        */}
+        <p aria-live="polite" aria-atomic="true" className="sr-only">
+          {announcement}
+        </p>
       </div>
 
       {/* ------------------------------ חלוניות ------------------------------ */}

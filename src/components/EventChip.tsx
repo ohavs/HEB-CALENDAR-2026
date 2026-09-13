@@ -4,12 +4,13 @@
  * הצבע נישא על ידי רקע הכרטיס ותג השעה המלא, ולא על ידי פס דק בצד -
  * כך האירוע נקרא כיחידה אחת ולא כמלבן עם קישוט.
  */
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Repeat } from 'lucide-react';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
 
 /**
  * צ׳יפ זעיר לתוך תא בלוח - שורה אחת, רקע בגוון האירוע.
@@ -57,6 +58,17 @@ export function MiniEventChip({
   );
 }
 
+/** מה שקורא מסך מקריא על הכרטיס: הכול בשורה אחת ובסדר הגיוני. */
+function cardLabel(occ: Occurrence): string {
+  const parts = [occ.title];
+  if (occ.spanLength > 1) parts.push(`יום ${occ.spanIndex + 1} מתוך ${occ.spanLength}`);
+  else if (occ.allDay) parts.push('כל היום');
+  else if (occ.startTime) parts.push(occ.endTime ? `${occ.startTime} עד ${occ.endTime}` : occ.startTime);
+  if (occ.location) parts.push(occ.location);
+  if (occ.repeat !== 'none') parts.push('אירוע חוזר');
+  return parts.join(', ');
+}
+
 /**
  * כרטיס אירוע מלא לרשימות ולתצוגת היום.
  * השעה יושבת בתג מלא בצבע האירוע, והכותרת לצידו.
@@ -64,10 +76,16 @@ export function MiniEventChip({
 export function EventCard({
   occurrence,
   onClick,
+  onMove,
   draggable = false,
 }: {
   occurrence: Occurrence;
   onClick?: () => void;
+  /**
+   * הזזה במקלדת - Alt+חיצים. זו החלופה לגרירה, שאין לה שום מקבילה
+   * במקלדת: יום אחד בחיצים אופקיים, שבוע בחיצים אנכיים.
+   */
+  onMove?: (days: number) => void;
   draggable?: boolean;
 }) {
   const duration =
@@ -79,14 +97,29 @@ export function EventCard({
     .filter(Boolean)
     .join(' · ');
 
+  /** Alt+חיצים - החלופה לגרירה, שאין לה שום מקבילה במקלדת. */
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (!onMove || !e.altKey) return;
+    const delta = { ArrowLeft: 1, ArrowRight: -1, ArrowDown: 7, ArrowUp: -7 }[e.key];
+    if (delta === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onMove(delta);
+  };
+
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      whileTap={{ scale: 0.985 }}
+      onKeyDown={onKeyDown}
+      whileTap={TAP_SCALE_LG}
       transition={TAP}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
-      className={`ev ev-${occurrence.color} flex w-full items-center gap-3.5 rounded-2xl p-3 text-right`}
+      aria-label={cardLabel(occurrence)}
+      aria-keyshortcuts={
+        onMove ? 'Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown' : undefined
+      }
+      className={`ev ev-${occurrence.color} focus-ring flex w-full items-center gap-3.5 rounded-2xl p-3 text-right`}
     >
       {/* תג השעה - מלא בצבע האירוע */}
       <span

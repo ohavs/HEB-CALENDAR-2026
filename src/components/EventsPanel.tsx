@@ -39,6 +39,8 @@ type ContentProps = {
   onOpenDay: () => void;
   onAddEvent: () => void;
   onEditEvent: (occurrence: Occurrence) => void;
+  /** הזזה במקלדת (Alt+חיצים) - החלופה לגרירה */
+  onMoveEvent: (occurrence: Occurrence, days: number) => void;
 };
 
 /* ==========================================================================
@@ -51,6 +53,7 @@ function DayPanelContent({
   onOpenDay,
   onAddEvent,
   onEditEvent,
+  onMoveEvent,
 }: ContentProps) {
   if (!day) return null;
 
@@ -141,6 +144,7 @@ function DayPanelContent({
               key={occ.occurrenceId}
               occurrence={occ}
               onClick={() => onEditEvent(occ)}
+              onMove={(days) => onMoveEvent(occ, days)}
             />
           ))}
         </div>
@@ -205,6 +209,7 @@ export function EventsPanel({
   onOpenDay,
   onAddEvent,
   onEditEvent,
+  onMoveEvent,
   bottomInset,
 }: ContentProps & {
   open: boolean;
@@ -298,6 +303,7 @@ export function EventsPanel({
           onOpenDay={onOpenDay}
           onAddEvent={onAddEvent}
           onEditEvent={onEditEvent}
+          onMoveEvent={onMoveEvent}
         />
       </motion.div>
     </motion.div>

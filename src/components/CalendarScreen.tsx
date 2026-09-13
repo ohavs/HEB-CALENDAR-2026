@@ -73,6 +73,7 @@ export function CalendarScreen({
   onOpenDayView,
   onAddEvent,
   onEditEvent,
+  onMoveEvent,
   onProfile,
   onSearch,
   onOpenYear,
@@ -91,6 +92,8 @@ export function CalendarScreen({
   onOpenDayView: (date: Date) => void;
   onAddEvent: (date: DateKey) => void;
   onEditEvent: (occurrence: Occurrence) => void;
+  /** הזזה במקלדת (Alt+חיצים) - החלופה לגרירה */
+  onMoveEvent: (occurrence: Occurrence, days: number) => void;
   onProfile: () => void;
   onSearch: () => void;
   onOpenYear: () => void;
@@ -155,6 +158,20 @@ export function CalendarScreen({
     [selectedKey, onOpenDayView, onSelectDate, month, onMonthChange],
   );
 
+  /** ניווט מקלדת: בוחר תאריך, ומחליף חודש אם צריך. */
+  const goToDate = useCallback(
+    (date: Date) => {
+      onSelectDate(date);
+      if (!isSameMonth(date, month)) {
+        onMonthChange(
+          new Date(date.getFullYear(), date.getMonth(), 1),
+          date > month ? 1 : -1,
+        );
+      }
+    },
+    [month, onMonthChange, onSelectDate],
+  );
+
   const today = startOfDay(new Date());
   const goToToday = () => {
     onSelectDate(today);
@@ -173,6 +190,7 @@ export function CalendarScreen({
           onOpenDay={onOpenDayView}
           onAddEvent={() => onAddEvent(selectedKey)}
           onEditEvent={onEditEvent}
+          onMoveEvent={onMoveEvent}
           bottomInset={isDesktop ? 0 : bottomInset}
         />
       );
@@ -221,6 +239,7 @@ export function CalendarScreen({
                 settings={settings}
                 selectedKey={selectedKey}
                 onSelectDay={onSelectDay}
+                onNavigate={goToDate}
                 layoutGroupId={monthKey(month)}
               />
             </motion.div>
@@ -270,6 +289,7 @@ export function CalendarScreen({
               onOpenDay={() => onOpenDayView(selectedDate)}
               onAddEvent={() => onAddEvent(selectedKey)}
               onEditEvent={onEditEvent}
+              onMoveEvent={onMoveEvent}
             />
           )}
         </div>
@@ -284,6 +304,7 @@ export function CalendarScreen({
           onOpenDay={() => onOpenDayView(selectedDate)}
           onAddEvent={() => onAddEvent(selectedKey)}
           onEditEvent={onEditEvent}
+          onMoveEvent={onMoveEvent}
           bottomInset={bottomInset}
         />
       )}

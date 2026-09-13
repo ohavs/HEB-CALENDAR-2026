@@ -29,10 +29,12 @@ function DayGroup({
   entry,
   onOpenDay,
   onEditEvent,
+  onMoveEvent,
 }: {
   entry: AgendaEntry;
   onOpenDay: (date: Date) => void;
   onEditEvent: (occurrence: Occurrence) => void;
+  onMoveEvent: (occurrence: Occurrence, days: number) => void;
 }) {
   const { day, occurrences } = entry;
   const candles = day.times.find((t) => t.kind === 'candles');
@@ -101,7 +103,12 @@ function DayGroup({
         )}
 
         {occurrences.map((occ) => (
-          <EventCard key={occ.occurrenceId} occurrence={occ} onClick={() => onEditEvent(occ)} />
+          <EventCard
+            key={occ.occurrenceId}
+            occurrence={occ}
+            onClick={() => onEditEvent(occ)}
+            onMove={(days) => onMoveEvent(occ, days)}
+          />
         ))}
       </div>
     </section>
@@ -113,6 +120,7 @@ export function AgendaView({
   onOpenDay,
   onAddEvent,
   onEditEvent,
+  onMoveEvent,
   bottomInset,
 }: {
   /** מאיפה הרשימה מתחילה - בדרך כלל היום */
@@ -120,6 +128,7 @@ export function AgendaView({
   onOpenDay: (date: Date) => void;
   onAddEvent: () => void;
   onEditEvent: (occurrence: Occurrence) => void;
+  onMoveEvent: (occurrence: Occurrence, days: number) => void;
   bottomInset: number;
 }) {
   const settings = useSettings();
@@ -185,6 +194,7 @@ export function AgendaView({
               entry={entry}
               onOpenDay={onOpenDay}
               onEditEvent={onEditEvent}
+              onMoveEvent={onMoveEvent}
             />
           ))
         )}
