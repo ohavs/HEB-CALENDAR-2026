@@ -62,23 +62,23 @@ export function SearchSheet({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="אירוע, חג או מועד"
           autoFocus
-          className="w-full border-none bg-transparent p-0 text-[15px] text-ink outline-none placeholder:text-faint"
+          className="w-full border-none bg-transparent p-0 text-body text-ink outline-none placeholder:text-faint"
         />
       </div>
 
       {!q && (
-        <p className="py-8 text-center text-[13.5px] text-muted">
+        <p className="py-8 text-center text-label text-muted">
           חפשו אירוע שיצרתם, או חג ומועד בלוח העברי
         </p>
       )}
 
       {q && matchedEvents.length === 0 && holidays.length === 0 && (
-        <p className="py-8 text-center text-[13.5px] text-muted">לא נמצאו תוצאות</p>
+        <p className="py-8 text-center text-label text-muted">לא נמצאו תוצאות</p>
       )}
 
       {matchedEvents.length > 0 && (
         <section className="mb-5">
-          <h3 className="mb-1.5 px-1 text-[12px] font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
             האירועים שלי
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -94,10 +94,10 @@ export function SearchSheet({
               >
                 <span className={`ev ev-${e.color} h-8 w-1.5 shrink-0 rounded-full`} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14.5px] font-medium text-ink">
+                  <span className="block truncate text-label font-medium text-ink">
                     {e.title}
                   </span>
-                  <span className="block truncate text-[12px] text-muted">
+                  <span className="block truncate text-tiny text-muted">
                     {dayTitleLabel(keyToDate(e.date))}
                     {e.startTime ? ` · ${e.startTime}` : ''}
                   </span>
@@ -110,7 +110,7 @@ export function SearchSheet({
 
       {holidays.length > 0 && (
         <section className="mb-4">
-          <h3 className="mb-1.5 px-1 text-[12px] font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
             חגים ומועדים
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -124,14 +124,14 @@ export function SearchSheet({
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-right"
               >
-                <span className="w-5 shrink-0 text-center text-[15px]">
+                <span className="w-5 shrink-0 text-center text-body">
                   {h.emoji ?? <CalendarDays size={15} className="text-faint" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14.5px] font-medium text-ink">
+                  <span className="block truncate text-label font-medium text-ink">
                     {h.title}
                   </span>
-                  <span className="block truncate text-[12px] text-muted">
+                  <span className="block truncate text-tiny text-muted">
                     {dayTitleLabel(h.date)} · {h.hebrewDate}
                   </span>
                 </span>

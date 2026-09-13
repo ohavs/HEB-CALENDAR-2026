@@ -51,7 +51,7 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
           style={{ bottom: bottomInset + 80 }}
         >
           <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl bg-ink px-4 py-2.5 shadow-lift">
-            <span className="truncate text-[13.5px] font-medium text-canvas">{message}</span>
+            <span className="truncate text-label font-medium text-canvas">{message}</span>
             {actionLabel && onAction && (
               <button
                 type="button"
@@ -59,7 +59,7 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
                   onAction();
                   hide();
                 }}
-                className="shrink-0 text-[13.5px] font-semibold text-[rgb(var(--c-brand))]"
+                className="shrink-0 text-label font-semibold text-[rgb(var(--c-brand))]"
               >
                 {actionLabel}
               </button>

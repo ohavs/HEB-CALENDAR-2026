@@ -14,6 +14,7 @@ import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
 import { TimeField } from './ui/TimeField';
+import { DateField, Select, TextArea, TextField } from './ui/fields';
 
 const COLOR_SWATCH: Record<EventColor, string> = {
   violet: 'ev-violet',
@@ -140,7 +141,7 @@ export function EventEditor({
             type="button"
             onClick={onDelete}
             whileTap={{ scale: 0.92 }}
-            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors ${
+            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-caption font-semibold transition-colors ${
               confirmDelete
                 ? 'bg-[rgb(240_118_149)] text-white'
                 : 'bg-well text-[rgb(194_60_90)]'
@@ -158,20 +159,18 @@ export function EventEditor({
       }
     >
       {/* כותרת */}
-      <label className="mb-4 block">
-        <span className="mb-1 block text-[12px] font-medium text-muted">כותרת</span>
-        <input
-          type="text"
+      <div className="mb-4">
+        <TextField
+          label="כותרת"
           value={draft.title}
-          onChange={(e) => patch({ title: e.target.value })}
+          onChange={(title) => patch({ title })}
           placeholder="לדוגמה: ארוחת שבת אצל סבתא"
-          autoComplete="off"
-          className="w-full border-none bg-transparent p-0 text-[22px] font-semibold leading-snug text-ink outline-none placeholder:font-normal placeholder:text-faint"
+          size="lg"
         />
-      </label>
+      </div>
 
       {/* צבעים */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {EVENT_COLORS.map((c) => {
           const active = draft.color === c.id;
           return (
@@ -180,7 +179,7 @@ export function EventEditor({
               type="button"
               onClick={() => patch({ color: c.id })}
               whileTap={{ scale: 0.92 }}
-              className={`ev ${COLOR_SWATCH[c.id]} rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-shadow ${
+              className={`ev ${COLOR_SWATCH[c.id]} rounded-full px-3.5 py-1.5 text-caption font-medium transition-shadow ${
                 active ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : ''
               }`}
             >
@@ -190,26 +189,31 @@ export function EventEditor({
         })}
       </div>
 
-      {/* מקום */}
-      <label className="mb-4 block">
-        <span className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-muted">
-          <MapPin size={13} strokeWidth={2.3} />
-          מקום
-        </span>
-        <input
-          type="text"
-          value={draft.location ?? ''}
-          onChange={(e) => patch({ location: e.target.value })}
-          placeholder="לא הוגדר"
-          autoComplete="off"
-          className="w-full border-none bg-transparent p-0 text-[15.5px] text-ink outline-none placeholder:text-faint"
+      {/* תאריך */}
+      <div className="mb-4">
+        <DateField
+          label="תאריך"
+          value={draft.date}
+          onChange={(date) => patch({ date })}
+          hint={`${dayTitleLabel(eventDate)} · ${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
         />
-      </label>
+      </div>
+
+      {/* מקום */}
+      <div className="mb-4">
+        <TextField
+          label="מקום"
+          value={draft.location ?? ''}
+          onChange={(location) => patch({ location })}
+          placeholder="לא הוגדר"
+          icon={<MapPin size={14} strokeWidth={2.3} />}
+        />
+      </div>
 
       {/* כל היום */}
-      <div className="mb-4 flex items-center justify-between rounded-2xl bg-well px-4 py-3">
-        <span className="flex items-center gap-2 text-[14.5px] font-medium text-ink">
-          <Clock size={16} strokeWidth={2.2} className="text-muted" />
+      <div className="mb-4 flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
+        <span className="flex items-center gap-2.5 text-body font-medium text-ink">
+          <Clock size={18} strokeWidth={2.2} className="text-muted" />
           כל היום
         </span>
         <Toggle
@@ -235,63 +239,44 @@ export function EventEditor({
         </div>
       )}
 
-      {/* חזרה */}
-      <div className="mb-4 rounded-2xl bg-well px-4 py-3">
-        <span className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-muted">
-          <Repeat size={13} strokeWidth={2.3} />
-          חזרה
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => patch({ repeat: r })}
-              className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-                draft.repeat === r ? 'bg-brand text-white' : 'bg-surface text-muted'
-              }`}
-            >
-              {REPEAT_LABELS[r]}
-            </button>
-          ))}
+      {/* חזרה ותזכורת */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="flex-1">
+          <Select<UserEvent['repeat']>
+            label="חזרה"
+            value={draft.repeat}
+            onChange={(repeat) => patch({ repeat })}
+            icon={<Repeat size={14} strokeWidth={2.3} />}
+            options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
+              value: r,
+              label: REPEAT_LABELS[r],
+            }))}
+          />
         </div>
-      </div>
-
-      {/* תזכורת */}
-      <div className="mb-4 rounded-2xl bg-well px-4 py-3">
-        <span className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-muted">
-          <Bell size={13} strokeWidth={2.3} />
-          תזכורת
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {REMINDER_OPTIONS.map((opt) => (
-            <button
-              key={String(opt.value)}
-              type="button"
-              onClick={() => patch({ reminderMinutes: opt.value })}
-              className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-                draft.reminderMinutes === opt.value
-                  ? 'bg-brand text-white'
-                  : 'bg-surface text-muted'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex-1">
+          <Select<string>
+            label="תזכורת"
+            value={String(draft.reminderMinutes)}
+            onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
+            icon={<Bell size={14} strokeWidth={2.3} />}
+            options={REMINDER_OPTIONS.map((o) => ({
+              value: String(o.value),
+              label: o.label,
+            }))}
+          />
         </div>
       </div>
 
       {/* הערות */}
-      <label className="mb-2 block rounded-2xl bg-well px-4 py-3">
-        <span className="mb-1 block text-[12px] font-medium text-muted">הערות</span>
-        <textarea
+      <div className="mb-2">
+        <TextArea
+          label="הערות"
           value={draft.notes ?? ''}
-          onChange={(e) => patch({ notes: e.target.value })}
-          rows={3}
+          onChange={(notes) => patch({ notes })}
           placeholder="פרטים נוספים"
-          className="w-full resize-none border-none bg-transparent p-0 text-[14.5px] leading-relaxed text-ink outline-none placeholder:text-faint"
         />
-      </label>
+      </div>
+
     </Sheet>
   );
 }

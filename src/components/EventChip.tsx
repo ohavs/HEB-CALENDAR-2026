@@ -17,15 +17,17 @@ export function MiniEventChip({
 
   return (
     <div
-      className={`ev ev-${occurrence.color} flex h-[15px] items-center gap-[3px] overflow-hidden rounded-[5px] pe-[3px] ps-[2px] text-[9.5px] font-medium leading-none transition-opacity ${
+      className={`ev ev-${occurrence.color} overflow-hidden rounded-md border-s-[3px] px-1 py-[3px] text-micro font-medium leading-tight transition-opacity ${
         isDragging ? 'opacity-25' : ''
       }`}
+      style={{
+        touchAction: draggable ? 'none' : undefined,
+        borderInlineStartColor: 'rgb(var(--ev-bar))',
+      }}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
-      style={{ touchAction: draggable ? 'none' : undefined }}
     >
       {/* בתא צר יש מקום רק לכותרת; השעה מופיעה בפאנל ובתצוגת היום */}
-      <span className="ev-bar h-[9px] w-[2.5px] shrink-0 rounded-full" />
-      <span className="truncate">{occurrence.title}</span>
+      <span className="block truncate">{occurrence.title}</span>
     </div>
   );
 }
@@ -58,14 +60,14 @@ export function EventCard({
         <span className="ev-bar mt-1 h-[calc(100%-4px)] min-h-[22px] w-[3px] shrink-0 rounded-full" />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            <span className="truncate text-[14.5px] font-semibold leading-snug">
+            <span className="truncate text-label font-semibold leading-snug">
               {occurrence.title}
             </span>
             {occurrence.repeat !== 'none' && (
               <Repeat size={12} className="shrink-0 opacity-60" strokeWidth={2.4} />
             )}
           </span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] opacity-80">
+          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-tiny opacity-80">
             {occurrence.allDay ? (
               <span>כל היום</span>
             ) : (

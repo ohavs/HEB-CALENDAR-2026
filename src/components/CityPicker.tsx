@@ -64,7 +64,7 @@ export function CityPicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="חיפוש עיר"
-          className="w-full border-none bg-transparent p-0 text-[15px] text-ink outline-none placeholder:text-faint"
+          className="w-full border-none bg-transparent p-0 text-body text-ink outline-none placeholder:text-faint"
         />
       </div>
 
@@ -72,19 +72,19 @@ export function CityPicker({
         type="button"
         onClick={locate}
         disabled={locating}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-soft py-3 text-[14px] font-semibold text-brand-ink disabled:opacity-60"
+        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-soft py-3 text-label font-semibold text-brand-ink disabled:opacity-60"
       >
         <Crosshair size={16} strokeWidth={2.3} />
         {locating ? 'מאתר…' : 'לפי המיקום שלי'}
       </button>
 
       {locateError && (
-        <p className="mb-3 rounded-2xl bg-well px-4 py-3 text-[13px] text-muted">{locateError}</p>
+        <p className="mb-3 rounded-2xl bg-well px-4 py-3 text-caption text-muted">{locateError}</p>
       )}
 
       {groups.map((group) => (
         <section key={group.region} className="mb-4">
-          <h3 className="mb-1.5 px-1 text-[12px] font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-1.5 px-1 text-tiny font-semibold uppercase tracking-wide text-faint">
             {group.region}
           </h3>
           <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
@@ -95,7 +95,7 @@ export function CityPicker({
                 onClick={() => select(c.id)}
                 className="flex w-full items-center gap-3 px-4 py-3 text-right"
               >
-                <span className="flex-1 text-[15px] text-ink">{c.name}</span>
+                <span className="flex-1 text-body text-ink">{c.name}</span>
                 {c.id === cityId && (
                   <Check size={17} strokeWidth={2.6} className="shrink-0 text-brand" />
                 )}
@@ -106,7 +106,7 @@ export function CityPicker({
       ))}
 
       {groups.length === 0 && (
-        <p className="py-6 text-center text-[13.5px] text-muted">לא נמצאה עיר בשם הזה</p>
+        <p className="py-6 text-center text-label text-muted">לא נמצאה עיר בשם הזה</p>
       )}
     </Sheet>
   );

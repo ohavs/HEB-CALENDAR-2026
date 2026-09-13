@@ -12,9 +12,10 @@ import { hebrewMonthSpanLabel } from '@/lib/hebrew';
 import { useMonthData } from '@/hooks/useMonthData';
 import { useSettings } from '@/store/settings';
 import { useDragActive } from '@/lib/dragEngine';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { CalendarHeader } from './CalendarHeader';
 import { MonthGrid, WeekdayHeader } from './MonthGrid';
-import { EventsPanel } from './EventsPanel';
+import { DockedDayPanel, EventsPanel } from './EventsPanel';
 
 /** מרחק/מהירות החלקה שמעבירים חודש */
 const SWIPE_DISTANCE = 58;
@@ -63,6 +64,7 @@ export function CalendarScreen({
   const settings = useSettings();
   const data = useMonthData(month);
   const dragActive = useDragActive();
+  const isDesktop = useIsDesktop();
 
   const selectedKey = dateKey(selectedDate);
   const selectedDay = data.days.get(selectedKey);
@@ -100,70 +102,93 @@ export function CalendarScreen({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CalendarHeader
-        month={month}
-        hebrewMonthLabel={settings.showHebrewMonths ? hebrewMonthSpanLabel(month) : undefined}
-        showToday={!isSameMonth(month, new Date())}
-        photoURL={photoURL}
-        onProfile={onProfile}
-        onSearch={onSearch}
-        onAdd={() => onAddEvent(selectedKey)}
-        onToday={() => {
-          const today = startOfDay(new Date());
-          onSelectDate(today);
-          onMonthChange(
-            new Date(today.getFullYear(), today.getMonth(), 1),
-            today > month ? 1 : -1,
-          );
-        }}
-        onTitle={onOpenYear}
-      />
-
-      <WeekdayHeader weekStart={settings.weekStart} />
-
-      {/* דפדוף חודשים */}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <AnimatePresence initial={false} custom={direction} mode="popLayout">
-          <motion.div
-            key={monthKey(month)}
-            custom={direction}
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: 'spring', stiffness: 380, damping: 36 },
-              opacity: { duration: 0.18 },
-            }}
-            drag={dragActive ? false : 'x'}
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.14}
-            onDragEnd={onDragEnd}
-            className="absolute inset-0 flex flex-col"
-            style={{ paddingBottom: bottomInset + 62 }}
-          >
-            <MonthGrid
-              data={data}
-              settings={settings}
-              selectedKey={selectedKey}
-              onSelectDay={onSelectDay}
-              layoutGroupId={monthKey(month)}
+      <div className="app-shell flex min-h-0 flex-1 flex-col">
+        {/* במסך רחב: הלוח והפאנל זה לצד זה, והכותרת יושבת מעל עמודת הלוח */}
+        <div
+          className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-6 lg:px-6 lg:pt-8"
+          style={{ paddingBottom: isDesktop ? bottomInset : 0 }}
+        >
+          <div className="flex min-h-0 flex-1 flex-col">
+            <CalendarHeader
+              month={month}
+              hebrewMonthLabel={
+                settings.showHebrewMonths ? hebrewMonthSpanLabel(month) : undefined
+              }
+              showToday={!isSameMonth(month, new Date())}
+              photoURL={photoURL}
+              onProfile={onProfile}
+              onSearch={onSearch}
+              onAdd={() => onAddEvent(selectedKey)}
+              onToday={() => {
+                const today = startOfDay(new Date());
+                onSelectDate(today);
+                onMonthChange(
+                  new Date(today.getFullYear(), today.getMonth(), 1),
+                  today > month ? 1 : -1,
+                );
+              }}
+              onTitle={onOpenYear}
             />
-          </motion.div>
-        </AnimatePresence>
+
+            <WeekdayHeader weekStart={settings.weekStart} />
+
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                <motion.div
+                  key={monthKey(month)}
+                  custom={direction}
+                  variants={pageVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: 'spring', stiffness: 380, damping: 36 },
+                    opacity: { duration: 0.18 },
+                  }}
+                  drag={dragActive ? false : 'x'}
+                  dragDirectionLock
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.14}
+                  onDragEnd={onDragEnd}
+                  className="absolute inset-0 flex flex-col"
+                  style={{ paddingBottom: isDesktop ? 0 : bottomInset + 86 }}
+                >
+                  <MonthGrid
+                    data={data}
+                    settings={settings}
+                    selectedKey={selectedKey}
+                    onSelectDay={onSelectDay}
+                    layoutGroupId={monthKey(month)}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {isDesktop && (
+            <DockedDayPanel
+              day={selectedDay}
+              occurrences={selectedOccurrences}
+              onOpenDay={() => onOpenDayView(selectedDate)}
+              onAddEvent={() => onAddEvent(selectedKey)}
+              onEditEvent={onEditEvent}
+            />
+          )}
+        </div>
       </div>
 
-      <EventsPanel
-        day={selectedDay}
-        occurrences={selectedOccurrences}
-        open={panelOpen}
-        onOpenChange={onPanelOpenChange}
-        onOpenDay={() => onOpenDayView(selectedDate)}
-        onAddEvent={() => onAddEvent(selectedKey)}
-        onEditEvent={onEditEvent}
-        bottomInset={bottomInset}
-      />
+      {!isDesktop && (
+        <EventsPanel
+          day={selectedDay}
+          occurrences={selectedOccurrences}
+          open={panelOpen}
+          onOpenChange={onPanelOpenChange}
+          onOpenDay={() => onOpenDayView(selectedDate)}
+          onAddEvent={() => onAddEvent(selectedKey)}
+          onEditEvent={onEditEvent}
+          bottomInset={bottomInset}
+        />
+      )}
     </div>
   );
 }

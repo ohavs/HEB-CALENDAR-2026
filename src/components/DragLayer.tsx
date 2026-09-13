@@ -29,17 +29,17 @@ export function DragLayer() {
           >
             <span className="ev-bar h-4 w-[3px] shrink-0 rounded-full" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12px] font-semibold leading-tight">
+              <span className="block truncate text-tiny font-semibold leading-tight">
                 {occurrence.title}
               </span>
               {!occurrence.allDay && occurrence.startTime && (
-                <span className="tnum block text-[10px] opacity-75">{occurrence.startTime}</span>
+                <span className="tnum block text-micro opacity-75">{occurrence.startTime}</span>
               )}
             </span>
           </div>
           {overKey && (
             <div className="mt-1.5 text-center">
-              <span className="rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-canvas">
+              <span className="rounded-full bg-ink/80 px-2 py-0.5 text-micro font-medium text-canvas">
                 {(() => {
                   const d = keyToDate(overKey);
                   return `העברה ל־${d.getDate()} ב${GREG_MONTHS_HE[d.getMonth()]}`;

@@ -4,7 +4,9 @@
  * לפי הגדרות הדפדפן, ורצינו מראה אחיד בעברית - וגם התנהגות זהה כשנעבור
  * לאפליקציית אנדרואיד.
  */
+import { ChevronDown } from 'lucide-react';
 import { timeToMinutes } from '@/lib/dates';
+import { Field } from './fields';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
@@ -27,12 +29,11 @@ export function TimeField({
     : [...MINUTES, minute].sort((a, b) => Number(a) - Number(b));
 
   const selectClass =
-    'tnum appearance-none border-none bg-transparent p-0 text-[19px] font-semibold text-ink outline-none';
+    'field-reset tnum w-auto cursor-pointer bg-transparent p-0 text-center text-title font-semibold text-ink';
 
   return (
-    <div className="flex-1 rounded-2xl bg-well px-4 py-3">
-      <span className="mb-1 block text-[11.5px] text-muted">{label}</span>
-      <div className="flex items-center gap-0.5" dir="ltr">
+    <Field label={label} className="flex-1">
+      <span className="flex items-center gap-0.5" dir="ltr">
         <select
           aria-label={`${label} - שעה`}
           value={hour}
@@ -45,7 +46,7 @@ export function TimeField({
             </option>
           ))}
         </select>
-        <span className="text-[19px] font-semibold leading-none text-faint">:</span>
+        <span className="-mt-0.5 text-title font-semibold leading-none text-faint">:</span>
         <select
           aria-label={`${label} - דקות`}
           value={minute}
@@ -58,7 +59,13 @@ export function TimeField({
             </option>
           ))}
         </select>
-      </div>
-    </div>
+        <ChevronDown
+          size={15}
+          strokeWidth={2.4}
+          aria-hidden="true"
+          className="pointer-events-none ms-0.5 text-faint"
+        />
+      </span>
+    </Field>
   );
 }

@@ -23,14 +23,17 @@ export function Toggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors duration-200 ${
+      className={`relative h-[34px] w-[58px] shrink-0 rounded-full transition-colors duration-200 ${
         checked ? 'bg-brand' : 'bg-hairline'
       } ${disabled ? 'opacity-40' : ''}`}
     >
-      {/* בממשק מימין-לשמאל הידית נעה שמאלה כשהמתג נדלק */}
+      {/*
+        בממשק מימין-לשמאל הידית נעה שמאלה כשהמתג נדלק.
+        המסלול: 58 (רוחב) − 28 (ידית) − 3 (שוליים) = 27.
+      */}
       <motion.span
-        className="absolute top-[3px] block h-6 w-6 rounded-full bg-white shadow-chip"
-        animate={{ right: checked ? 25 : 3 }}
+        className="absolute top-[3px] block h-7 w-7 rounded-full bg-white shadow-chip"
+        animate={{ right: checked ? 27 : 3 }}
         transition={{ type: 'spring', stiffness: 700, damping: 34 }}
       />
     </button>
@@ -55,15 +58,13 @@ export function SettingRow({
   const Wrapper = onClick ? motion.button : motion.div;
   return (
     <Wrapper
-      {...(onClick
-        ? { type: 'button' as const, onClick, whileTap: { scale: 0.985 } }
-        : {})}
-      className="flex w-full items-center gap-3 px-4 py-3 text-right"
+      {...(onClick ? { type: 'button' as const, onClick, whileTap: { scale: 0.99 } } : {})}
+      className="flex w-full items-center gap-3.5 px-5 py-4 text-right lg:px-6 lg:py-[18px]"
     >
       {icon && <span className="shrink-0 text-muted">{icon}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-medium leading-snug text-ink">{title}</span>
-        {hint && <span className="mt-0.5 block text-[12.5px] leading-snug text-muted">{hint}</span>}
+        <span className="block text-label font-medium text-ink">{title}</span>
+        {hint && <span className="mt-1 block text-caption text-muted">{hint}</span>}
       </span>
       {children && <span className="shrink-0">{children}</span>}
     </Wrapper>
@@ -80,16 +81,16 @@ export function SettingsGroup({
   footer?: ReactNode;
 }) {
   return (
-    <section className="mb-5">
+    <section className="mb-7">
       {title && (
-        <h3 className="mb-2 px-4 text-[12.5px] font-semibold uppercase tracking-wide text-faint">
+        <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
           {title}
         </h3>
       )}
       <div className="divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-soft">
         {children}
       </div>
-      {footer && <p className="mt-2 px-4 text-[12.5px] leading-relaxed text-muted">{footer}</p>}
+      {footer && <p className="mt-2.5 px-2 text-caption leading-relaxed text-muted">{footer}</p>}
     </section>
   );
 }
@@ -110,7 +111,7 @@ export function Segmented<T extends string>({
   return (
     <div
       className={`relative flex gap-1 rounded-full bg-well p-1 ${
-        size === 'sm' ? 'text-[12.5px]' : 'text-[13.5px]'
+        size === 'sm' ? 'text-caption' : 'text-label'
       }`}
     >
       {options.map((opt) => {
@@ -120,7 +121,7 @@ export function Segmented<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`relative flex-1 whitespace-nowrap rounded-full px-3 py-1.5 font-medium transition-colors ${
+            className={`relative flex-1 whitespace-nowrap rounded-full px-3.5 py-2 font-medium transition-colors ${
               active ? 'text-white' : 'text-muted'
             }`}
           >
@@ -142,7 +143,7 @@ export function Segmented<T extends string>({
   );
 }
 
-/* -------------------------------- מספרון -------------------------------- */
+/* -------------------------- מספרון לשורת הגדרה -------------------------- */
 
 export function Stepper({
   value,
@@ -159,18 +160,18 @@ export function Stepper({
   step?: number;
   suffix?: string;
 }) {
-  const clamp = (n: number) => Math.min(max, Math.max(min, n));
+  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n * 100) / 100));
   return (
     <div className="flex items-center gap-1 rounded-full bg-well p-1">
       <button
         type="button"
         aria-label="הפחתה"
         onClick={() => onChange(clamp(value - step))}
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[17px] font-medium leading-none text-muted transition-colors active:bg-hairline"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-title font-medium leading-none text-muted transition-colors active:bg-hairline lg:h-9 lg:w-9"
       >
         −
       </button>
-      <span className="tnum min-w-[52px] text-center text-[13.5px] font-semibold text-ink">
+      <span className="tnum min-w-[62px] text-center text-label font-semibold text-ink">
         {value}
         {suffix ? ` ${suffix}` : ''}
       </span>
@@ -178,7 +179,7 @@ export function Stepper({
         type="button"
         aria-label="הוספה"
         onClick={() => onChange(clamp(value + step))}
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[17px] font-medium leading-none text-muted transition-colors active:bg-hairline"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-title font-medium leading-none text-muted transition-colors active:bg-hairline lg:h-9 lg:w-9"
       >
         +
       </button>
@@ -211,9 +212,9 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: disabled ? 1 : 0.97 }}
+      whileTap={{ scale: disabled ? 1 : 0.98 }}
       transition={{ type: 'spring', stiffness: 600, damping: 30 }}
-      className={`w-full rounded-2xl py-3.5 text-[15px] font-semibold transition-opacity ${tones[tone]} ${
+      className={`w-full rounded-2xl py-4 text-label font-semibold transition-opacity ${tones[tone]} ${
         disabled ? 'opacity-50' : ''
       }`}
     >
@@ -222,7 +223,7 @@ export function PrimaryButton({
   );
 }
 
-/* -------------------------------- תג קטן -------------------------------- */
+/* -------------------------------- תג בחירה -------------------------------- */
 
 export function Pill({
   children,
@@ -239,7 +240,7 @@ export function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+      className={`rounded-full px-4 py-2 text-caption font-medium transition-colors ${
         active ? 'bg-brand text-white' : 'bg-well text-muted'
       } ${className}`}
     >

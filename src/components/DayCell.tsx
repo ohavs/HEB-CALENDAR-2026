@@ -2,6 +2,9 @@
  * תא יום בלוח השנה.
  * נקי ושקט: מספר גדול, תאריך עברי קטן מתחתיו, ואז המועדים והאירועים
  * ככיתובים דקים. התא הוא גם יעד השחרור בגרירת אירועים.
+ *
+ * כל המידות כאן נגזרות מגודל הגופן (יחידות em) כדי שהתא יגדל יחד עם
+ * הסקאלה הנוזלית כשעוברים מטלפון למסך גדול.
  */
 import { memo } from 'react';
 import { motion } from 'framer-motion';
@@ -73,9 +76,9 @@ function DayCellInner({
       type="button"
       data-day-key={day.key}
       onClick={() => onSelect(day)}
-      className={`relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-[2px] pb-[2px] pt-1 text-center outline-none transition-colors ${
+      className={`relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center outline-none transition-colors ${
         dim ? 'opacity-45' : ''
-      } ${day.isShabbat && !dim ? 'bg-brand/[0.04]' : ''}`}
+      } ${day.isShabbat && !dim ? 'bg-brand/[0.045]' : ''}`}
       aria-label={`${day.date.getDate()} ${day.hebrewFull}`}
       aria-pressed={selected}
     >
@@ -87,20 +90,20 @@ function DayCellInner({
         />
       )}
 
-      {/* מספר היום */}
-      <span className="relative flex h-[24px] shrink-0 items-center justify-center">
+      {/* מספר היום - עיגול הבחירה נמדד ביחס לגודל הגופן ולכן גדל איתו */}
+      <span className="relative flex shrink-0 items-center justify-center text-daynum">
         {selected && (
           <motion.span
             layoutId={`day-selection-${layoutGroupId}`}
-            className="absolute h-[27px] w-[27px] rounded-full bg-brand"
+            className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand"
             transition={{ type: 'spring', stiffness: 520, damping: 34 }}
           />
         )}
         {day.isToday && !selected && (
-          <span className="absolute h-[27px] w-[27px] rounded-full bg-brand-soft" />
+          <span className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand-soft" />
         )}
         <span
-          className={`tnum relative text-[15px] leading-none ${
+          className={`tnum relative leading-[1.6] ${
             selected
               ? 'font-semibold text-white'
               : day.isToday
@@ -117,7 +120,7 @@ function DayCellInner({
       {/* תאריך עברי */}
       {settings.showHebrewDates && (
         <span
-          className={`mt-[1px] shrink-0 text-[9px] leading-none ${
+          className={`mt-px shrink-0 text-micro leading-none ${
             day.hebrewDay === 'א׳' ? 'font-medium text-brand-ink/70' : 'text-faint'
           }`}
         >
@@ -126,11 +129,11 @@ function DayCellInner({
       )}
 
       {/* מועדים, אירועים וזמנים */}
-      <span className="mt-[3px] flex min-h-0 flex-col gap-[2px]">
+      <span className="mt-1 flex min-h-0 flex-col gap-[3px]">
         {shownHolidays.map((h, i) => (
           <span
             key={h.id}
-            className={`text-[9px] leading-[1.2] ${holidayTone(h.kind)} ${
+            className={`text-tiny leading-[1.2] ${holidayTone(h.kind)} ${
               i === 0 ? 'line-clamp-2' : 'truncate'
             }`}
           >
@@ -143,11 +146,11 @@ function DayCellInner({
         ))}
 
         {hidden > 0 && (
-          <span className="text-[8.5px] font-medium leading-none text-faint">+{hidden}</span>
+          <span className="text-micro font-medium leading-none text-faint">+{hidden}</span>
         )}
 
         {time && (
-          <span className="tnum flex items-center justify-center gap-[1px] text-[8.5px] leading-none text-[rgb(var(--c-shabbat))]">
+          <span className="tnum flex items-center justify-center gap-0.5 text-micro leading-none text-[rgb(var(--c-shabbat))]">
             <span aria-hidden="true">{candles ? '🕯' : '✦'}</span>
             {time.time}
           </span>

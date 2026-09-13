@@ -27,20 +27,20 @@ export function CalendarHeader({
   const label = `${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`;
 
   return (
-    <header className="safe-t shrink-0 px-4 pb-1 pt-3">
-      <div className="flex items-center gap-2">
+    <header className="safe-t shrink-0 gutter-x pb-4 pt-5 lg:pb-5 lg:pt-8">
+      <div className="flex items-center gap-2.5 lg:gap-3.5">
         <motion.button
           type="button"
           onClick={onProfile}
           whileTap={{ scale: 0.92 }}
           aria-label="חשבון והגדרות"
-          className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-well ring-1 ring-hairline"
+          className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-well ring-1 ring-hairline lg:h-[52px] lg:w-[52px]"
         >
           {photoURL ? (
             <img src={photoURL} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-muted">
-              <User size={18} strokeWidth={2.2} />
+              <User size={20} strokeWidth={2.2} />
             </span>
           )}
         </motion.button>
@@ -58,19 +58,19 @@ export function CalendarHeader({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6, position: 'absolute' }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="block text-[19px] font-semibold leading-tight text-ink"
+              className="block text-heading font-semibold leading-tight text-ink"
             >
               {label}
             </motion.span>
           </AnimatePresence>
           {hebrewMonthLabel && (
-            <span className="mt-0.5 block text-[11.5px] leading-none text-muted">
+            <span className="mt-1.5 block text-caption leading-none text-muted">
               {hebrewMonthLabel}
             </span>
           )}
         </button>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 lg:gap-2">
           <AnimatePresence initial={false}>
             {showToday && (
               <motion.button
@@ -81,9 +81,9 @@ export function CalendarHeader({
                 exit={{ opacity: 0, scale: 0.8, width: 0 }}
                 whileTap={{ scale: 0.92 }}
                 aria-label="חזרה להיום"
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-muted"
+                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-muted lg:h-12 lg:w-12"
               >
-                <CalendarDays size={19} strokeWidth={2.1} />
+                <CalendarDays size={21} strokeWidth={2.1} />
               </motion.button>
             )}
           </AnimatePresence>
@@ -93,9 +93,9 @@ export function CalendarHeader({
             onClick={onSearch}
             whileTap={{ scale: 0.92 }}
             aria-label="חיפוש"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
           >
-            <Search size={19} strokeWidth={2.1} />
+            <Search size={21} strokeWidth={2.1} />
           </motion.button>
 
           <motion.button
@@ -103,9 +103,9 @@ export function CalendarHeader({
             onClick={onAdd}
             whileTap={{ scale: 0.9 }}
             aria-label="אירוע חדש"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-white shadow-soft"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-soft lg:h-[52px] lg:w-[52px]"
           >
-            <Plus size={21} strokeWidth={2.4} />
+            <Plus size={23} strokeWidth={2.4} />
           </motion.button>
         </div>
       </div>

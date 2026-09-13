@@ -73,36 +73,36 @@ export function SettingsScreen({
 
   return (
     <div
-      className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-4"
-      style={{ paddingBottom: bottomInset + 16 }}
+      className="no-scrollbar app-shell-narrow flex-1 overflow-y-auto overscroll-contain gutter-x"
+      style={{ paddingBottom: bottomInset + 24 }}
     >
-      <header className="safe-t pb-4 pt-3">
-        <h1 className="text-[19px] font-semibold leading-tight text-ink">הגדרות</h1>
+      <header className="safe-t pb-5 pt-5 lg:pt-8">
+        <h1 className="text-heading font-semibold leading-tight text-ink">הגדרות</h1>
       </header>
 
       {/* ------------------------------- חשבון ------------------------------- */}
       <SettingsGroup title="חשבון">
         {user ? (
           <>
-            <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="flex items-center gap-4 px-5 py-5">
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
                   alt=""
-                  className="h-11 w-11 rounded-full object-cover ring-1 ring-hairline"
+                  className="h-14 w-14 rounded-full object-cover ring-1 ring-hairline"
                 />
               ) : (
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-soft text-[16px] font-semibold text-brand-ink">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-title font-semibold text-brand-ink">
                   {(user.name ?? user.email ?? '?').slice(0, 1)}
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-medium text-ink">
+                <span className="block truncate text-body font-medium text-ink">
                   {user.name ?? 'מחובר'}
                 </span>
-                <span className="block truncate text-[12.5px] text-muted">{user.email}</span>
+                <span className="block truncate text-caption text-muted">{user.email}</span>
               </span>
-              <span className="shrink-0 rounded-full bg-[rgb(52_179_138)]/15 px-2.5 py-1 text-[11.5px] font-semibold text-[rgb(25_125_95)]">
+              <span className="shrink-0 rounded-full bg-[rgb(52_179_138)]/15 px-2.5 py-1 text-tiny font-semibold text-[rgb(25_125_95)]">
                 מסונכרן
               </span>
             </div>
@@ -114,9 +114,9 @@ export function SettingsScreen({
             />
           </>
         ) : (
-          <div className="px-4 py-4">
-            <p className="text-[14px] font-medium text-ink">התחברות עם גוגל</p>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+          <div className="px-5 py-5">
+            <p className="text-label font-medium text-ink">התחברות עם גוגל</p>
+            <p className="mt-1 text-caption leading-relaxed text-muted">
               כדי לשמור את האירועים וההגדרות ולסנכרן בין המכשירים שלך.
             </p>
             <motion.button
@@ -124,13 +124,13 @@ export function SettingsScreen({
               onClick={() => void signInWithGoogle()}
               disabled={busy || !isFirebaseConfigured}
               whileTap={{ scale: 0.98 }}
-              className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-2xl border border-hairline bg-surface py-3 text-[14.5px] font-semibold text-ink disabled:opacity-50"
+              className="mt-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-hairline bg-surface py-4 text-label font-semibold text-ink disabled:opacity-50"
             >
               <GoogleMark />
               {busy ? 'מתחבר…' : 'התחברות עם גוגל'}
             </motion.button>
             {status === 'unavailable' && (
-              <p className="mt-2 text-[12px] text-muted">
+              <p className="mt-2 text-tiny text-muted">
                 ההתחברות לא מוגדרת בגרסה הזו. האפליקציה עובדת מקומית.
               </p>
             )}
@@ -138,7 +138,7 @@ export function SettingsScreen({
               <button
                 type="button"
                 onClick={clearError}
-                className="mt-2 block w-full rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-[12.5px] text-[rgb(194_60_90)]"
+                className="mt-2 block w-full rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-caption text-[rgb(194_60_90)]"
               >
                 {error}
               </button>
@@ -323,12 +323,12 @@ export function SettingsScreen({
           <button
             type="button"
             onClick={() => void askPermission()}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-right"
+            className="flex w-full items-center gap-3.5 px-5 py-4 text-right lg:px-6"
           >
             <BellRing size={17} strokeWidth={2.1} className="shrink-0 text-brand" />
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-medium text-ink">אישור התראות</span>
-              <span className="mt-0.5 block text-[12.5px] text-muted">
+              <span className="block text-body font-medium text-ink">אישור התראות</span>
+              <span className="mt-0.5 block text-caption text-muted">
                 {permissionLabel(permission)}
               </span>
             </span>
@@ -429,8 +429,8 @@ export function SettingsScreen({
             }}
           />
         )}
-        <div className="px-4 py-3.5">
-          <p className="text-[13px] leading-relaxed text-muted">
+        <div className="px-5 py-4 lg:px-6">
+          <p className="text-caption leading-relaxed text-muted">
             לוח שנה עברי · כל החגים והמועדים, זמני שבת מדויקים לפי מקום, ואירועים אישיים.
             הנתונים נשמרים על המכשיר, ומסונכרנים לענן רק אם התחברת.
           </p>
@@ -443,7 +443,7 @@ export function SettingsScreen({
 /** סמל גוגל - וקטור, כדי לא לטעון תמונה חיצונית. */
 function GoogleMark() {
   return (
-    <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
       <path
         fill="#EA4335"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"

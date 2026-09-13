@@ -7,6 +7,25 @@
    ========================================================================== */
 @layer base {
   :root {
+    /* ------------------------------------------------------------------
+       סקאלת טיפוגרפיה נוזלית: כל גודל גדל ברציפות מ-390px ועד 1440px רוחב,
+       כך שאותו רכיב נראה נכון בטלפון ומשמעותית גדול יותר בדסקטופ.
+       ------------------------------------------------------------------ */
+    --fs-micro: clamp(10.5px, 0.598rem + 0.238vw, 13px);
+    --fs-tiny: clamp(11.5px, 0.661rem + 0.238vw, 14px);
+    --fs-caption: clamp(13px, 0.754rem + 0.238vw, 15.5px);
+    --fs-label: clamp(14px, 0.805rem + 0.286vw, 17px);
+    --fs-body: clamp(15.5px, 0.899rem + 0.286vw, 18.5px);
+    --fs-title: clamp(17.5px, 1.013rem + 0.333vw, 21px);
+    --fs-heading: clamp(21px, 1.196rem + 0.476vw, 26px);
+    --fs-display: clamp(26px, 1.439rem + 0.762vw, 34px);
+    /* מספר היום בלוח גדל יותר, כי התא עצמו גדל משמעותית בדסקטופ */
+    --fs-daynum: clamp(15px, 0.775rem + 0.667vw, 22px);
+
+    /* מרווחים שגדלים עם המסך */
+    --gutter: clamp(14px, 0.5rem + 1.6vw, 28px);
+    --stack: clamp(14px, 0.6rem + 1.2vw, 24px);
+
     --c-canvas: 246 246 250;
     --c-surface: 255 255 255;
     --c-elevated: 255 255 255;
@@ -58,6 +77,8 @@
 
   body {
     @apply bg-canvas text-ink font-sans antialiased;
+    font-size: var(--fs-body);
+    line-height: 1.45;
     margin: 0;
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
@@ -197,5 +218,62 @@
 
   .hairline-b {
     box-shadow: inset 0 -1px 0 rgb(var(--c-hairline));
+  }
+}
+
+/* ==========================================================================
+   פריסה רספונסיבית
+   ========================================================================== */
+@layer utilities {
+  /* מרווח צד אחיד שגדל עם המסך */
+  .gutter-x {
+    padding-inline: var(--gutter);
+  }
+
+  /* מרכז את האפליקציה במסכים רחבים במקום למתוח אותה לכל הרוחב */
+  .app-shell {
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  @media (min-width: 1024px) {
+    .app-shell {
+      max-width: 1180px;
+    }
+  }
+
+  /* מסכים שהם בעיקר רשימה נשארים בעמודת קריאה נוחה גם במסך רחב */
+  .app-shell-narrow {
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  /* שדות טופס: מבטלים את העיצוב המובנה של הדפדפן כדי שהכול ייראה אחיד */
+  .field-reset {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    color: inherit;
+    font: inherit;
+  }
+
+  .field-reset::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    inset-inline-end: 0;
+    width: 2.5rem;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  /* טבלת מספרים מיושרת */
+  .tnum-tight {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 }

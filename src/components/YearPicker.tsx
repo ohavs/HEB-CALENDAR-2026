@@ -77,12 +77,12 @@ export function YearPicker({
       <div className="space-y-6 pb-4">
         {months.map(({ month, days }) => (
           <section key={month} ref={month === focusMonth ? scrollTarget : undefined}>
-            <h3 className="mb-1.5 text-[17px] font-semibold text-ink">
+            <h3 className="mb-1.5 text-title font-semibold text-ink">
               {GREG_MONTHS_HE[month]}
             </h3>
             <div className="mb-1 grid grid-cols-7">
               {weekdays.map((w) => (
-                <span key={w} className="text-center text-[9.5px] text-faint">
+                <span key={w} className="text-center text-micro text-faint">
                   {w}
                 </span>
               ))}
@@ -102,7 +102,7 @@ export function YearPicker({
                     className="flex items-center justify-center py-0.5"
                   >
                     <span
-                      className={`tnum flex h-[22px] w-[22px] items-center justify-center rounded-full text-[11.5px] ${
+                      className={`tnum flex h-[22px] w-[22px] items-center justify-center rounded-full text-tiny ${
                         !inMonth
                           ? 'text-faint/50'
                           : isToday

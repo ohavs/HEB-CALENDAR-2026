@@ -16,6 +16,7 @@ import { CalendarScreen } from '@/components/CalendarScreen';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
 import { TabBar, TAB_BAR_HEIGHT, type TabId } from '@/components/TabBar';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { DayView } from '@/components/DayView';
 import { EventEditor } from '@/components/EventEditor';
 import { CityPicker } from '@/components/CityPicker';
@@ -60,6 +61,7 @@ export default function App() {
   const [yearValue, setYearValue] = useState(today.getFullYear());
 
   const dayData = useDayData(dayViewDate);
+  const isDesktop = useIsDesktop();
 
   /* ------------------------------ ערכת נושא ------------------------------ */
   useEffect(() => {
@@ -145,7 +147,8 @@ export default function App() {
     setEditor({ open: true, date: occurrence.date, editing: occurrence });
   }, []);
 
-  const bottomInset = TAB_BAR_HEIGHT;
+  // בדסקטופ סרגל הלשוניות צף מעל התוכן, ולכן צריך מרווח מעט גדול יותר
+  const bottomInset = isDesktop ? TAB_BAR_HEIGHT + 28 : TAB_BAR_HEIGHT;
 
   return (
     <MotionConfig reducedMotion="user">
