@@ -27,6 +27,17 @@ const config: CapacitorConfig = {
       smallIcon: 'ic_stat_notify',
       iconColor: '#6366F1',
     },
+    /*
+      עדכון חי, במצב ידני בלבד: האפליקציה בודקת בעצמה מול השחרור ב-GitHub
+      ומורידה רק כשהמשתמש מאשר. autoUpdate היה מצריך שרת של הספק.
+    */
+    CapacitorUpdater: {
+      autoUpdate: false,
+      // כמה זמן יש לחבילה חדשה להוכיח שהיא עולה, לפני גלגול אחורה
+      appReadyTimeout: 20000,
+      // התקנת APK חדש מוחקת חבילות web ישנות, אחרת הן היו מסתירות אותו
+      resetWhenUpdate: true,
+    },
   },
 };
 

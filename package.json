@@ -25,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
     "@capgo/capacitor-social-login": "^8.5.7",
+    "@capgo/capacitor-updater": "^8.51.16",
     "@hebcal/core": "^5.10.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

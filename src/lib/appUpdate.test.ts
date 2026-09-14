@@ -1,47 +1,91 @@
 /**
- * השוואת גרסאות.
+ * החלטת העדכון.
  *
- * הבדיקות כאן שומרות על שני דברים שקל לשבור: שההשוואה היא מספרית ולא
- * לקסיקוגרפית, ושהודעה שנסגרה לא חוזרת.
+ * שני דברים שקל לשבור כאן: שההשוואה מספרית ולא לקסיקוגרפית, ושעדכון חי
+ * לא יוצע כשהמעטפת הנייטיבית השתנתה - חבילת web חדשה מול מעטפת ישנה היא
+ * אפליקציה שבורה.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  dismissUpdate,
-  isDismissed,
-  isNewer,
-  parseRelease,
-  type UpdateManifest,
-} from './appUpdate';
+import { decideUpdate, dismissUpdate, isDismissed, parseRelease } from './appUpdate';
 
-const manifest = (versionCode: number): UpdateManifest => ({
-  versionCode,
-  versionName: `1.0.${versionCode}`,
-  apk: 'https://example.invalid/app.apk',
-});
+const asset = (name: string) => ({ name, browser_download_url: `https://example.invalid/${name}` });
+
+const release = (names: string[], body = 'מה חדש') =>
+  parseRelease({ body, assets: names.map(asset) });
 
 beforeEach(() => localStorage.clear());
 
-describe('isNewer', () => {
-  it('גרסה גבוהה יותר היא עדכון', () => {
-    expect(isNewer(manifest(8), 7)).toBe(true);
+describe('parseRelease', () => {
+  it('מזהה APK וחבילת web', () => {
+    const info = release(['heb-calendar-1.0.7.apk', 'bundle-7-a1b2c3d.zip']);
+    expect(info.apk).toMatchObject({ versionName: '1.0.7', versionCode: 7 });
+    expect(info.bundle).toMatchObject({ build: 7, nativeRev: 'a1b2c3d' });
   });
 
-  it('אותה גרסה אינה עדכון', () => {
-    expect(isNewer(manifest(7), 7)).toBe(false);
+  it('בוחר את המספר הגבוה, גם כשהוא אחרון ברשימה', () => {
+    // בשחרור נשארים קבצים של בניות קודמות, והסדר אינו מובטח
+    const info = release([
+      'heb-calendar-1.0.2.apk',
+      'heb-calendar-1.0.12.apk',
+      'bundle-2-aaa1111.zip',
+      'bundle-12-bbb2222.zip',
+    ]);
+    expect(info.apk?.versionCode).toBe(12);
+    expect(info.bundle?.build).toBe(12);
   });
 
-  it('גרסה ישנה יותר אינה עדכון', () => {
-    expect(isNewer(manifest(6), 7)).toBe(false);
+  it('מדלג על נכסים שאינם שלנו', () => {
+    const info = release(['notes.txt', 'heb-calendar-1.0.3.apk']);
+    expect(info.apk?.versionCode).toBe(3);
+    expect(info.bundle).toBeUndefined();
+  });
+
+  it('גוף השחרור הופך להערות הגרסה', () => {
+    expect(release(['heb-calendar-1.0.1.apk']).notes).toBe('מה חדש');
+  });
+});
+
+describe('decideUpdate', () => {
+  const full = (build: number, rev: string) =>
+    release([`heb-calendar-1.0.${build}.apk`, `bundle-${build}-${rev}.zip`]);
+
+  it('אותה מעטפת וקוד חדש - עדכון חי', () => {
+    const out = decideUpdate(full(9, 'aaa1111'), 8, 8, 'aaa1111');
+    expect(out).toMatchObject({ kind: 'web', versionCode: 9 });
+  });
+
+  it('מעטפת שהשתנתה - התקנת APK', () => {
+    const out = decideUpdate(full(9, 'bbb2222'), 8, 8, 'aaa1111');
+    expect(out).toMatchObject({ kind: 'native', versionCode: 9 });
+  });
+
+  it('אותה מעטפת ואותו קוד - אין מה לעדכן', () => {
+    expect(decideUpdate(full(8, 'aaa1111'), 8, 8, 'aaa1111')).toBeNull();
+  });
+
+  it('מעטפת שהשתנתה אבל ה-APK אינו חדש - אין מה לעדכן', () => {
+    expect(decideUpdate(full(8, 'bbb2222'), 8, 8, 'aaa1111')).toBeNull();
   });
 
   it('10 גדול מ-9, ולא להפך', () => {
     // השוואת מחרוזות הייתה נכשלת כאן בדיוק
-    expect(isNewer(manifest(10), 9)).toBe(true);
-    expect(isNewer(manifest(9), 10)).toBe(false);
+    expect(decideUpdate(full(10, 'aaa1111'), 9, 9, 'aaa1111')).toMatchObject({ versionCode: 10 });
+    expect(decideUpdate(full(9, 'aaa1111'), 10, 10, 'aaa1111')).toBeNull();
   });
 
-  it('מניפסט פגום אינו עדכון', () => {
-    expect(isNewer({ ...manifest(1), versionCode: NaN }, 1)).toBe(false);
+  it('אחרי עדכון חי, הקוד שרץ קובע ולא ה-APK', () => {
+    // ה-APK נשאר 8, אבל כבר הוחלה חבילה 9: 9 אינו עדכון
+    expect(decideUpdate(full(9, 'aaa1111'), 8, 9, 'aaa1111')).toBeNull();
+    expect(decideUpdate(full(10, 'aaa1111'), 8, 9, 'aaa1111')).toMatchObject({ kind: 'web' });
+  });
+
+  it('בלי טביעה נייטיבית נופלים למסלול ה-APK', () => {
+    // גרסה ישנה שנבנתה לפני שהטביעה הוטמעה
+    expect(decideUpdate(full(9, 'aaa1111'), 8, 8, '')).toMatchObject({ kind: 'native' });
+  });
+
+  it('שחרור בלי נכסים אינו עדכון', () => {
+    expect(decideUpdate(parseRelease({ assets: [] }), 8, 8, 'aaa1111')).toBeNull();
   });
 });
 
@@ -54,51 +98,5 @@ describe('סגירת ההודעה', () => {
   it('גרסה חדשה יותר תוצג שוב', () => {
     dismissUpdate(12);
     expect(isDismissed(13)).toBe(false);
-  });
-});
-
-describe('parseRelease', () => {
-  const release = (name: string) => ({
-    body: 'גרסה 1.0.7',
-    assets: [{ name, browser_download_url: `https://example.invalid/${name}` }],
-  });
-
-  it('מוציא שם גרסה ומספר גרסה משם הקובץ', () => {
-    const out = parseRelease(release('heb-calendar-1.0.7.apk'));
-    expect(out).toMatchObject({ versionName: '1.0.7', versionCode: 7 });
-  });
-
-  it('המספר האחרון הוא הקובע, גם בדו-ספרתי', () => {
-    expect(parseRelease(release('heb-calendar-1.0.42.apk'))?.versionCode).toBe(42);
-  });
-
-  it('מדלג על נכסים שאינם APK', () => {
-    const out = parseRelease({
-      assets: [
-        { name: 'notes.txt', browser_download_url: 'https://example.invalid/notes.txt' },
-        { name: 'heb-calendar-1.0.3.apk', browser_download_url: 'https://example.invalid/a.apk' },
-      ],
-    });
-    expect(out?.versionCode).toBe(3);
-  });
-
-  it('בוחר את הגרסה הגבוהה ביותר, גם כשהיא אחרונה ברשימה', () => {
-    // בשחרור נשארים קבצים של בניות קודמות, והסדר אינו מובטח
-    const out = parseRelease({
-      assets: [
-        { name: 'heb-calendar-1.0.1.apk', browser_download_url: 'https://example.invalid/1.apk' },
-        { name: 'heb-calendar-1.0.12.apk', browser_download_url: 'https://example.invalid/12.apk' },
-        { name: 'heb-calendar-1.0.2.apk', browser_download_url: 'https://example.invalid/2.apk' },
-      ],
-    });
-    expect(out).toMatchObject({ versionCode: 12, apk: 'https://example.invalid/12.apk' });
-  });
-
-  it('שחרור בלי APK מחזיר null', () => {
-    expect(parseRelease({ assets: [] })).toBeNull();
-  });
-
-  it('גוף השחרור הופך להערות הגרסה', () => {
-    expect(parseRelease(release('heb-calendar-1.0.7.apk'))?.notes).toBe('גרסה 1.0.7');
   });
 });

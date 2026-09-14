@@ -15,6 +15,9 @@
 #   VITE_GOOGLE_WEB_CLIENT_ID    מזהה הלקוח של גוגל (web). בלעדיו האפליקציה
 #                                עובדת מקומית, בלי התחברות וסנכרון.
 #
+# כל ריצה מפרסמת שני תוצרים: APK להתקנה, וחבילת web לעדכון חי. האפליקציה
+# בוחרת ביניהם לפי טביעת הקוד הנייטיבי - ראו src/lib/appUpdate.ts.
+#
 # שאר משתני VITE_FIREBASE_* משותפים עם פריסת האתר.
 
 name: Build Android APK
@@ -45,7 +48,10 @@ jobs:
       contents: write
 
     steps:
+      # ההיסטוריה המלאה נדרשת כדי לדעת מתי השתנה לאחרונה הקוד הנייטיבי
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -67,11 +73,27 @@ jobs:
       - name: Test
         run: npm test
 
+      # טביעת הקוד הנייטיבי: הקומיט האחרון שנגע במעטפת. חבילת web שנושאת
+      # את אותה טביעה יכולה להתחלף בעדכון חי; טביעה אחרת פירושה שצריך
+      # להתקין APK. ראו src/lib/appUpdate.ts.
+      - name: Compute the native revision
+        id: native
+        run: |
+          rev=$(git log -1 --format=%h -- android package-lock.json capacitor.config.ts)
+          if [ -z "$rev" ]; then
+            echo "::error title=No native revision::could not resolve the last native commit"
+            exit 1
+          fi
+          echo "rev=$rev" >> "$GITHUB_OUTPUT"
+          echo "Native revision: $rev"
+
       # PREVIEW_BUILD=1: בלי service worker. בתוך WebView הוא רק היה מחזיק
       # גרסה ישנה במטמון, וההתראות ממילא עוברות למערכת ההפעלה.
       - name: Build web bundle
         env:
           PREVIEW_BUILD: '1'
+          VITE_BUILD_NUMBER: ${{ github.run_number }}
+          VITE_NATIVE_REV: ${{ steps.native.outputs.rev }}
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: heb-calendar-2026
@@ -112,17 +134,19 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - name: Collect the APK
+      - name: Collect the APK and the web bundle
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release*.apk \
              "out/heb-calendar-1.0.${{ github.run_number }}.apk"
+          # אותו dist בדיוק שנארז לתוך ה-APK, לעדכון חי
+          (cd dist && zip -rq "../out/bundle-${{ github.run_number }}-${{ steps.native.outputs.rev }}.zip" .)
           ls -lh out
 
       - uses: actions/upload-artifact@v4
         with:
           name: heb-calendar-apk
-          path: out/*.apk
+          path: out/*
           retention-days: 30
 
       # קישור הורדה יציב, שאפשר לפתוח מהטלפון בלי לחפש בין ריצות.
@@ -143,16 +167,17 @@ jobs:
           else
             gh release create "$tag" --title "אפליקציית אנדרואיד" --notes "$notes" --target "$GITHUB_SHA"
           fi
-          gh release upload "$tag" out/*.apk --clobber
+          gh release upload "$tag" out/* --clobber
 
           # מסירים קבצים של בניות קודמות: השחרור הזה מתאר גרסה אחת, וזו
           # גם ההנחה של בדיקת העדכון באפליקציה
-          current="heb-calendar-1.0.${{ github.run_number }}.apk"
+          keep=$(cd out && ls)
           gh release view "$tag" --json assets --jq '.assets[].name' \
-            | { grep -E '^heb-calendar-.*\.apk$' || true; } \
-            | { grep -vx "$current" || true; } \
+            | { grep -E '^(heb-calendar-.*\.apk|bundle-.*\.zip)$' || true; } \
             | while read -r old; do
-                [ -n "$old" ] && gh release delete-asset "$tag" "$old" -y
+                [ -n "$old" ] || continue
+                printf '%s\n' "$keep" | grep -qx "$old" && continue
+                gh release delete-asset "$tag" "$old" -y
               done
 
       - name: Summary

@@ -26,7 +26,13 @@ import { startSync } from '@/lib/sync';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { initNative, isNative, paintNativeChrome } from '@/lib/native';
-import { checkForUpdate, dismissUpdate, isDismissed, type UpdateInfo } from '@/lib/appUpdate';
+import {
+  checkForUpdate,
+  dismissUpdate,
+  isDismissed,
+  notifyBundleReady,
+  type UpdateInfo,
+} from '@/lib/appUpdate';
 import { UpdateSheet } from '@/components/UpdateSheet';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
@@ -108,6 +114,9 @@ export default function App() {
   useEffect(() => {
     if (!isNative()) return;
     void (async () => {
+      // קודם כול: מאשרים שהחבילה הזו עלתה. חבילה שלא מדווחת בזמן
+      // מתגלגלת אחורה לבד, וזו רשת הביטחון של העדכון החי.
+      await notifyBundleReady();
       await refreshNativePermission();
       await initNative(document.documentElement.classList.contains('dark'));
       setNativeReady(true);
