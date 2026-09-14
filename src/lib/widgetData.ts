@@ -1,0 +1,293 @@
+/**
+ * הנתונים שהוידג׳טים במסך הבית קוראים.
+ *
+ * וידג׳ט באנדרואיד אינו מריץ את קוד האפליקציה - הוא מצויר על ידי מערכת
+ * ההפעלה מתוך RemoteViews, בתהליך אחר, גם כשהאפליקציה סגורה. לכן אין לו
+ * שום דרך לקרוא ל-hebcal או להרחיב אירועים חוזרים. במקום זה האפליקציה
+ * מחשבת הכול מראש וכותבת JSON שטוח, והוידג׳ט רק מצייר אותו.
+ *
+ * מכאן שתי מגבלות שמעצבות את המבנה:
+ *
+ * 1. **הכול מחרוזות מוכנות להצגה.** אין בצד השני מי שיעצב תאריך עברי או
+ *    יחשב "היום". גם `label` וגם `time` מגיעים ערוכים.
+ * 2. **גודל.** ה-JSON נשמר ב-SharedPreferences ונקרא בכל ציור מחדש, ולכן
+ *    יש תקרות מפורשות על מספר הפריטים.
+ *
+ * המזהה של פריט תזכורת הוא `baseId|sourceKey`, כי סימון "בוצע" שייך
+ * למופע ולא לאירוע. הצד הנייטיבי מחזיר אותו כמות שהוא.
+ */
+import type { DateKey, DayInfo, HolidayKind } from '@/types';
+import type { Occurrence } from './recurrence';
+import { addDays, dateKey, monthLabel, relativeDayLabel, startOfDay } from './dates';
+import { hebrewMonthSpanLabel } from './hebrew';
+
+/** כמה ימים קדימה נאספות תזכורות */
+export const REMINDER_HORIZON_DAYS = 21;
+/** תקרת פריטים בוידג׳ט התזכורות */
+const MAX_REMINDERS = 40;
+/** תקרת שורות ברשימת "הקרוב" של וידג׳ט הלוח */
+const MAX_UPCOMING = 12;
+
+/** תא אחד ברשת החודש. שמות קצרים בכוונה - הקובץ נקרא בכל ציור. */
+export type WidgetCell = {
+  /** מפתח התאריך, לפתיחת היום מהוידג׳ט */
+  k: DateKey;
+  /** מספר היום הלועזי */
+  n: number;
+  /** מספר היום העברי, גימטריה */
+  h: string;
+  /** מחוץ לחודש המוצג */
+  out?: true;
+  today?: true;
+  shabbat?: true;
+  /** סוג המועד, לנקודה הצבעונית */
+  kind?: 'yomtov' | 'holiday' | 'fast' | 'roshchodesh';
+  /** כמה אירועים של המשתמש יש ביום */
+  ev?: number;
+};
+
+export type WidgetUpcoming = {
+  k: DateKey;
+  /** "היום", "מחר", או "14 בספטמבר" */
+  day: string;
+  title: string;
+  /** שעה, או ריק לאירוע של כל היום ולמועד */
+  time: string;
+  holiday?: true;
+};
+
+export type CalendarWidgetData = {
+  updatedAt: number;
+  today: DateKey;
+  /** "ספטמבר 2026" */
+  month: string;
+  /** "אלול תשפ״ו – תשרי תשפ״ז" */
+  hebrewMonth: string;
+  weekdays: string[];
+  cells: WidgetCell[];
+  upcoming: WidgetUpcoming[];
+};
+
+export type WidgetReminder = {
+  /** `baseId|sourceKey` - המזהה שחוזר מהוידג׳ט בסימון */
+  id: string;
+  title: string;
+  /** שעה, או ריק לאירוע של כל היום */
+  time: string;
+  done?: true;
+  /** שם צבע האירוע, לנקודה בצד */
+  color: string;
+};
+
+export type ReminderGroup = {
+  k: DateKey;
+  /** "היום", "מחר", "יום שני, 21 בספטמבר" */
+  label: string;
+  /** התאריך העברי, שורה משנית */
+  hebrew: string;
+  items: WidgetReminder[];
+};
+
+export type RemindersWidgetData = {
+  updatedAt: number;
+  groups: ReminderGroup[];
+  /** כמה פתוחות בסך הכול, לכותרת */
+  open: number;
+};
+
+/** מזהה מופע כפי שהוא עובר לצד הנייטיבי וחוזר ממנו. */
+export function occurrenceRef(occurrence: Occurrence): string {
+  return `${occurrence.baseId}|${occurrence.sourceKey}`;
+}
+
+/** מפרק מזהה שחזר מהוידג׳ט. מחזיר null למזהה פגום. */
+export function parseOccurrenceRef(ref: string): { baseId: string; sourceKey: DateKey } | null {
+  const at = ref.lastIndexOf('|');
+  if (at <= 0 || at === ref.length - 1) return null;
+  return { baseId: ref.slice(0, at), sourceKey: ref.slice(at + 1) as DateKey };
+}
+
+/** הקטגוריה הגסה של מועד, לנקודה בתא. null למה שאינו מסומן בלוח. */
+function cellKind(kind: HolidayKind): WidgetCell['kind'] | undefined {
+  switch (kind) {
+    case 'yomtov':
+      return 'yomtov';
+    case 'cholhamoed':
+    case 'erev':
+    case 'minor':
+    case 'specialshabbat':
+      return 'holiday';
+    case 'majorfast':
+    case 'minorfast':
+      return 'fast';
+    case 'roshchodesh':
+      return 'roshchodesh';
+    default:
+      return undefined;
+  }
+}
+
+/** המועד החשוב ביותר ביום, אם יש. הרשימה כבר ממוינת לפי חשיבות. */
+function leadHoliday(day: DayInfo) {
+  return day.holidays[0];
+}
+
+/**
+ * בונה את נתוני וידג׳ט הלוח.
+ *
+ * @param gridDays 42 ימי רשת החודש, כפי שהאפליקציה מחשבת אותם
+ * @param days מפת המידע לכל יום
+ * @param occurrences מפת מופעי האירועים לפי תאריך
+ */
+export function buildCalendarWidget(
+  month: Date,
+  gridDays: Date[],
+  days: Map<DateKey, DayInfo>,
+  occurrences: Map<DateKey, Occurrence[]>,
+  now = new Date(),
+): CalendarWidgetData {
+  const todayKey = dateKey(now);
+
+  const cells: WidgetCell[] = gridDays.map((date) => {
+    const k = dateKey(date);
+    const info = days.get(k);
+    const cell: WidgetCell = { k, n: date.getDate(), h: info?.hebrewDay ?? '' };
+    if (date.getMonth() !== month.getMonth()) cell.out = true;
+    if (k === todayKey) cell.today = true;
+    if (date.getDay() === 6) cell.shabbat = true;
+    const holiday = info && leadHoliday(info);
+    const kind = holiday && cellKind(holiday.kind);
+    if (kind) cell.kind = kind;
+    const count = occurrences.get(k)?.filter((o) => !o.done).length ?? 0;
+    if (count) cell.ev = count;
+    return cell;
+  });
+
+  return {
+    updatedAt: Date.now(),
+    today: todayKey,
+    month: monthLabel(month),
+    hebrewMonth: hebrewMonthSpanLabel(month),
+    weekdays: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+    cells,
+    upcoming: buildUpcoming(days, occurrences, now),
+  };
+}
+
+/** השורות הקרובות: אירועים ומועדים מהיום והלאה, מעורבבים לפי תאריך. */
+function buildUpcoming(
+  days: Map<DateKey, DayInfo>,
+  occurrences: Map<DateKey, Occurrence[]>,
+  now: Date,
+): WidgetUpcoming[] {
+  const from = startOfDay(now);
+  const out: WidgetUpcoming[] = [];
+
+  for (let i = 0; out.length < MAX_UPCOMING && i < 45; i += 1) {
+    const date = addDays(from, i);
+    const k = dateKey(date);
+    const day = days.get(k);
+    if (!day) continue;
+    const label = relativeDayLabel(date);
+
+    for (const holiday of day.holidays) {
+      if (!cellKind(holiday.kind)) continue;
+      out.push({ k, day: label, title: holiday.title, time: '', holiday: true });
+      if (out.length >= MAX_UPCOMING) return out;
+    }
+    for (const occ of occurrences.get(k) ?? []) {
+      if (occ.done) continue;
+      out.push({ k, day: label, title: occ.title, time: occ.allDay ? '' : (occ.startTime ?? '') });
+      if (out.length >= MAX_UPCOMING) return out;
+    }
+  }
+  return out;
+}
+
+/**
+ * בונה את נתוני וידג׳ט התזכורות: אירועי המשתמש קדימה, מקובצים לפי יום.
+ *
+ * מועדים אינם נכללים כאן בכוונה - אי אפשר "לבצע" את סוכות, ותיבת סימון
+ * לצד מועד היא הבטחה שקרית.
+ */
+export function buildRemindersWidget(
+  days: Map<DateKey, DayInfo>,
+  occurrences: Map<DateKey, Occurrence[]>,
+  now = new Date(),
+): RemindersWidgetData {
+  const from = startOfDay(now);
+  const groups: ReminderGroup[] = [];
+  let count = 0;
+  let open = 0;
+
+  for (let i = 0; i < REMINDER_HORIZON_DAYS && count < MAX_REMINDERS; i += 1) {
+    const date = addDays(from, i);
+    const k = dateKey(date);
+    const list = occurrences.get(k) ?? [];
+    if (!list.length) continue;
+
+    const items: WidgetReminder[] = [];
+    for (const occ of list) {
+      if (count >= MAX_REMINDERS) break;
+      const item: WidgetReminder = {
+        id: occurrenceRef(occ),
+        title: occ.title,
+        time: occ.allDay ? '' : (occ.startTime ?? ''),
+        color: occ.color,
+      };
+      if (occ.done) item.done = true;
+      else open += 1;
+      items.push(item);
+      count += 1;
+    }
+    if (!items.length) continue;
+
+    groups.push({
+      k,
+      label: relativeDayLabel(date),
+      hebrew: days.get(k)?.hebrewFull ?? '',
+      items,
+    });
+  }
+
+  return { updatedAt: Date.now(), groups, open };
+}
+
+/** הסוג היחיד שהצד הנייטיבי מכיר. קיים כדי שהחוזה יישאר במקום אחד. */
+export type WidgetPayload = {
+  calendar: CalendarWidgetData;
+  reminders: RemindersWidgetData;
+};
+
+export const WIDGET_KEYS = {
+  calendar: 'widget:calendar',
+  reminders: 'widget:reminders',
+  /** תור הפעולות שהוידג׳ט כתב וממתינות לאפליקציה */
+  inbox: 'widget:inbox',
+} as const;
+
+/** פעולה שהוידג׳ט ביצע וממתינה שהאפליקציה תחיל אותה. */
+export type WidgetAction =
+  | { type: 'done'; ref: string; done: boolean; at: number }
+  | { type: 'add'; title: string; date: DateKey; at: number };
+
+/** קורא תור פעולות שנכתב בצד הנייטיבי. סובל קלט פגום בשקט. */
+export function parseInbox(raw: string | null | undefined): WidgetAction[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((a): a is WidgetAction => {
+      if (!a || typeof a !== 'object') return false;
+      const action = a as Partial<WidgetAction> & { type?: string };
+      if (action.type === 'done') return typeof (a as { ref?: unknown }).ref === 'string';
+      if (action.type === 'add') {
+        const add = a as { title?: unknown; date?: unknown };
+        return typeof add.title === 'string' && typeof add.date === 'string';
+      }
+      return false;
+    });
+  } catch {
+    return [];
+  }
+}

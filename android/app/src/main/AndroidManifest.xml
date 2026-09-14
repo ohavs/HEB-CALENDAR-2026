@@ -22,7 +22,61 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- לחיצה על יום בוידג׳ט פותחת את אותו יום. הקישור נקרא
+                 באותו קוד שקורא קיצורי דרך: src/lib/launchParams.ts -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hebcal" />
+            </intent-filter>
+
         </activity>
+
+        <!-- חלונית ההוספה של וידג׳ט התזכורות. אנדרואיד אינו מאפשר שדה
+             טקסט בתוך וידג׳ט, ולכן זו חלונית שנפתחת מעליו ונסגרת מיד. -->
+        <activity
+            android:name=".AddReminderActivity"
+            android:theme="@style/AddReminderDialog"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".CalendarWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_calendar_info" />
+        </receiver>
+
+        <receiver
+            android:name=".RemindersWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_reminders_info" />
+        </receiver>
+
+        <receiver
+            android:name=".WidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.ohav.hebcal.TOGGLE_DONE" />
+                <action android:name="com.ohav.hebcal.ADD_REMINDER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ההרשאה נדרשת כדי שמערכת ההפעלה תוכל לקשור את הרשימה -->
+        <service
+            android:name=".RemindersWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

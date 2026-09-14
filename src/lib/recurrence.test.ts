@@ -584,3 +584,20 @@ describe('פריסת אירוע רב־יומי', () => {
     expect(isSpanEnd(occ)).toBe(true);
   });
 });
+
+describe('סימון כבוצע', () => {
+  it('מופע בלי חריג אינו מסומן', () => {
+    const ev = event({ date: '2026-09-14' });
+    expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].done).toBe(false);
+  });
+
+  it('החריג מסמן את המופע שלו בלבד', () => {
+    const ev = event({
+      date: '2026-09-07',
+      repeat: 'weekly',
+      exceptions: { '2026-09-14': { done: true } },
+    });
+    expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].done).toBe(true);
+    expect(eventsOnDay([ev], keyToDate('2026-09-21'))[0].done).toBe(false);
+  });
+});

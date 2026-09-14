@@ -193,3 +193,36 @@ describe('חריגים בחנות', () => {
     expect(store().byId.a.exceptions?.['2026-09-21'].cancelled).toBe(true);
   });
 });
+
+describe('סימון מופע כבוצע', () => {
+  it('הסימון נשמר כחריג על המופע', () => {
+    seed(event({ id: 'a', date: '2026-09-07', repeat: 'weekly' }));
+    store().setOccurrenceDone('a', '2026-09-14', true);
+    expect(store().byId.a.exceptions?.['2026-09-14'].done).toBe(true);
+  });
+
+  it('מופע אחד בסדרה לא מסמן את השאר', () => {
+    seed(event({ id: 'a', date: '2026-09-07', repeat: 'weekly' }));
+    store().setOccurrenceDone('a', '2026-09-14', true);
+    expect(store().byId.a.exceptions?.['2026-09-21']).toBeUndefined();
+  });
+
+  it('ביטול הסימון מוחק את החריג ולא משאיר false', () => {
+    seed(event({ id: 'a', date: '2026-09-07', repeat: 'weekly' }));
+    store().setOccurrenceDone('a', '2026-09-14', true);
+    store().setOccurrenceDone('a', '2026-09-14', false);
+    expect(store().byId.a.exceptions).toBeUndefined();
+  });
+
+  it('ביטול הסימון לא מוחק שינויים אחרים שיש למופע', () => {
+    seed(event({ id: 'a', date: '2026-09-07', repeat: 'weekly' }));
+    store().updateOccurrence('a', '2026-09-14', { title: 'שם למופע הזה' });
+    store().setOccurrenceDone('a', '2026-09-14', true);
+    store().setOccurrenceDone('a', '2026-09-14', false);
+    expect(store().byId.a.exceptions?.['2026-09-14']).toEqual({ title: 'שם למופע הזה' });
+  });
+
+  it('אירוע שאינו קיים אינו מפיל כלום', () => {
+    expect(() => store().setOccurrenceDone('missing', '2026-09-14', true)).not.toThrow();
+  });
+});

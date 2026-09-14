@@ -4,8 +4,8 @@
  * קישור ישן או מקוצץ צריך לפתוח את האפליקציה, לא להכשיל אותה.
  */
 import { describe, expect, it } from 'vitest';
-import { parseLaunch } from './launchParams';
-import { dateKey } from './dates';
+import { parseExternalUrl, parseLaunch } from './launchParams';
+import { dateKey, keyToDate } from './dates';
 
 describe('לשונית', () => {
   it('קורא לשונית מוכרת', () => {
@@ -90,5 +90,23 @@ describe('סלחנות', () => {
     const compose = parseLaunch('?tab=calendar&compose=today');
     expect(compose.tab).toBe('calendar');
     expect(compose.compose).toBe(dateKey(new Date()));
+  });
+});
+
+describe('parseExternalUrl', () => {
+  it('קורא קישור של סכמה פנימית', () => {
+    expect(parseExternalUrl('hebcal://open?tab=calendar&date=2026-09-14').date).toEqual(
+      keyToDate('2026-09-14'),
+    );
+  });
+
+  it('קישור בלי שאילתה אינו עושה כלום', () => {
+    expect(parseExternalUrl('hebcal://open')).toEqual({});
+  });
+
+  it('תאריך לא תקין נזרק, והלשונית נשארת', () => {
+    const out = parseExternalUrl('hebcal://open?tab=shabbat&date=2026-02-31');
+    expect(out.tab).toBe('shabbat');
+    expect(out.date).toBeUndefined();
   });
 });

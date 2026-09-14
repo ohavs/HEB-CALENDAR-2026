@@ -18,6 +18,7 @@ import { useSettings, useSettingsStore } from '@/store/settings';
 import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
 import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
 import { EventCard } from './EventChip';
+import { useEventsStore } from '@/store/events';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 
 /** כמה ימים נטענים בכל פעם */
@@ -38,6 +39,7 @@ function DayGroup({
   onEditEvent: (occurrence: Occurrence) => void;
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
 }) {
+  const setDone = useEventsStore((s) => s.setOccurrenceDone);
   const { day, occurrences } = entry;
   const candles = day.times.find((t) => t.kind === 'candles');
   const havdalah = day.times.find((t) => t.kind === 'havdalah');
@@ -108,6 +110,7 @@ function DayGroup({
           <EventCard
             key={occ.occurrenceId}
             occurrence={occ}
+            onToggleDone={(done) => setDone(occ.baseId, occ.sourceKey, done)}
             onClick={() => onEditEvent(occ)}
             onMove={(days) => onMoveEvent(occ, days)}
           />

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  גדלים: מינימום שתי עמודות על שתי שורות, וברירת מחדל של חודש שלם.
+  targetCellWidth/Height נקראים מאנדרואיד 12 ומעלה; minWidth/minHeight
+  משרתים את הישנים יותר.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="60dp"
+    android:maxResizeWidth="500dp"
+    android:maxResizeHeight="400dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/widget_calendar"
+    android:previewLayout="@layout/widget_calendar"
+    android:description="@string/widget_calendar_label"
+    android:updatePeriodMillis="1800000" />

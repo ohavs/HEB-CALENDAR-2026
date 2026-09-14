@@ -40,6 +40,8 @@ export type Occurrence = UserEvent & {
   spanLength: number;
   /** היום הראשון של הפרישה */
   spanStart: DateKey;
+  /** המופע סומן כבוצע */
+  done: boolean;
 };
 
 function hebrewMonthMatches(baseMonth: number, baseLeap: boolean, hd: HDate): boolean {
@@ -131,6 +133,7 @@ function toOccurrence(
     isRecurring: recurring,
     sourceKey,
     hasException: Boolean(exception),
+    done: exception?.done === true,
     spanIndex,
     spanLength,
     spanStart,

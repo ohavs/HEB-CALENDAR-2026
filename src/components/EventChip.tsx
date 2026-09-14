@@ -6,7 +6,7 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Repeat } from 'lucide-react';
+import { Check, MapPin, Repeat } from 'lucide-react';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
@@ -77,10 +77,16 @@ export function EventCard({
   occurrence,
   onClick,
   onMove,
+  onToggleDone,
   draggable = false,
 }: {
   occurrence: Occurrence;
   onClick?: () => void;
+  /**
+   * סימון "בוצע". כשהוא נמסר מופיעה תיבת סימון בקצה הכרטיס.
+   * הסימון שייך למופע: משימה שחוזרת כל שבוע בוצעה השבוע בלבד.
+   */
+  onToggleDone?: (done: boolean) => void;
   /**
    * הזזה במקלדת - Alt+חיצים. זו החלופה לגרירה, שאין לה שום מקבילה
    * במקלדת: יום אחד בחיצים אופקיים, שבוע בחיצים אנכיים.
@@ -107,20 +113,45 @@ export function EventCard({
     onMove(delta);
   };
 
+  /*
+    הכרטיס הוא עטיפה ולא כפתור: תיבת סימון בתוך כפתור אינה חוקית, ובלי
+    ההפרדה הזו לחיצה על הסימון הייתה פותחת גם את העורך.
+  */
   return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      onKeyDown={onKeyDown}
-      whileTap={TAP_SCALE_LG}
-      transition={TAP}
-      onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
-      aria-label={cardLabel(occurrence)}
-      aria-keyshortcuts={
-        onMove ? 'Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown' : undefined
-      }
-      className={`ev ev-${occurrence.color} focus-ring flex w-full items-center gap-3.5 rounded-2xl p-3 text-right`}
+    <div
+      className={`ev ev-${occurrence.color} flex w-full items-center gap-2 rounded-2xl p-3 ${
+        occurrence.done ? 'opacity-55' : ''
+      }`}
     >
+      {onToggleDone && (
+        <motion.button
+          type="button"
+          role="checkbox"
+          aria-checked={occurrence.done}
+          aria-label={occurrence.done ? 'ביטול סימון כבוצע' : 'סימון כבוצע'}
+          onClick={() => onToggleDone(!occurrence.done)}
+          whileTap={{ scale: 0.88 }}
+          transition={TAP}
+          className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+            occurrence.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
+          }`}
+        >
+          {occurrence.done && <Check size={ICON.sm} strokeWidth={3} />}
+        </motion.button>
+      )}
+      <motion.button
+        type="button"
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        whileTap={TAP_SCALE_LG}
+        transition={TAP}
+        onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
+        aria-label={cardLabel(occurrence)}
+        aria-keyshortcuts={
+          onMove ? 'Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown' : undefined
+        }
+        className="focus-ring flex min-w-0 flex-1 items-center gap-3.5 rounded-xl text-right"
+      >
       {/* תג השעה - מלא בצבע האירוע */}
       <span
         className="ev-solid flex h-14 w-16 shrink-0 flex-col items-center justify-center rounded-xl text-white"
@@ -151,7 +182,11 @@ export function EventCard({
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-title font-semibold leading-snug">
+          <span
+            className={`truncate text-title font-semibold leading-snug ${
+              occurrence.done ? 'line-through' : ''
+            }`}
+          >
             {occurrence.title}
           </span>
           {occurrence.repeat !== 'none' && (
@@ -168,7 +203,8 @@ export function EventCard({
             </span>
           )}
         </span>
-      </span>
-    </motion.button>
+        </span>
+      </motion.button>
+    </div>
   );
 }

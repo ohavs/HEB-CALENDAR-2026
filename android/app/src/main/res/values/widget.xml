@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- צבעי הוידג׳ט. אותה פלטה של האפליקציה, בערכים מוחלטים: לוידג׳ט
+         אין גישה למשתני ה-CSS שלנו. -->
+    <color name="widget_bg">#FFFFFFFF</color>
+    <color name="widget_ink">#FF15151F</color>
+    <color name="widget_muted">#FF6B6B7B</color>
+    <color name="widget_faint">#FFA3A3B2</color>
+    <color name="widget_accent">#FF6366F1</color>
+    <color name="widget_on_accent">#FFFFFFFF</color>
+    <color name="widget_well">#FFF2F2F7</color>
+    <color name="widget_holiday">#FFF59E0B</color>
+    <color name="widget_fast">#FF8B8B9E</color>
+    <color name="widget_roshchodesh">#FF34B38A</color>
+
+    <string name="widget_calendar_label">לוח שנה עברי</string>
+    <string name="widget_reminders_label">תזכורות</string>
+    <string name="widget_reminders_title">תזכורות</string>
+    <string name="widget_empty_title">פתחו את האפליקציה</string>
+    <string name="widget_empty_reminders">אין תזכורות קרובות</string>
+    <string name="widget_add">הוספת תזכורת</string>
+    <string name="widget_add_hint">מה צריך לזכור?</string>
+    <string name="widget_save">הוספה</string>
+    <string name="widget_cancel">ביטול</string>
+
+    <plurals name="widget_open">
+        <item quantity="one">פתוחה אחת</item>
+        <item quantity="two">שתיים פתוחות</item>
+        <item quantity="other">%d פתוחות</item>
+    </plurals>
+</resources>

@@ -36,6 +36,7 @@ import {
 import { UpdateSheet } from '@/components/UpdateSheet';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
+import { useWidgets } from '@/hooks/useWidgets';
 import { CalendarScreen } from '@/components/CalendarScreen';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
@@ -50,7 +51,7 @@ import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
 import { announce, setAnnouncer } from '@/lib/announce';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { consumeLaunch } from '@/lib/launchParams';
+import { consumeLaunch, parseExternalUrl } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
 import { OptionPickerSheet } from '@/components/ui/Picker';
@@ -100,6 +101,9 @@ export default function App() {
 
   const dayData = useDayData(dayViewDate);
   const isDesktop = useIsDesktop();
+
+  // הוידג׳טים במסך הבית, ומה שנעשה בהם בזמן שהאפליקציה הייתה סגורה
+  useWidgets();
 
   /* ------------------------------ ערכת נושא ------------------------------ */
   useEffect(() => {
@@ -207,10 +211,22 @@ export default function App() {
    * מנוקה כדי שרענון לא יחזור על הפעולה.
    */
   useEffect(() => {
-    const intent = consumeLaunch();
-    if (intent.tab) setTab(intent.tab);
-    if (intent.date) goToDate(intent.date);
-    if (intent.compose) openEditor(intent.compose);
+    const apply = (intent: ReturnType<typeof consumeLaunch>) => {
+      if (intent.tab) setTab(intent.tab);
+      if (intent.date) goToDate(intent.date);
+      if (intent.compose) openEditor(intent.compose);
+    };
+    apply(consumeLaunch());
+
+    // כשהאפליקציה כבר פתוחה, לחיצה בוידג׳ט מגיעה כאירוע ולא ככתובת
+    if (!isNative()) return;
+    let remove: (() => void) | undefined;
+    void import('@capacitor/app').then(({ App: CapApp }) =>
+      CapApp.addListener('appUrlOpen', ({ url }) => apply(parseExternalUrl(url))).then((handle) => {
+        remove = () => void handle.remove();
+      }),
+    );
+    return () => remove?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

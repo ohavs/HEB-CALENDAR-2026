@@ -58,6 +58,8 @@ type EventsStore = {
   /* ---------- מופע יחיד בסדרה חוזרת ---------- */
   /** משנה מופע אחד בלבד, בלי לגעת בשאר הסדרה */
   updateOccurrence: (id: string, sourceKey: DateKey, patch: EventException) => void;
+  /** סימון מופע כבוצע, או ביטול הסימון */
+  setOccurrenceDone: (id: string, sourceKey: DateKey, done: boolean) => void;
   /** מעביר מופע אחד ליום אחר */
   moveOccurrence: (id: string, sourceKey: DateKey, to: DateKey) => void;
   /** מבטל מופע אחד */
@@ -130,6 +132,36 @@ export const useEventsStore = create<EventsStore>()(
           };
           return {
             byId: { ...s.byId, [id]: { ...existing, exceptions, updatedAt: Date.now() } },
+            revision: s.revision + 1,
+          };
+        }),
+
+      /*
+        ביטול הסימון מוחק את השדה במקום לשמור false, וחריג שנשאר ריק
+        נמחק כולו: אחרת כל סימון וביטול היו מותירים חריג תלוי על מופע
+        שלא שונה בשום דבר אחר, והוא היה מסונכרן לענן לחינם.
+      */
+      setOccurrenceDone: (id, sourceKey, done) =>
+        setState((s) => {
+          const existing = s.byId[id];
+          if (!existing) return s;
+          const next: EventException = { ...existing.exceptions?.[sourceKey] };
+          if (done) next.done = true;
+          else delete next.done;
+
+          const exceptions = { ...existing.exceptions };
+          if (Object.keys(next).length) exceptions[sourceKey] = next;
+          else delete exceptions[sourceKey];
+
+          return {
+            byId: {
+              ...s.byId,
+              [id]: {
+                ...existing,
+                exceptions: Object.keys(exceptions).length ? exceptions : undefined,
+                updatedAt: Date.now(),
+              },
+            },
             revision: s.revision + 1,
           };
         }),

@@ -71,3 +71,15 @@ export function consumeLaunch(): LaunchIntent {
   }
   return intent;
 }
+
+/**
+ * מפענח קישור שהגיע מבחוץ, למשל לחיצה על יום בוידג׳ט.
+ *
+ * הסכמה שלנו (`hebcal://open?date=...`) אינה כתובת http, ולכן היא לא
+ * עוברת דרך `window.location` בכלל - היא מגיעה כאירוע מהמערכת. מה
+ * שמשותף הוא השאילתה, וזו בדיוק הנקודה: אותו פענוח משרת את שניהם.
+ */
+export function parseExternalUrl(url: string): LaunchIntent {
+  const at = url.indexOf('?');
+  return at < 0 ? {} : parseLaunch(url.slice(at));
+}

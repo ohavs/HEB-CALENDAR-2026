@@ -24,6 +24,7 @@ import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { dayTitleLabel, relativeDayLabel } from '@/lib/dates';
 import { EventCard } from './EventChip';
+import { useEventsStore } from '@/store/events';
 import { useElementSize } from '@/hooks/useElementSize';
 import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
 
@@ -56,6 +57,7 @@ function DayPanelContent({
   onEditEvent,
   onMoveEvent,
 }: ContentProps) {
+  const setDone = useEventsStore((s) => s.setOccurrenceDone);
   if (!day) return null;
 
   const candles = day.times.find((t) => t.kind === 'candles');
@@ -146,6 +148,7 @@ function DayPanelContent({
               occurrence={occ}
               onClick={() => onEditEvent(occ)}
               onMove={(days) => onMoveEvent(occ, days)}
+              onToggleDone={(done) => setDone(occ.baseId, occ.sourceKey, done)}
             />
           ))}
         </div>
