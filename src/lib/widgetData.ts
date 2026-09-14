@@ -16,10 +16,11 @@
  * המזהה של פריט תזכורת הוא `baseId|sourceKey`, כי סימון "בוצע" שייך
  * למופע ולא לאירוע. הצד הנייטיבי מחזיר אותו כמות שהוא.
  */
-import type { DateKey, DayInfo, HolidayKind } from '@/types';
+import type { DateKey, DayInfo, HolidayKind, UserEvent } from '@/types';
 import type { Occurrence } from './recurrence';
 import { addDays, dateKey, monthLabel, relativeDayLabel, startOfDay } from './dates';
 import { hebrewDateParts, hebrewMonthSpanLabel, type ShabbatEntry } from './hebrew';
+import { buildReminderGroups } from './reminders';
 
 /** כמה ימים קדימה נאספות תזכורות */
 export const REMINDER_HORIZON_DAYS = 21;
@@ -207,49 +208,43 @@ function buildUpcoming(
 }
 
 /**
- * בונה את נתוני וידג׳ט התזכורות: אירועי המשתמש קדימה, מקובצים לפי יום.
+ * בונה את נתוני וידג׳ט התזכורות.
  *
- * מועדים אינם נכללים כאן בכוונה - אי אפשר "לבצע" את סוכות, ותיבת סימון
- * לצד מועד היא הבטחה שקרית.
+ * אותו מודל בדיוק של מסך התזכורות, ובכוונה: הוידג׳ט הוא חלון אל אותה
+ * רשימה, כולל הפריטים שאין להם תאריך. שני חישובים נפרדים היו נפרדים גם
+ * בתוצאה, וזה בדיוק מה שהופך וידג׳ט למשהו שאי אפשר לסמוך עליו.
  */
 export function buildRemindersWidget(
+  events: UserEvent[],
   days: Map<DateKey, DayInfo>,
   occurrences: Map<DateKey, Occurrence[]>,
   now = new Date(),
 ): RemindersWidgetData {
-  const from = startOfDay(now);
   const groups: ReminderGroup[] = [];
   let count = 0;
   let open = 0;
 
-  for (let i = 0; i < REMINDER_HORIZON_DAYS && count < MAX_REMINDERS; i += 1) {
-    const date = addDays(from, i);
-    const k = dateKey(date);
-    const list = occurrences.get(k) ?? [];
-    if (!list.length) continue;
+  for (const group of buildReminderGroups(events, occurrences, days, now, REMINDER_HORIZON_DAYS)) {
+    if (count >= MAX_REMINDERS) break;
+    if (!group.items.length) continue;
 
     const items: WidgetReminder[] = [];
-    for (const occ of list) {
+    for (const source of group.items) {
       if (count >= MAX_REMINDERS) break;
       const item: WidgetReminder = {
-        id: occurrenceRef(occ),
-        title: occ.title,
-        time: occ.allDay ? '' : (occ.startTime ?? ''),
-        color: occ.color,
+        id: source.occurrence ? occurrenceRef(source.occurrence) : `${source.baseId}|${source.sourceKey}`,
+        title: source.title,
+        time: source.time,
+        color: source.color,
       };
-      if (occ.done) item.done = true;
+      if (source.done) item.done = true;
       else open += 1;
       items.push(item);
       count += 1;
     }
     if (!items.length) continue;
 
-    groups.push({
-      k,
-      label: relativeDayLabel(date),
-      hebrew: days.get(k)?.hebrewFull ?? '',
-      items,
-    });
+    groups.push({ k: group.key as DateKey, label: group.label, hebrew: group.hebrew, items });
   }
 
   return { updatedAt: Date.now(), groups, open };

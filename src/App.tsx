@@ -38,6 +38,7 @@ import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
 import { CalendarScreen } from '@/components/CalendarScreen';
+import { RemindersScreen } from '@/components/RemindersScreen';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
 import { TabBar, TAB_BAR_HEIGHT, type TabId } from '@/components/TabBar';
@@ -214,7 +215,9 @@ export default function App() {
     const apply = (intent: ReturnType<typeof consumeLaunch>) => {
       if (intent.tab) setTab(intent.tab);
       if (intent.date) goToDate(intent.date);
-      if (intent.compose) openEditor(intent.compose);
+      // במסך התזכורות "כתיבה" היא שדה ההוספה שבראשו, ולא עורך אירוע
+      if (intent.compose && intent.tab === 'reminders') setComposeReminder(true);
+      else if (intent.compose) openEditor(intent.compose);
     };
     apply(consumeLaunch());
 
@@ -278,6 +281,23 @@ export default function App() {
   useEffect(() => {
     setDragCallbacks({
       onDrop: (baseId, to, occurrence) => {
+        /*
+          "בלי תאריך" הוא יעד לכל דבר מבחינת מנוע הגרירה, וכאן הוא מתפרש:
+          גרירה אליו מנתקת מהיום, וגרירה ממנו משייכת. שניהם פעולה אחת על
+          האירוע, ולא הזזה של מופע.
+        */
+        const setReminderDate = useEventsStore.getState().setReminderDate;
+        if ((to as string) === 'undated') {
+          setReminderDate(baseId, null);
+          toast(`"${occurrence.title}" ללא תאריך`);
+          return;
+        }
+        if (occurrence.undated) {
+          setReminderDate(baseId, to);
+          toast(`"${occurrence.title}" שויך ליום`);
+          return;
+        }
+
         setSelectedDate(keyToDate(to));
         // גרירת מופע בסדרה חוזרת עמומה בכוונתה: שואלים לפני שמזיזים
         if (occurrence.repeat !== 'none') {
@@ -330,6 +350,14 @@ export default function App() {
   const openEditor = useCallback((date: DateKey) => {
     setEditor({ open: true, date, editing: null });
   }, []);
+
+  /** פותח את העורך על מופע או על תזכורת בלי תאריך. */
+  const editAnything = useCallback((item: Occurrence | UserEvent) => {
+    setEditor({ open: true, date: item.date, editing: item });
+  }, []);
+
+  /** נפתח מהוידג׳ט: שדה ההקלדה במסך התזכורות ממוקד מיד */
+  const [composeReminder, setComposeReminder] = useState(false);
 
   const editOccurrence = useCallback((occurrence: Occurrence) => {
     setEditor({ open: true, date: occurrence.date, editing: occurrence });
@@ -398,6 +426,14 @@ export default function App() {
 
             {tab === 'shabbat' && (
               <ShabbatScreen onPickCity={() => setCityOpen(true)} bottomInset={bottomInset} />
+            )}
+
+            {tab === 'reminders' && (
+              <RemindersScreen
+                onEditEvent={editAnything}
+                composeOnMount={composeReminder}
+                bottomInset={bottomInset}
+              />
             )}
 
             {tab === 'settings' && (

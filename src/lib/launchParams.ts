@@ -22,7 +22,7 @@ export type LaunchIntent = {
   compose?: DateKey;
 };
 
-const TABS: TabId[] = ['calendar', 'shabbat', 'settings'];
+const TABS: TabId[] = ['calendar', 'reminders', 'shabbat', 'settings'];
 
 /** YYYY-MM-DD תקין ואמיתי (לא 2026-02-31). */
 function validKey(value: string): boolean {

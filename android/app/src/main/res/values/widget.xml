@@ -23,9 +23,6 @@
     <string name="widget_empty_title">פתחו את האפליקציה</string>
     <string name="widget_empty_reminders">אין תזכורות קרובות</string>
     <string name="widget_add">הוספת תזכורת</string>
-    <string name="widget_add_hint">מה צריך לזכור?</string>
-    <string name="widget_save">הוספה</string>
-    <string name="widget_cancel">ביטול</string>
 
     <plurals name="widget_open">
         <item quantity="one">פתוחה אחת</item>

@@ -59,7 +59,7 @@ export function useWidgets(): void {
 
       void publishWidgets(
         buildCalendarWidget(month, grid, days, occurrences, now),
-        buildRemindersWidget(days, occurrences, now),
+        buildRemindersWidget(events, days, occurrences, now),
         buildShabbatWidget(upcomingShabbatot(now, 8, options), city.name, now),
       );
     }, DEBOUNCE_MS);

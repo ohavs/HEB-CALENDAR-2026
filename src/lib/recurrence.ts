@@ -203,6 +203,8 @@ export function expandEvents(
 
   for (const ev of events) {
     if (ev.deleted) continue;
+    // תזכורת בלי תאריך אינה קיימת בלוח. היא חיה רק במסך התזכורות.
+    if (ev.undated) continue;
     const exceptions = ev.exceptions;
 
     /* ---------- מעבר ראשון: מופעים במקומם הטבעי ---------- */

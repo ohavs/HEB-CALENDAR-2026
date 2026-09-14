@@ -102,7 +102,7 @@ describe('buildRemindersWidget', () => {
 
   function withEvents(...events: ReturnType<typeof event>[]) {
     const occ = expandEvents(events, NOW, addDays(NOW, 30));
-    return buildRemindersWidget(days, occ, NOW);
+    return buildRemindersWidget(events, days, occ, NOW);
   }
 
   it('מקבץ לפי יום, לפי סדר התאריכים', () => {
@@ -151,7 +151,7 @@ describe('buildRemindersWidget', () => {
   });
 
   it('בלי אירועים מחזיר רשימה ריקה ולא נופל', () => {
-    const out = buildRemindersWidget(days, new Map(), NOW);
+    const out = buildRemindersWidget([], days, new Map(), NOW);
     expect(out.groups).toEqual([]);
     expect(out.open).toBe(0);
   });
@@ -251,5 +251,20 @@ describe('buildShabbatWidget', () => {
 
   it('רשימה ריקה אינה מפילה כלום', () => {
     expect(buildShabbatWidget([], 'ירושלים', NOW).entries).toEqual([]);
+  });
+});
+
+describe('הוידג׳ט והמסך מציגים אותו דבר', () => {
+  it('תזכורת בלי תאריך מופיעה גם בוידג׳ט', () => {
+    const undated = event({ date: '2026-09-14', undated: true, title: 'בלי תאריך' });
+    const out = buildRemindersWidget(
+      [undated],
+      buildDays(NOW, addDays(NOW, 30), buildOptions() as never),
+      new Map(),
+      NOW,
+    );
+    expect(out.groups[0].label).toBe('בלי תאריך');
+    expect(out.groups[0].items[0].title).toBe('בלי תאריך');
+    expect(out.open).toBe(1);
   });
 });

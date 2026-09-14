@@ -242,15 +242,20 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
      * דרך ממסך הבית.
      */
     static PendingIntent openApp(Context context, String dateKey) {
+        String query = "tab=calendar";
+        if (dateKey != null && !dateKey.isEmpty()) query += "&date=" + dateKey;
+        return openAppAt(context, query, query.hashCode());
+    }
+
+    /** פותח את האפליקציה על שאילתה נתונה. requestCode מפריד בין הכוונות. */
+    static PendingIntent openAppAt(Context context, String query, int requestCode) {
         Intent intent = new Intent(context, MainActivity.class);
         intent.setAction(Intent.ACTION_VIEW);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        String url = "hebcal://open?tab=calendar";
-        if (dateKey != null && !dateKey.isEmpty()) url += "&date=" + dateKey;
-        intent.setData(Uri.parse(url));
+        intent.setData(Uri.parse("hebcal://open?" + query));
         return PendingIntent.getActivity(
             context,
-            url.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

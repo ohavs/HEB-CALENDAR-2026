@@ -78,15 +78,14 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
         return PendingIntent.getBroadcast(context, 1, intent, flags);
     }
 
-    /** כפתור ההוספה: חלונית קטנה מעל מסך הבית, בלי לפתוח את האפליקציה. */
+    /**
+     * כפתור ההוספה פותח את מסך התזכורות עם שדה ההקלדה ממוקד.
+     *
+     * קודם הייתה כאן חלונית קטנה מעל מסך הבית, וזה היה פחות טוב: מה
+     * שנכתב שם היה מנותק מהמסך שבו התזכורות באמת חיות, בלי תאריך, בלי
+     * מיקום ובלי חזרה. עדיף מסך אחד שבו הכול.
+     */
     private static PendingIntent addIntent(Context context) {
-        Intent intent = new Intent(context, AddReminderActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        return PendingIntent.getActivity(
-            context,
-            2,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        return CalendarWidgetProvider.openAppAt(context, "tab=reminders&compose=1", 2);
     }
 }

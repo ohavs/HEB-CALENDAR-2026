@@ -1,12 +1,13 @@
 /** סרגל לשוניות - שורה תחתונה בטלפון, גלולה צפה וממורכזת במסך רחב. */
 import { motion } from 'framer-motion';
-import { CalendarDays, Settings, Sunset } from 'lucide-react';
+import { CalendarDays, ListChecks, Settings, Sunset } from 'lucide-react';
 import { ICON, SNAP } from '@/lib/motion';
 
-export type TabId = 'calendar' | 'shabbat' | 'settings';
+export type TabId = 'calendar' | 'reminders' | 'shabbat' | 'settings';
 
 const TABS: { id: TabId; label: string; Icon: typeof CalendarDays }[] = [
   { id: 'calendar', label: 'לוח שנה', Icon: CalendarDays },
+  { id: 'reminders', label: 'תזכורות', Icon: ListChecks },
   { id: 'shabbat', label: 'שבת וחגים', Icon: Sunset },
   { id: 'settings', label: 'הגדרות', Icon: Settings },
 ];

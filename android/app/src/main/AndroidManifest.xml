@@ -33,14 +33,6 @@
 
         </activity>
 
-        <!-- חלונית ההוספה של וידג׳ט התזכורות. אנדרואיד אינו מאפשר שדה
-             טקסט בתוך וידג׳ט, ולכן זו חלונית שנפתחת מעליו ונסגרת מיד. -->
-        <activity
-            android:name=".AddReminderActivity"
-            android:theme="@style/AddReminderDialog"
-            android:excludeFromRecents="true"
-            android:exported="false" />
-
         <receiver
             android:name=".CalendarWidgetProvider"
             android:exported="false">
@@ -79,7 +71,6 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.ohav.hebcal.TOGGLE_DONE" />
-                <action android:name="com.ohav.hebcal.ADD_REMINDER" />
             </intent-filter>
         </receiver>
 

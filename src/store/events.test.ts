@@ -226,3 +226,23 @@ describe('סימון מופע כבוצע', () => {
     expect(() => store().setOccurrenceDone('missing', '2026-09-14', true)).not.toThrow();
   });
 });
+
+describe('שיוך תזכורת ליום', () => {
+  it('ניתוק מדליק את הדגל ושומר את התאריך', () => {
+    seed(event({ id: 'a', date: '2026-09-14' }));
+    store().setReminderDate('a', null);
+    expect(store().byId.a.undated).toBe(true);
+    expect(store().byId.a.date).toBe('2026-09-14');
+  });
+
+  it('שיוך מכבה את הדגל וקובע את היום', () => {
+    seed(event({ id: 'a', date: '2026-09-14', undated: true }));
+    store().setReminderDate('a', '2026-09-20');
+    expect(store().byId.a.undated).toBeUndefined();
+    expect(store().byId.a.date).toBe('2026-09-20');
+  });
+
+  it('אירוע שאינו קיים אינו מפיל כלום', () => {
+    expect(() => store().setReminderDate('missing', null)).not.toThrow();
+  });
+});

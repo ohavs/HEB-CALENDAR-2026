@@ -38,6 +38,8 @@ export type EventDraft = {
   color: EventColor;
   reminderMinutes: number | null;
   repeat: UserEvent['repeat'];
+  /** תזכורת בלי תאריך - חיה רק במסך התזכורות */
+  undated?: true;
 };
 
 function newId(): string {
@@ -60,6 +62,8 @@ type EventsStore = {
   updateOccurrence: (id: string, sourceKey: DateKey, patch: EventException) => void;
   /** סימון מופע כבוצע, או ביטול הסימון */
   setOccurrenceDone: (id: string, sourceKey: DateKey, done: boolean) => void;
+  /** שיוך תזכורת ליום, או ניתוק ממנו (null = בלי תאריך) */
+  setReminderDate: (id: string, to: DateKey | null) => void;
   /** מעביר מופע אחד ליום אחר */
   moveOccurrence: (id: string, sourceKey: DateKey, to: DateKey) => void;
   /** מבטל מופע אחד */
@@ -159,6 +163,29 @@ export const useEventsStore = create<EventsStore>()(
               [id]: {
                 ...existing,
                 exceptions: Object.keys(exceptions).length ? exceptions : undefined,
+                updatedAt: Date.now(),
+              },
+            },
+            revision: s.revision + 1,
+          };
+        }),
+
+      /*
+        שיוך ליום וניתוק ממנו הם אותה פעולה משני צדדיה, ולכן הם כאן יחד:
+        התאריך נשמר גם בפריט מנותק, כדי שהוא יחזור למקום סביר אם ישויך
+        שוב, ורק הדגל מחליט אם הוא קיים בלוח.
+      */
+      setReminderDate: (id, to) =>
+        setState((s) => {
+          const existing = s.byId[id];
+          if (!existing) return s;
+          return {
+            byId: {
+              ...s.byId,
+              [id]: {
+                ...existing,
+                date: to ?? existing.date,
+                undated: to === null ? true : undefined,
                 updatedAt: Date.now(),
               },
             },

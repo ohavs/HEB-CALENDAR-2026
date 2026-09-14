@@ -133,6 +133,8 @@ export function EventEditor({
     placeId: draft.placeId,
     // בלי מקום שמור אין על מה לגדר
     placeTrigger: draft.placeId ? draft.placeTrigger : undefined,
+    // עריכת תזכורת בלי תאריך לא משייכת אותה ליום בשקט
+    undated: editing && 'undated' in editing ? editing.undated : undefined,
     notes: draft.notes?.trim() || undefined,
     startTime: draft.allDay ? null : draft.startTime,
     endTime: draft.allDay ? null : draft.endTime,
