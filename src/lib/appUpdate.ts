@@ -44,21 +44,28 @@ export type UpdateManifest = {
 
 export type UpdateInfo = UpdateManifest & { currentVersionName: string };
 
-/** מוציא את פרטי הגרסה מתשובת ה-API. מחזיר null לשחרור בלי APK תקין. */
+/**
+ * מוציא את פרטי הגרסה מתשובת ה-API. מחזיר null לשחרור בלי APK תקין.
+ *
+ * בוחר את הגרסה הגבוהה ביותר ולא את הראשונה ברשימה: בשחרור יכולים
+ * להישאר קבצים של בניות קודמות, והסדר שה-API מחזיר אינו מובטח.
+ */
 export function parseRelease(payload: ReleasePayload): UpdateManifest | null {
+  let best: UpdateManifest | null = null;
   for (const asset of payload.assets ?? []) {
     const match = APK_NAME.exec(asset.name);
     if (!match) continue;
     const versionCode = Number(match[2]);
     if (!Number.isFinite(versionCode)) continue;
-    return {
+    if (best && versionCode <= best.versionCode) continue;
+    best = {
       versionCode,
       versionName: match[1],
       apk: asset.browser_download_url,
       notes: payload.body?.trim() || undefined,
     };
   }
-  return null;
+  return best;
 }
 
 /** האם המניפסט מתאר גרסה חדשה יותר מזו שמותקנת. */

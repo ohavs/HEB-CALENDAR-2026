@@ -145,6 +145,16 @@ jobs:
           fi
           gh release upload "$tag" out/*.apk --clobber
 
+          # מסירים קבצים של בניות קודמות: השחרור הזה מתאר גרסה אחת, וזו
+          # גם ההנחה של בדיקת העדכון באפליקציה
+          current="heb-calendar-1.0.${{ github.run_number }}.apk"
+          gh release view "$tag" --json assets --jq '.assets[].name' \
+            | { grep -E '^heb-calendar-.*\.apk$' || true; } \
+            | { grep -vx "$current" || true; } \
+            | while read -r old; do
+                [ -n "$old" ] && gh release delete-asset "$tag" "$old" -y
+              done
+
       - name: Summary
         run: |
           {

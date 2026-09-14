@@ -82,6 +82,18 @@ describe('parseRelease', () => {
     expect(out?.versionCode).toBe(3);
   });
 
+  it('בוחר את הגרסה הגבוהה ביותר, גם כשהיא אחרונה ברשימה', () => {
+    // בשחרור נשארים קבצים של בניות קודמות, והסדר אינו מובטח
+    const out = parseRelease({
+      assets: [
+        { name: 'heb-calendar-1.0.1.apk', browser_download_url: 'https://example.invalid/1.apk' },
+        { name: 'heb-calendar-1.0.12.apk', browser_download_url: 'https://example.invalid/12.apk' },
+        { name: 'heb-calendar-1.0.2.apk', browser_download_url: 'https://example.invalid/2.apk' },
+      ],
+    });
+    expect(out).toMatchObject({ versionCode: 12, apk: 'https://example.invalid/12.apk' });
+  });
+
   it('שחרור בלי APK מחזיר null', () => {
     expect(parseRelease({ assets: [] })).toBeNull();
   });
