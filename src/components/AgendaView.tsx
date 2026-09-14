@@ -9,12 +9,14 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, ChevronDown } from 'lucide-react';
+import { CalendarPlus, ChevronDown, RotateCcw } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useRangeData } from '@/hooks/useMonthData';
 import { addDays, dateKey, dayTitleLabel, relativeDayLabel, startOfDay } from '@/lib/dates';
-import { useSettings } from '@/store/settings';
+import { useSettings, useSettingsStore } from '@/store/settings';
+import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
+import { AgendaFilterBar } from './AgendaFilterBar';
 import { EventCard } from './EventChip';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 
@@ -139,10 +141,30 @@ export function AgendaView({
   const end = useMemo(() => addDays(start, days), [start, days]);
   const data = useRangeData(start, end);
 
-  // הארכה אוטומטית כשמגיעים לסוף הרשימה
+  const hidden = settings.agendaHidden;
+  const setValue = useSettingsStore((s) => s.set);
+
+  /**
+   * שינוי הסינון ממסגר את הרשימה מחדש מהחלון הקרוב.
+   *
+   * בלי זה החלון רק גדל: סינון מקצר את הרשימה, הזקיף נחשף, וההארכה רצה -
+   * וכשמחזירים את הסינון נשארים עם שנתיים של ימים על המסך בבת אחת.
+   */
+  const hiddenKey = [...hidden].sort().join(',');
+  useEffect(() => {
+    setDays(WINDOW_DAYS);
+  }, [hiddenKey]);
+
+  // הארכה אוטומטית כשמגיעים לסוף הרשימה.
+  //
+  // כשהכול מסונן הרשימה ריקה, הזקיף גלוי מיד, וההארכה הייתה רצה שוב
+  // ושוב עד התקרה - שמונה חישובים של טווח שהולך וגדל, שאף אחד מהם לא
+  // יכול להחזיר כלום. במצב הזה אין טעם להאריך.
+  const everythingHidden = hidden.length === AGENDA_CATEGORIES.length;
+
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || days >= MAX_DAYS) return;
+    if (!node || days >= MAX_DAYS || everythingHidden) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) setDays((d) => Math.min(MAX_DAYS, d + WINDOW_DAYS));
@@ -151,22 +173,22 @@ export function AgendaView({
     );
     io.observe(node);
     return () => io.disconnect();
-  }, [days]);
+  }, [days, everythingHidden]);
 
-  /** רק ימים שיש בהם משהו. יום ריק בסדר יום הוא רעש. */
+  /** רק ימים שנשאר בהם משהו אחרי הסינון. יום ריק בסדר יום הוא רעש. */
   const entries = useMemo(() => {
     const out: AgendaEntry[] = [];
     for (const date of data.dates) {
       const key = dateKey(date);
       const day = data.days.get(key);
       if (!day) continue;
-      const occurrences = data.occurrences.get(key) ?? [];
-      const holidays = settings.showJewishHolidays ? day.holidays : [];
-      if (!occurrences.length && !holidays.length) continue;
-      out.push({ day: { ...day, holidays }, occurrences });
+      // כיבוי המועדים בהגדרות גובר על הפילטר המקומי
+      const base = settings.showJewishHolidays ? day : { ...day, holidays: [] };
+      const entry = filterAgendaDay(base, data.occurrences.get(key) ?? [], hidden);
+      if (entry) out.push(entry);
     }
     return out;
-  }, [data, settings.showJewishHolidays]);
+  }, [data, hidden, settings.showJewishHolidays]);
 
   return (
     <div
@@ -174,18 +196,41 @@ export function AgendaView({
       style={{ paddingBottom: bottomInset + 24 }}
     >
       <div className="app-shell-narrow">
+        <AgendaFilterBar
+          hidden={hidden}
+          onToggle={(category) => setValue('agendaHidden', toggleCategory(hidden, category))}
+          onReset={() => setValue('agendaHidden', [])}
+        />
+
         {entries.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-hairline px-5 py-14 text-center">
-            <p className="text-body text-muted">אין כלום בטווח הקרוב</p>
-            <motion.button
-              type="button"
-              whileTap={TAP_SCALE}
-              onClick={onAddEvent}
-              className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
-            >
-              <CalendarPlus size={ICON.md} strokeWidth={STROKE} />
-              הוספת אירוע
-            </motion.button>
+            {hidden.length > 0 ? (
+              <>
+                <p className="text-body text-muted">הכול מסונן</p>
+                <motion.button
+                  type="button"
+                  whileTap={TAP_SCALE}
+                  onClick={() => setValue('agendaHidden', [])}
+                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
+                >
+                  <RotateCcw size={ICON.md} strokeWidth={STROKE} />
+                  הצגת הכול
+                </motion.button>
+              </>
+            ) : (
+              <>
+                <p className="text-body text-muted">אין כלום בטווח הקרוב</p>
+                <motion.button
+                  type="button"
+                  whileTap={TAP_SCALE}
+                  onClick={onAddEvent}
+                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
+                >
+                  <CalendarPlus size={ICON.md} strokeWidth={STROKE} />
+                  הוספת אירוע
+                </motion.button>
+              </>
+            )}
           </div>
         ) : (
           entries.map((entry) => (

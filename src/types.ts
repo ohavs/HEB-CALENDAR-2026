@@ -150,6 +150,15 @@ export type CalendarView = 'month' | 'week' | 'agenda';
  */
 export type Density = 'comfortable' | 'compact';
 
+/** קטגוריות הסינון של סדר היום. ההגדרה המלאה ב-lib/agendaFilters. */
+export type AgendaCategory =
+  | 'events'
+  | 'holidays'
+  | 'fasts'
+  | 'modern'
+  | 'roshchodesh'
+  | 'times';
+
 /**
  * מקום שמור של המשתמש ("בית", "עבודה").
  * אפשר לקבל התראה בהגעה אליו, ביציאה ממנו, או בשניהם.
@@ -188,6 +197,11 @@ export type Settings = {
   view: CalendarView;
   /** צפיפות תאי הלוח */
   density: Density;
+  /**
+   * מה מוסתר בסדר היום. נשמר כרשימת המוסתרים ולא של המוצגים, כך
+   * שקטגוריה שתתווסף בעתיד תופיע כברירת מחדל.
+   */
+  agendaHidden: AgendaCategory[];
   /** הצגת תאריך עברי בתאי הלוח */
   showHebrewDates: boolean;
   /** הצגת שם החודש העברי בכותרת */
