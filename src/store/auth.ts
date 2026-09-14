@@ -148,11 +148,19 @@ export const useAuthStore = create<AuthStore>()((setState) => ({
       }
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
+      const raw = (e as { message?: string }).message?.trim() ?? '';
+      /*
+        באנדרואיד מציגים גם את הטקסט המקורי. ההתחברות שם תלויה ברישום
+        נכון בקונסולה של גוגל, וההודעה של Credential Manager היא הדבר
+        היחיד שאומר מה בדיוק חסר - בלעדיה אין שום דרך לאבחן מהמכשיר.
+      */
       setState({
         error:
           code === 'auth/unauthorized-domain'
             ? 'הדומיין הזה לא מאושר בהגדרות Firebase Authentication'
-            : 'ההתחברות נכשלה, נסו שוב',
+            : isNative() && raw
+              ? `ההתחברות נכשלה. ${raw}`
+              : 'ההתחברות נכשלה, נסו שוב',
       });
     } finally {
       setState({ busy: false });

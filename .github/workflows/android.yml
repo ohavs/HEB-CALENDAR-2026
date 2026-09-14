@@ -125,13 +125,19 @@ jobs:
           path: out/*.apk
           retention-days: 30
 
-      # קישור הורדה יציב, שאפשר לפתוח מהטלפון בלי לחפש בין ריצות
+      # קישור הורדה יציב, שאפשר לפתוח מהטלפון בלי לחפש בין ריצות.
+      #
+      # שם קובץ ה-APK הוא גם החוזה מול בדיקת העדכון באפליקציה: היא קוראת
+      # את השחרור הזה דרך ה-API וגוזרת את מספר הגרסה מהמספר האחרון בשם.
+      # ראו src/lib/appUpdate.ts.
       - name: Publish to the android-latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag=android-latest
-          notes="גרסה 1.0.${{ github.run_number }} · נבנתה מ-${GITHUB_SHA::7}"
+          subject=$(git log -1 --pretty=%s)
+          notes=$(printf '%s\n\nגרסה 1.0.%s · נבנתה מ-%s' \
+            "$subject" "${{ github.run_number }}" "${GITHUB_SHA::7}")
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" --notes "$notes" --target "$GITHUB_SHA"
           else

@@ -13,6 +13,7 @@ import {
   MapPinned,
   Moon,
   Plus,
+  RefreshCw,
   Sun,
   SunMoon,
 } from 'lucide-react';
@@ -36,6 +37,8 @@ import { radiusLabel } from '@/lib/geofence';
 import type { SavedPlace } from '@/types';
 import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
 import { ICON, STROKE } from '@/lib/motion';
+import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appUpdate';
+import { isNative } from '@/lib/native';
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
 type InstallPrompt = Event & { prompt: () => Promise<void> };
@@ -123,11 +126,14 @@ function TimeSettingRow({
 export function SettingsScreen({
   onPickCity,
   onOpenConflicts,
+  onUpdateFound,
   bottomInset,
 }: {
   onPickCity: () => void;
   /** פתיחת רשימת ההתנגשויות; מוצגת רק כשיש כאלה */
   onOpenConflicts: () => void;
+  /** נקרא כשבדיקה יזומה מצאה גרסה חדשה */
+  onUpdateFound: (update: UpdateInfo) => void;
   bottomInset: number;
 }) {
   const settings = useSettings();
@@ -138,6 +144,8 @@ export function SettingsScreen({
   const [permission, setPermission] = useState<PermissionState>(() => notificationState());
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const [testSent, setTestSent] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
+  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'latest'>('idle');
   const [placeEditor, setPlaceEditor] = useState<{ open: boolean; editing: SavedPlace | null }>({
     open: false,
     editing: null,
@@ -154,6 +162,19 @@ export function SettingsScreen({
       'places',
       settings.places.filter((p) => p.id !== id),
     );
+  };
+
+  useEffect(() => {
+    if (isNative()) void currentVersionLabel().then(setVersion);
+  }, []);
+
+  /** בדיקה יזומה. העדכון עצמו מוצג בגיליון שמנוהל ב-App. */
+  const checkUpdateNow = async () => {
+    setUpdateState('checking');
+    const found = await checkForUpdate(true);
+    setUpdateState(found ? 'idle' : 'latest');
+    if (found) onUpdateFound(found);
+    else setTimeout(() => setUpdateState('idle'), 2500);
   };
 
   useEffect(() => {
@@ -261,7 +282,7 @@ export function SettingsScreen({
               <button
                 type="button"
                 onClick={clearError}
-                className="mt-2 block w-full rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-caption text-[rgb(194_60_90)]"
+                className="mt-2 block w-full break-words rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-start text-caption leading-relaxed text-[rgb(194_60_90)]"
               >
                 {error}
               </button>
@@ -609,6 +630,18 @@ export function SettingsScreen({
               setInstallPrompt(null);
             }}
           />
+        )}
+        {isNative() && (
+          <SettingRow
+            title="גרסת האפליקציה"
+            hint={version ?? '—'}
+            icon={<RefreshCw size={ICON.md} strokeWidth={2.1} />}
+            onClick={updateState === 'checking' ? undefined : () => void checkUpdateNow()}
+          >
+            <span className="text-caption font-medium text-muted">
+              {updateState === 'checking' ? 'בודק…' : updateState === 'latest' ? 'מעודכן' : 'בדיקת עדכון'}
+            </span>
+          </SettingRow>
         )}
         <div className="px-5 py-4 lg:px-6">
           <p className="text-caption leading-relaxed text-muted">

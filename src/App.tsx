@@ -26,6 +26,8 @@ import { startSync } from '@/lib/sync';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { initNative, isNative, paintNativeChrome } from '@/lib/native';
+import { checkForUpdate, dismissUpdate, isDismissed, type UpdateInfo } from '@/lib/appUpdate';
+import { UpdateSheet } from '@/components/UpdateSheet';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { CalendarScreen } from '@/components/CalendarScreen';
@@ -110,6 +112,25 @@ export default function App() {
       await initNative(document.documentElement.classList.contains('dark'));
       setNativeReady(true);
     })();
+  }, []);
+
+  /* ------------------------------ עדכון גרסה ------------------------------ */
+  // האפליקציה אינה בחנות, ולכן היא מודיעה על גרסה חדשה בעצמה
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  useEffect(() => {
+    if (!isNative()) return;
+    const look = () =>
+      void checkForUpdate().then((found) => {
+        if (found && !isDismissed(found.versionCode)) setUpdate(found);
+      });
+    // לא ברגע העלייה: קודם שהאפליקציה תיפתח ותצייר
+    const timer = setTimeout(look, 4000);
+    const onVisible = () => document.visibilityState === 'visible' && look();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   /* -------------------------- התחברות וסנכרון -------------------------- */
@@ -358,6 +379,7 @@ export default function App() {
               <SettingsScreen
                 onPickCity={() => setCityOpen(true)}
                 onOpenConflicts={() => setConflictsOpen(true)}
+                onUpdateFound={setUpdate}
                 bottomInset={bottomInset}
               />
             )}
@@ -421,6 +443,14 @@ export default function App() {
         occurrenceHint="שאר המופעים יישארו במועדם"
         seriesLabel="את כל הסדרה"
         seriesHint="כל המופעים יזוזו באותו הפרש"
+      />
+
+      <UpdateSheet
+        update={update}
+        onClose={() => {
+          if (update) dismissUpdate(update.versionCode);
+          setUpdate(null);
+        }}
       />
 
       <EventEditor
