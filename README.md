@@ -225,6 +225,7 @@ firestore.rules          כללי אבטחה: כל משתמש רק לנתוני�
 
 | מה | בדפדפן | באנדרואיד |
 |---|---|---|
+| עדכונים | רענון הדף | חבילת web מוחלפת בתוך האפליקציה; APK רק כשהשתנה משהו נייטיבי |
 | תזכורות | טיימרים בדף + service worker | התראות מקומיות של המערכת, מגיעות גם כשהאפליקציה סגורה |
 | מיקום | `navigator.geolocation` | `@capacitor/geolocation`, שמבקש את ההרשאה בעצמו |
 | התחברות | `signInWithPopup` | Credential Manager - גוגל חוסמת OAuth בתוך WebView |
@@ -243,6 +244,10 @@ firestore.rules          כללי אבטחה: כל משתמש רק לנתוני�
 npm run icons:android   # אייקונים, אייקון התראה ומסך פתיחה מאותו לוגו
 npm run android:sync    # build + npx cap sync android
 ```
+
+כל ריצה מפרסמת שני תוצרים: APK להתקנה, וחבילת web לעדכון חי. האפליקציה
+בוחרת ביניהם לפי טביעת הקוד הנייטיבי - הקומיט האחרון שנגע ב-`android/`,
+ב-`package-lock.json` או ב-`capacitor.config.ts`.
 
 סודות שהבנייה קוראת (Settings → Secrets and variables → Actions):
 
