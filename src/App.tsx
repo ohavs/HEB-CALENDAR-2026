@@ -13,13 +13,19 @@ import {
   GREG_MONTHS_HE,
 } from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
-import { askServiceWorkerToFlush, notifyNow, syncReminders } from '@/lib/notifications';
+import {
+  askServiceWorkerToFlush,
+  notifyNow,
+  refreshNativePermission,
+  syncReminders,
+} from '@/lib/notifications';
 import { startGeofenceWatch } from '@/lib/geofence';
 import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
+import { initNative, isNative, paintNativeChrome } from '@/lib/native';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { CalendarScreen } from '@/components/CalendarScreen';
@@ -90,7 +96,21 @@ export default function App() {
   /* ------------------------------ ערכת נושא ------------------------------ */
   useEffect(() => {
     applyTheme(settings.theme);
+    // באנדרואיד גם שורת הסטטוס צריכה להתהפך, אחרת היא נשארת בהירה על כהה
+    void paintNativeChrome(document.documentElement.classList.contains('dark'));
   }, [settings.theme]);
+
+  /* -------------------------- אתחול נייטיבי -------------------------- */
+  // מצב ההרשאה באנדרואיד נקרא אסינכרונית; הדגל הזה מרנדר מחדש אחרי שהוא ידוע
+  const [, setNativeReady] = useState(false);
+  useEffect(() => {
+    if (!isNative()) return;
+    void (async () => {
+      await refreshNativePermission();
+      await initNative(document.documentElement.classList.contains('dark'));
+      setNativeReady(true);
+    })();
+  }, []);
 
   /* -------------------------- התחברות וסנכרון -------------------------- */
   useEffect(() => {
@@ -115,7 +135,9 @@ export default function App() {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      askServiceWorkerToFlush();
+      // המשתמש יכול לשנות את הרשאת ההתראות במסך ההגדרות של המערכת
+      if (isNative()) void refreshNativePermission().then(() => setNativeReady(true));
+      else askServiceWorkerToFlush();
       void syncReminders(settings, events);
     };
     document.addEventListener('visibilitychange', onVisible);

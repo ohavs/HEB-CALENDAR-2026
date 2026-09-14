@@ -1,0 +1,158 @@
+# בניית אפליקציית האנדרואיד בענן.
+#
+# הבנייה רצה על ראנר של אובונטו, שכבר כולל את ה-Android SDK, ולכן אין
+# צורך במחשב עם Android Studio. התוצאה היא קובץ APK שאפשר להוריד ולהתקין
+# ישירות בטלפון, מהדף:
+#
+#   https://github.com/ohavs/HEB-CALENDAR-2026/releases/tag/android-latest
+#
+# סודות (Settings → Secrets and variables → Actions):
+#
+#   ANDROID_KEYSTORE_BASE64      מפתח החתימה, מקודד base64. בלעדיו הבנייה
+#                                עדיין מצליחה אבל נחתמת במפתח דיבאג, ואז
+#                                אי אפשר לעדכן התקנה קיימת.
+#   ANDROID_KEYSTORE_PASSWORD    הסיסמה של אותו מפתח
+#   VITE_GOOGLE_WEB_CLIENT_ID    מזהה הלקוח של גוגל (web). בלעדיו האפליקציה
+#                                עובדת מקומית, בלי התחברות וסנכרון.
+#
+# שאר משתני VITE_FIREBASE_* משותפים עם פריסת האתר.
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/stoic-ride-7cl69q
+    paths:
+      - 'src/**'
+      - 'android/**'
+      - 'public/**'
+      - 'index.html'
+      - 'capacitor.config.ts'
+      - 'package-lock.json'
+      - '.github/workflows/android.yml'
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      # אותו שער כמו בפריסת האתר: מה שנשבר לא נארז לאפליקציה
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # PREVIEW_BUILD=1: בלי service worker. בתוך WebView הוא רק היה מחזיק
+      # גרסה ישנה במטמון, וההתראות ממילא עוברות למערכת ההפעלה.
+      - name: Build web bundle
+        env:
+          PREVIEW_BUILD: '1'
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: heb-calendar-2026
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # הקובץ נכתב מחוץ לעץ העבודה, כדי שלא ייארז בטעות ולא ייכנס ל-git
+      - name: Restore signing key
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=No signing key::ANDROID_KEYSTORE_BASE64 is not set - building with the debug key"
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/hebcal.jks"
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build APK
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          ANDROID_VERSION_NAME: 1.0.${{ github.run_number }}
+          ANDROID_KEY_ALIAS: hebcal
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/hebcal.jks"
+          fi
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Collect the APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release*.apk \
+             "out/heb-calendar-1.0.${{ github.run_number }}.apk"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heb-calendar-apk
+          path: out/*.apk
+          retention-days: 30
+
+      # קישור הורדה יציב, שאפשר לפתוח מהטלפון בלי לחפש בין ריצות
+      - name: Publish to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=android-latest
+          notes="גרסה 1.0.${{ github.run_number }} · נבנתה מ-${GITHUB_SHA::7}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes "$notes" --target "$GITHUB_SHA"
+          else
+            gh release create "$tag" --title "אפליקציית אנדרואיד" --notes "$notes" --target "$GITHUB_SHA"
+          fi
+          gh release upload "$tag" out/*.apk --clobber
+
+      - name: Summary
+        run: |
+          {
+            echo "### האפליקציה נבנתה 📱"
+            echo ""
+            echo "**הורדה:** https://github.com/${GITHUB_REPOSITORY}/releases/tag/android-latest"
+            echo ""
+            if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
+              echo "נחתמה במפתח הקבוע."
+            else
+              echo "⚠️ נחתמה במפתח דיבאג - התקנה על גרסה קודמת תיכשל. הוסיפו את הסוד \`ANDROID_KEYSTORE_BASE64\`."
+            fi
+            if [ -z "${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}" ]; then
+              echo ""
+              echo "⚠️ אין \`VITE_GOOGLE_WEB_CLIENT_ID\` - ההתחברות לגוגל מושבתת בגרסה הזו."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

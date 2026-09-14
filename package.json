@@ -10,12 +10,21 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "icons": "node scripts/generate-icons.mjs",
+    "icons:android": "node scripts/android-assets.mjs",
+    "android:sync": "npm run build && npx cap sync android",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
+    "@capgo/capacitor-social-login": "^8.5.7",
     "@hebcal/core": "^5.10.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -27,6 +36,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^9.39.5",
     "@types/node": "^22.20.2",
     "@types/react": "^18.3.31",

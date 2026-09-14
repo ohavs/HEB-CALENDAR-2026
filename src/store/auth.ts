@@ -1,6 +1,20 @@
 /** מצב ההתחברות. התחברות דרך גוגל, עם נפילה חלקה למצב מקומי. */
 import { create } from 'zustand';
 import { getFirebase, isFirebaseConfigured } from '@/lib/firebase';
+import { isNative, nativeGoogleIdToken, nativeGoogleSignOut } from '@/lib/native';
+
+/**
+ * מזהה הלקוח של גוגל לאפליקציית web.
+ *
+ * באנדרואיד זהו ה"קהל" של ה-idToken שמחזיר Credential Manager, ולכן
+ * דווקא המזהה של web הוא הנכון כאן - לא זה של אנדרואיד. המזהה של
+ * אנדרואיד נרשם בקונסולה של גוגל לפי שם החבילה וטביעת החתימה, ואינו
+ * מופיע בקוד. אף אחד משניהם אינו סוד.
+ */
+const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID as string | undefined;
+
+/** האם התחברות אפשרית בסביבה הנוכחית. באנדרואיד היא דורשת את המזהה. */
+export const canSignIn = isFirebaseConfigured && (!isNative() || Boolean(GOOGLE_WEB_CLIENT_ID));
 
 export type AuthUser = {
   uid: string;
@@ -92,6 +106,23 @@ export const useAuthStore = create<AuthStore>()((setState) => ({
       // טוענים את Firebase רק כאן, ברגע שהמשתמש באמת מבקש להתחבר
       await useAuthStore.getState().init(true);
       const { auth } = await getFirebase();
+
+      /*
+        באנדרואיד גוגל חוסמת OAuth בתוך WebView, ולכן אין כאן חלון קופץ:
+        Credential Manager מחזיר idToken, ואותו ממירים לכניסה ל-Firebase.
+      */
+      if (isNative()) {
+        if (!GOOGLE_WEB_CLIENT_ID) {
+          setState({ error: 'ההתחברות באפליקציה עדיין לא הוגדרה' });
+          return;
+        }
+        const idToken = await nativeGoogleIdToken(GOOGLE_WEB_CLIENT_ID);
+        const { GoogleAuthProvider: Provider, signInWithCredential } = await import('firebase/auth');
+        await signInWithCredential(auth, Provider.credential(idToken));
+        rememberSignedIn(true);
+        return;
+      }
+
       const { GoogleAuthProvider, signInWithPopup, signInWithRedirect, browserPopupRedirectResolver } =
         await import('firebase/auth');
       const provider = new GoogleAuthProvider();
@@ -133,6 +164,7 @@ export const useAuthStore = create<AuthStore>()((setState) => ({
     if (!isFirebaseConfigured) return;
     setState({ busy: true });
     try {
+      await nativeGoogleSignOut();
       const { auth } = await getFirebase();
       const { signOut } = await import('firebase/auth');
       await signOut(auth);

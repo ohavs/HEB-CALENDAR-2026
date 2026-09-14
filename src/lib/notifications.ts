@@ -20,6 +20,13 @@ import { findCity } from './locations';
 import { expandEvents } from './recurrence';
 import { toFilters } from '@/store/settings';
 import {
+  isNative,
+  nativeNotificationPermission,
+  requestNativeNotificationPermission,
+  scheduleNativeReminders,
+  showNativeNotification,
+} from './native';
+import {
   deleteReminders,
   getReminders,
   idbAvailable,
@@ -37,12 +44,31 @@ const PERIODIC_SYNC_TAG = 'heb-cal-reminders';
 
 export type PermissionState = 'unsupported' | 'default' | 'granted' | 'denied';
 
+/*
+  באנדרואיד אין `Notification` ב-WebView, וההרשאה נקראת רק בקריאה
+  אסינכרונית לפלאגין. שומרים אותה כאן כדי ש-notificationState() יישאר
+  סינכרוני - כל ה-UI כבר בנוי סביב זה.
+*/
+let nativePermission: PermissionState = 'default';
+
+/** קורא מחדש את מצב ההרשאה הנייטיבית. יש לקרוא בעלייה ובחזרה לחזית. */
+export async function refreshNativePermission(): Promise<PermissionState> {
+  if (!isNative()) return notificationState();
+  nativePermission = await nativeNotificationPermission();
+  return nativePermission;
+}
+
 export function notificationState(): PermissionState {
+  if (isNative()) return nativePermission;
   if (typeof Notification === 'undefined') return 'unsupported';
   return Notification.permission as PermissionState;
 }
 
 export async function requestNotificationPermission(): Promise<PermissionState> {
+  if (isNative()) {
+    nativePermission = await requestNativeNotificationPermission();
+    return nativePermission;
+  }
   if (typeof Notification === 'undefined') return 'unsupported';
   if (Notification.permission !== 'default') return Notification.permission as PermissionState;
   try {
@@ -77,6 +103,10 @@ async function registerPeriodicSync(): Promise<void> {
 
 async function show(title: string, body: string, tag: string): Promise<void> {
   if (notificationState() !== 'granted') return;
+  if (isNative()) {
+    await showNativeNotification(title, body, tag);
+    return;
+  }
   const options: NotificationOptions = {
     body,
     tag,
@@ -276,8 +306,19 @@ async function flushDue(): Promise<void> {
  */
 export async function syncReminders(settings: Settings, events: UserEvent[]): Promise<void> {
   clearTimers();
-  if (notificationState() !== 'granted' || !idbAvailable()) return;
+  if (notificationState() !== 'granted') return;
 
+  /*
+    באנדרואיד מוסרים את הרשימה למערכת ההפעלה וזהו: ההתראה תגיע גם
+    כשהאפליקציה סגורה, ולכן אין צורך ב-IndexedDB, בטיימרים בדף או
+    ב-Periodic Sync - שלושתם קיימים רק כדי לפצות על מה שחסר ב-PWA.
+  */
+  if (isNative()) {
+    await scheduleNativeReminders(buildReminders(settings, events));
+    return;
+  }
+
+  if (!idbAvailable()) return;
   const reminders = buildReminders(settings, events);
   try {
     await replaceReminders(reminders);

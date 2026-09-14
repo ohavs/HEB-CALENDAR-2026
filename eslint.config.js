@@ -17,7 +17,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-preview', 'dev-dist', 'node_modules', 'public', '.tmp'] },
+  { ignores: ['dist', 'dist-preview', 'dev-dist', 'node_modules', 'public', '.tmp', 'android'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

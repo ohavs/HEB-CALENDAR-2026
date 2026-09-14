@@ -14,6 +14,7 @@
  * (הסף, ההיסטרזיס, ניסוח ההתראה) תישאר כמות שהיא.
  */
 import type { PlaceTrigger, SavedPlace } from '@/types';
+import { isNative, readNativePosition, watchNativePosition } from './native';
 import type { Occurrence } from './recurrence';
 import { dateKey } from './dates';
 
@@ -172,6 +173,8 @@ export function evaluatePosition(
    ========================================================================== */
 
 let watchId: number | null = null;
+/** עצירת המעקב הנייטיבי, שנקבע אסינכרונית */
+let stopNative: (() => void) | null = null;
 
 export type GeofenceWatchOptions = {
   getPlaces: () => SavedPlace[];
@@ -186,18 +189,34 @@ export function startGeofenceWatch({
   getOccurrences,
   onEvents,
 }: GeofenceWatchOptions): () => void {
+  stopGeofenceWatch();
+
+  const handle = (coords: { latitude: number; longitude: number; accuracy?: number }) => {
+    const places = getPlaces();
+    if (!places.length) return;
+    const events = evaluatePosition(places, getOccurrences(), coords);
+    if (events.length) onEvents(events);
+  };
+
+  // באנדרואיד המעקב עובר דרך הפלאגין, שמבקש את ההרשאה בעצמו
+  if (isNative()) {
+    let cancelled = false;
+    void watchNativePosition(handle).then((stop) => {
+      if (cancelled) stop();
+      else stopNative = stop;
+    });
+    return () => {
+      cancelled = true;
+      stopGeofenceWatch();
+    };
+  }
+
   if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
     return () => undefined;
   }
-  stopGeofenceWatch();
 
   watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      const places = getPlaces();
-      if (!places.length) return;
-      const events = evaluatePosition(places, getOccurrences(), pos.coords);
-      if (events.length) onEvents(events);
-    },
+    (pos) => handle(pos.coords),
     () => {
       /* אין הרשאה או אין קליטה - המעקב פשוט לא יפעל */
     },
@@ -208,14 +227,22 @@ export function startGeofenceWatch({
 }
 
 export function stopGeofenceWatch(): void {
+  if (stopNative) {
+    stopNative();
+    stopNative = null;
+  }
   if (watchId !== null && typeof navigator !== 'undefined') {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
 }
 
+/** מה שבאמת צריך מנקודת מיקום - גם בדפדפן וגם באנדרואיד. */
+export type Coords = { latitude: number; longitude: number; accuracy?: number };
+
 /** קריאת מיקום חד-פעמית, לשמירת מקום חדש. */
-export function readCurrentPosition(): Promise<GeolocationCoordinates> {
+export function readCurrentPosition(): Promise<Coords> {
+  if (isNative()) return readNativePosition();
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       reject(new Error('geolocation-unsupported'));
