@@ -53,7 +53,29 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         for (int id : ids) render(context, manager, id);
     }
 
+    /**
+     * ציור מוגן.
+     *
+     * חריגה בתוך ציור וידג׳ט מתורגמת על ידי המשגר ל"בעיה בטעינת הוידג׳ט" -
+     * מלבן אפור בלי שום מידע, ובלי גישה ל-logcat אין דרך לדעת מה נפל.
+     * לכן השגיאה נתפסת ומוצגת על הוידג׳ט עצמו.
+     */
     private static void render(Context context, AppWidgetManager manager, int id) {
+        try {
+            draw(context, manager, id);
+        } catch (Throwable error) {
+            RemoteViews fallback = new RemoteViews(context.getPackageName(), R.layout.widget_calendar);
+            fallback.setTextViewText(R.id.cal_month, context.getString(R.string.widget_error_title));
+            fallback.setTextViewText(R.id.cal_hebrew, error.getClass().getSimpleName());
+            fallback.setViewVisibility(R.id.cal_weekdays, View.GONE);
+            fallback.setViewVisibility(R.id.cal_grid, View.GONE);
+            fallback.setViewVisibility(R.id.cal_upcoming, View.GONE);
+            fallback.setOnClickPendingIntent(R.id.cal_root, openApp(context, null));
+            manager.updateAppWidget(id, fallback);
+        }
+    }
+
+    private static void draw(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_calendar);
         JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_CALENDAR);
 
@@ -78,7 +100,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.cal_month, data.optString("month"));
         views.setTextViewText(R.id.cal_hebrew, data.optString("hebrewMonth"));
         views.setViewVisibility(R.id.cal_hebrew, showHebrew ? View.VISIBLE : View.GONE);
-        views.setOnClickPendingIntent(R.id.cal_header, openApp(context, null));
+        views.setOnClickPendingIntent(R.id.cal_root, openApp(context, null));
 
         views.setViewVisibility(R.id.cal_weekdays, showGrid ? View.VISIBLE : View.GONE);
         views.setViewVisibility(R.id.cal_grid, showGrid ? View.VISIBLE : View.GONE);
@@ -123,6 +145,11 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    /*
+      אין כאן PendingIntent לכל תא. ארבעים ושניים כאלה מנפחים את חבילת
+      ה-RemoteViews שעוברת ל-launcher בקריאת Binder אחת, וזו הייתה הסיבה
+      שהוידג׳ט לא נטען בכלל. הלחיצה יושבת על הרקע ופותחת את הלוח.
+    */
     private static RemoteViews cell(Context context, JSONObject cell, boolean showHebrew) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_calendar_cell);
         if (cell == null) return views;
@@ -140,10 +167,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         else if (cell.optBoolean("shabbat", false)) color = R.color.widget_accent;
         else color = R.color.widget_ink;
         views.setTextColor(R.id.cell_num, context.getColor(color));
-        views.setTextColor(
-            R.id.cell_heb,
-            context.getColor(today ? R.color.widget_on_accent : R.color.widget_faint)
-        );
+        if (today) views.setTextColor(R.id.cell_heb, context.getColor(R.color.widget_on_accent));
 
         views.setViewVisibility(R.id.cell_today, today ? View.VISIBLE : View.GONE);
 
@@ -161,7 +185,6 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             hasEvents && !outside ? View.VISIBLE : View.GONE
         );
 
-        views.setOnClickPendingIntent(R.id.cell_root, openApp(context, cell.optString("k", null)));
         return views;
     }
 

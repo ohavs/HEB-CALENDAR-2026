@@ -30,7 +30,18 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
         for (int id : ids) render(context, manager, id);
     }
 
+    /** ציור מוגן - ראו CalendarWidgetProvider. */
     private static void render(Context context, AppWidgetManager manager, int id) {
+        try {
+            draw(context, manager, id);
+        } catch (Throwable error) {
+            RemoteViews fallback = new RemoteViews(context.getPackageName(), R.layout.widget_reminders);
+            fallback.setTextViewText(R.id.rem_count, error.getClass().getSimpleName());
+            manager.updateAppWidget(id, fallback);
+        }
+    }
+
+    private static void draw(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_reminders);
         JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_REMINDERS);
 

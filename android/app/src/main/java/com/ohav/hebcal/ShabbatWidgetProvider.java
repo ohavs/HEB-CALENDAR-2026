@@ -23,6 +23,12 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
     private static final int ROW_HEIGHT = 44;
     /** הגובה שתופסת הכרטיסייה הראשית */
     private static final int HEAD_HEIGHT = 130;
+    /**
+     * מתחת לגובה הזה נשארות רק שתי השעות.
+     * זה המצב הכי קטן שעוד אומר משהו: מתי נכנסת ומתי יוצאת, בלי שם
+     * הפרשה ובלי שם העיר.
+     */
+    private static final int MIN_HEIGHT_FOR_TITLE = 100;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
@@ -43,7 +49,20 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         for (int id : ids) render(context, manager, id);
     }
 
+    /** ציור מוגן - ראו CalendarWidgetProvider. */
     private static void render(Context context, AppWidgetManager manager, int id) {
+        try {
+            draw(context, manager, id);
+        } catch (Throwable error) {
+            RemoteViews fallback = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat);
+            fallback.setTextViewText(R.id.sh_title, context.getString(R.string.widget_error_title));
+            fallback.setTextViewText(R.id.sh_day, error.getClass().getSimpleName());
+            fallback.setViewVisibility(R.id.sh_more, View.GONE);
+            manager.updateAppWidget(id, fallback);
+        }
+    }
+
+    private static void draw(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat);
         JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_SHABBAT);
         JSONArray entries = data == null ? null : data.optJSONArray("entries");
@@ -70,9 +89,16 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             CalendarWidgetProvider.openApp(context, next.optString("k", null))
         );
 
-        // כמה שורות נוספות נכנסות בגובה שהמשתמש נתן בפועל
         Bundle options = manager.getAppWidgetOptions(id);
         int minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120);
+
+        // הכי קטן: רק השעות. שם הפרשה, התאריך והעיר יורדים ראשונים.
+        boolean showTitle = minHeight >= MIN_HEIGHT_FOR_TITLE;
+        views.setViewVisibility(R.id.sh_title, showTitle ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.sh_day, showTitle ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.sh_city, showTitle ? View.VISIBLE : View.GONE);
+
+        // כמה שורות נוספות נכנסות בגובה שהמשתמש נתן בפועל
         int room = (minHeight - HEAD_HEIGHT) / ROW_HEIGHT;
         int extra = Math.max(0, Math.min(room, entries.length() - 1));
 
