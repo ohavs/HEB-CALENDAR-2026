@@ -1,7 +1,9 @@
 /** רכיבי בקרה קטנים ואחידים לכל האפליקציה. */
 import { motion } from 'framer-motion';
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { SNAP, TAP } from '@/lib/motion';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { isGroupCollapsed, setGroupCollapsed } from '@/lib/settingsCollapse';
 
 /* ---------------------------------- מתג ---------------------------------- */
 
@@ -72,26 +74,87 @@ export function SettingRow({
   );
 }
 
+/**
+ * קבוצת הגדרות. קבוצה שקיבלה `id` אפשר לקפל, והבחירה נשמרת למכשיר.
+ *
+ * הקיפול מונפש בגובה ולא ב-`layoutId`: אנימציית פריסה משותפת בתוך המסך
+ * הזה הייתה נתקעת בדיוק כפי שקרה ל-`Segmented`.
+ */
 export function SettingsGroup({
+  id,
   title,
   children,
   footer,
 }: {
+  id?: string;
   title?: string;
   children: ReactNode;
   footer?: ReactNode;
 }) {
-  return (
-    <section className="mb-7">
-      {title && (
-        <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
-          {title}
-        </h3>
-      )}
+  const collapsible = Boolean(id && title);
+  const [collapsed, setCollapsed] = useState(() => (id ? isGroupCollapsed(id) : false));
+  const panelId = useId();
+
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    if (id) setGroupCollapsed(id, next);
+  };
+
+  const body = (
+    <>
       <div className="divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
         {children}
       </div>
       {footer && <p className="mt-2.5 px-2 text-caption leading-relaxed text-muted">{footer}</p>}
+    </>
+  );
+
+  return (
+    <section className="mb-7">
+      {title &&
+        (collapsible ? (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={!collapsed}
+            aria-controls={panelId}
+            className="focus-ring -mx-1 mb-2.5 flex items-center gap-1 rounded-xl px-3 py-1 text-right"
+          >
+            <span className="text-caption font-semibold uppercase tracking-wide text-faint">
+              {title}
+            </span>
+            <motion.span
+              className="text-faint"
+              initial={false}
+              animate={{ rotate: collapsed ? 0 : 180 }}
+              transition={SNAP}
+            >
+              <ChevronDown size={ICON.sm} strokeWidth={STROKE} />
+            </motion.span>
+          </button>
+        ) : (
+          <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
+            {title}
+          </h3>
+        ))}
+
+      {collapsible ? (
+        <motion.div
+          id={panelId}
+          // הריפוד השלילי נותן לצל מקום בתוך אזור הגזירה. ב-border-box
+          // גובה 0 מאפס גם אותו, ולכן הקבוצה הסגורה באמת תופסת אפס.
+          className="-mx-1 -mb-1 overflow-hidden px-1 pb-1"
+          initial={false}
+          animate={{ height: collapsed ? 0 : 'auto', opacity: collapsed ? 0 : 1 }}
+          transition={{ height: GLIDE, opacity: collapsed ? EXIT : ENTER }}
+          aria-hidden={collapsed}
+        >
+          {body}
+        </motion.div>
+      ) : (
+        body
+      )}
     </section>
   );
 }

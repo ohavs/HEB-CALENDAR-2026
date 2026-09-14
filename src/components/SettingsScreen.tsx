@@ -215,7 +215,7 @@ export function SettingsScreen({
       </header>
 
       {/* ------------------------------- חשבון ------------------------------- */}
-      <SettingsGroup title="חשבון">
+      <SettingsGroup id="account" title="חשבון">
         {user ? (
           <>
             <div className="flex items-center gap-4 px-5 py-5">
@@ -294,7 +294,7 @@ export function SettingsScreen({
       </SettingsGroup>
 
       {/* ------------------------------- תצוגה ------------------------------- */}
-      <SettingsGroup title="תצוגה">
+      <SettingsGroup id="display" title="תצוגה">
         <SettingRow title="ערכת נושא">
           <Segmented<ThemeMode>
             value={settings.theme}
@@ -340,6 +340,7 @@ export function SettingsScreen({
 
       {/* ---------------------------- תוכן הלוח ---------------------------- */}
       <SettingsGroup
+        id="holidays"
         title="מועדים על הלוח"
         footer="כשמכבים חגים יהודיים, הלוח מציג רק את התאריכים הלועזיים ואת האירועים שלך."
       >
@@ -407,6 +408,7 @@ export function SettingsScreen({
 
       {/* --------------------------- מקום וזמנים --------------------------- */}
       <SettingsGroup
+        id="location"
         title="מקום וזמנים"
         footer="הזמנים מחושבים לפי אזור הזמן של העיר, ולכן שעון קיץ וחורף מתעדכן אוטומטית."
       >
@@ -467,6 +469,7 @@ export function SettingsScreen({
 
       {/* ---------------------------- תזכורות ---------------------------- */}
       <SettingsGroup
+        id="reminders"
         title="תזכורות"
         footer="בדפדפן התזכורות מוצגות כשהאפליקציה פתוחה או פועלת ברקע. באפליקציית האנדרואיד הן יעבדו גם כשהיא סגורה לגמרי."
       >
@@ -567,6 +570,7 @@ export function SettingsScreen({
 
       {/* ----------------------------- מקומות ----------------------------- */}
       <SettingsGroup
+        id="places"
         title="מקומות"
         footer="בדפדפן הזיהוי פועל כשהאפליקציה פתוחה או פעילה ברקע. באפליקציית האנדרואיד הוא יעבוד גם כשהיא סגורה."
       >
@@ -603,6 +607,7 @@ export function SettingsScreen({
 
       {/* ------------------------------ גיבוי ------------------------------ */}
       <SettingsGroup
+        id="backup"
         title="גיבוי"
         footer="קובץ ICS נפתח בגוגל קלנדר, באאוטלוק ובאפליקציית הלוח של אייפון."
       >
@@ -610,7 +615,7 @@ export function SettingsScreen({
       </SettingsGroup>
 
       {/* ---------------------------- אפליקציה ---------------------------- */}
-      <SettingsGroup title="אפליקציה">
+      <SettingsGroup id="app" title="אפליקציה">
         {installPrompt && (
           <SettingRow
             title="התקנת האפליקציה במכשיר"
