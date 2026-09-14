@@ -25,6 +25,7 @@ final class WidgetStore {
     private static final String PREFS = "heb_widgets";
     static final String KEY_CALENDAR = "calendar";
     static final String KEY_REMINDERS = "reminders";
+    static final String KEY_SHABBAT = "shabbat";
     private static final String KEY_INBOX = "inbox";
 
     /** תקרה לתור, כדי שאפליקציה שלא נפתחה חודש לא תצבור בלי גבול. */
@@ -92,6 +93,11 @@ final class WidgetStore {
         int[] calendarIds = manager.getAppWidgetIds(new ComponentName(app, CalendarWidgetProvider.class));
         if (calendarIds.length > 0) {
             CalendarWidgetProvider.renderAll(app, manager, calendarIds);
+        }
+
+        int[] shabbatIds = manager.getAppWidgetIds(new ComponentName(app, ShabbatWidgetProvider.class));
+        if (shabbatIds.length > 0) {
+            ShabbatWidgetProvider.renderAll(app, manager, shabbatIds);
         }
 
         int[] reminderIds = manager.getAppWidgetIds(new ComponentName(app, RemindersWidgetProvider.class));

@@ -10,12 +10,13 @@ import type { DateKey, DayInfo } from '@/types';
 import {
   buildCalendarWidget,
   buildRemindersWidget,
+  buildShabbatWidget,
   occurrenceRef,
   parseInbox,
   parseOccurrenceRef,
 } from './widgetData';
 import { expandEvents } from './recurrence';
-import { buildDays } from './hebrew';
+import { buildDays, upcomingShabbatot } from './hebrew';
 import { addDays, dateKey, keyToDate, monthGridDays } from './dates';
 import { buildOptions, event } from '@/test/factories';
 
@@ -204,5 +205,51 @@ describe('parseInbox', () => {
     expect(parseInbox(null)).toEqual([]);
     expect(parseInbox('{')).toEqual([]);
     expect(parseInbox('"מחרוזת"')).toEqual([]);
+  });
+});
+
+describe('buildShabbatWidget', () => {
+  const options = buildOptions() as never;
+
+  function entries(from: Date) {
+    return upcomingShabbatot(from, 8, options);
+  }
+
+  it('הרשומה הראשונה היא הקרובה שעוד לא הסתיימה', () => {
+    const out = buildShabbatWidget(entries(NOW), 'ירושלים', NOW);
+    expect(out.entries.length).toBeGreaterThan(0);
+    expect(out.entries[0].k >= '2026-09-14').toBe(true);
+  });
+
+  it('לכל רשומה שעת הדלקה ושעת הבדלה', () => {
+    const out = buildShabbatWidget(entries(NOW), 'ירושלים', NOW);
+    for (const entry of out.entries.slice(0, 3)) {
+      expect(entry.candles).toMatch(/^\d{1,2}:\d{2}$/);
+      expect(entry.havdalah).toMatch(/^\d{1,2}:\d{2}$/);
+    }
+  });
+
+  it('יום כיפור מופיע ומסומן כיום טוב', () => {
+    // יום כיפור תשפ״ז חל ב-21 בספטמבר 2026, וההדלקה בערבו
+    const out = buildShabbatWidget(entries(new Date(2026, 8, 18)), 'ירושלים', new Date(2026, 8, 18));
+    const kippur = out.entries.find((e) => e.title.includes('כפור'));
+    expect(kippur).toBeDefined();
+    expect(kippur?.k).toBe('2026-09-20');
+    expect(kippur?.yomtov).toBe(true);
+  });
+
+  it('שבת שכבר נכנסה נשארת ראשונה עד ההבדלה', () => {
+    // מוצאי שישי, אחרי הדלקת נרות ולפני צאת השבת
+    const friday = new Date(2026, 8, 18, 20, 0);
+    const out = buildShabbatWidget(entries(friday), 'ירושלים', friday);
+    expect(out.entries[0].k).toBe('2026-09-18');
+  });
+
+  it('שומר את שם העיר, כי הזמנים תלויים בה', () => {
+    expect(buildShabbatWidget(entries(NOW), 'חיפה', NOW).city).toBe('חיפה');
+  });
+
+  it('רשימה ריקה אינה מפילה כלום', () => {
+    expect(buildShabbatWidget([], 'ירושלים', NOW).entries).toEqual([]);
   });
 });

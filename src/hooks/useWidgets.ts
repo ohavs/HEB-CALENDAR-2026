@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { addDays, dateKey, monthGridDays } from '@/lib/dates';
-import { buildDays } from '@/lib/hebrew';
+import { buildDays, upcomingShabbatot } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
 import { expandEvents } from '@/lib/recurrence';
 import { toFilters, useSettings } from '@/store/settings';
@@ -22,6 +22,7 @@ import {
   REMINDER_HORIZON_DAYS,
   buildCalendarWidget,
   buildRemindersWidget,
+  buildShabbatWidget,
   parseOccurrenceRef,
   type WidgetAction,
 } from '@/lib/widgetData';
@@ -59,6 +60,7 @@ export function useWidgets(): void {
       void publishWidgets(
         buildCalendarWidget(month, grid, days, occurrences, now),
         buildRemindersWidget(days, occurrences, now),
+        buildShabbatWidget(upcomingShabbatot(now, 8, options), city.name, now),
       );
     }, DEBOUNCE_MS);
 

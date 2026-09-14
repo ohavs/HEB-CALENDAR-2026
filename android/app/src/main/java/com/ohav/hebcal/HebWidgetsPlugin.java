@@ -20,12 +20,14 @@ public class HebWidgetsPlugin extends Plugin {
     public void publish(PluginCall call) {
         String calendar = call.getString("calendar");
         String reminders = call.getString("reminders");
-        if (calendar == null || reminders == null) {
+        String shabbat = call.getString("shabbat");
+        if (calendar == null || reminders == null || shabbat == null) {
             call.reject("missing-payload");
             return;
         }
         WidgetStore.write(getContext(), WidgetStore.KEY_CALENDAR, calendar);
         WidgetStore.write(getContext(), WidgetStore.KEY_REMINDERS, reminders);
+        WidgetStore.write(getContext(), WidgetStore.KEY_SHABBAT, shabbat);
         WidgetStore.refreshAll(getContext());
         call.resolve();
     }

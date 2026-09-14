@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- מתחיל קטן ומרחיב לגובה: כל הגדלה מוסיפה את השבת או החג הבא -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="500dp"
+    android:maxResizeHeight="500dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/widget_shabbat"
+    android:previewLayout="@layout/widget_shabbat"
+    android:description="@string/widget_shabbat_label"
+    android:updatePeriodMillis="1800000" />

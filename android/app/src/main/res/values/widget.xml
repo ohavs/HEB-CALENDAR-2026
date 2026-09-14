@@ -16,6 +16,9 @@
     <string name="widget_calendar_label">לוח שנה עברי</string>
     <string name="widget_reminders_label">תזכורות</string>
     <string name="widget_reminders_title">תזכורות</string>
+    <string name="widget_shabbat_label">זמני כניסת ויציאת שבת</string>
+    <string name="widget_candles">הדלקת נרות</string>
+    <string name="widget_havdalah">צאת השבת</string>
     <string name="widget_empty_title">פתחו את האפליקציה</string>
     <string name="widget_empty_reminders">אין תזכורות קרובות</string>
     <string name="widget_add">הוספת תזכורת</string>

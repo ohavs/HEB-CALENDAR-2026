@@ -19,7 +19,7 @@
 import type { DateKey, DayInfo, HolidayKind } from '@/types';
 import type { Occurrence } from './recurrence';
 import { addDays, dateKey, monthLabel, relativeDayLabel, startOfDay } from './dates';
-import { hebrewMonthSpanLabel } from './hebrew';
+import { hebrewDateParts, hebrewMonthSpanLabel, type ShabbatEntry } from './hebrew';
 
 /** כמה ימים קדימה נאספות תזכורות */
 export const REMINDER_HORIZON_DAYS = 21;
@@ -27,6 +27,8 @@ export const REMINDER_HORIZON_DAYS = 21;
 const MAX_REMINDERS = 40;
 /** תקרת שורות ברשימת "הקרוב" של וידג׳ט הלוח */
 const MAX_UPCOMING = 12;
+/** כמה כניסות ויציאות נשמרות לוידג׳ט השבת */
+const MAX_SHABBATOT = 8;
 
 /** תא אחד ברשת החודש. שמות קצרים בכוונה - הקובץ נקרא בכל ציור. */
 export type WidgetCell = {
@@ -253,6 +255,77 @@ export function buildRemindersWidget(
   return { updatedAt: Date.now(), groups, open };
 }
 
+/* ==========================================================================
+   וידג׳ט זמני השבת
+   ========================================================================== */
+
+export type ShabbatWidgetEntry = {
+  /** "שבת פרשת נח" / "ראש השנה" */
+  title: string;
+  /** "היום", "מחר", "יום שישי, 18 בספטמבר" */
+  day: string;
+  /** התאריך העברי של ערב הכניסה */
+  hebrew: string;
+  /** שעת הדלקת הנרות */
+  candles: string;
+  /** שעת ההבדלה */
+  havdalah: string;
+  /** יום היציאה, לכיתוב "מוצאי" */
+  endDay: string;
+  /** מפתח יום הכניסה, לפתיחת האפליקציה עליו */
+  k: DateKey;
+  /** יום טוב ולא שבת רגילה */
+  yomtov?: true;
+};
+
+export type ShabbatWidgetData = {
+  updatedAt: number;
+  /** העיר שלפיה חושבו הזמנים */
+  city: string;
+  entries: ShabbatWidgetEntry[];
+};
+
+/** "י״ז באלול" - התאריך העברי של ערב הכניסה */
+function hebrewLabel(date: Date): string {
+  const parts = hebrewDateParts(date);
+  return `${parts.day} ב${parts.month}`;
+}
+
+/**
+ * בונה את נתוני וידג׳ט השבת.
+ *
+ * הרשומה הראשונה היא הקרובה ביותר שעוד לא יצאה: שבת שנכנסה כבר אבל טרם
+ * הסתיימה נשארת ראשונה, כי בשבת עצמה הזמן המעניין הוא ההבדלה ולא
+ * ההדלקה הבאה.
+ */
+export function buildShabbatWidget(
+  entries: ShabbatEntry[],
+  cityName: string,
+  now = new Date(),
+): ShabbatWidgetData {
+  const out: ShabbatWidgetEntry[] = [];
+
+  for (const entry of entries) {
+    if (out.length >= MAX_SHABBATOT) break;
+    // כבר הסתיימה: ההבדלה מאחורינו
+    if (entry.havdalah && entry.havdalah.at < now.getTime()) continue;
+
+    const item: ShabbatWidgetEntry = {
+      title: entry.title,
+      day: relativeDayLabel(entry.startDate, now),
+      hebrew: hebrewLabel(entry.startDate),
+      candles: entry.candles?.time ?? '',
+      havdalah: entry.havdalah?.time ?? '',
+      endDay: relativeDayLabel(entry.endDate, now),
+      k: entry.startKey,
+    };
+    if (entry.isHoliday) item.yomtov = true;
+    out.push(item);
+  }
+
+  return { updatedAt: Date.now(), city: cityName, entries: out };
+}
+
 /** הסוג היחיד שהצד הנייטיבי מכיר. קיים כדי שהחוזה יישאר במקום אחד. */
 export type WidgetPayload = {
   calendar: CalendarWidgetData;
@@ -262,6 +335,7 @@ export type WidgetPayload = {
 export const WIDGET_KEYS = {
   calendar: 'widget:calendar',
   reminders: 'widget:reminders',
+  shabbat: 'widget:shabbat',
   /** תור הפעולות שהוידג׳ט כתב וממתינות לאפליקציה */
   inbox: 'widget:inbox',
 } as const;
