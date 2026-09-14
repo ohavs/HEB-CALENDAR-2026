@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(android.os.Bundle savedInstanceState) {
         // רישום הפלאגין המקומי חייב לקרות לפני ש-BridgeActivity מרימה את הגשר
         registerPlugin(HebWidgetsPlugin.class);
+        registerPlugin(HebUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

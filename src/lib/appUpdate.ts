@@ -24,7 +24,20 @@
  * `heb-calendar-<versionName>.apk` ו-`bundle-<מספר בנייה>-<טביעה>.zip`.
  */
 
+import { registerPlugin } from '@capacitor/core';
 import { isNative } from './native';
+
+type HebUpdaterPlugin = {
+  canInstall(): Promise<{ granted: boolean }>;
+  openInstallSettings(): Promise<void>;
+  downloadAndInstall(options: { url: string; version: string }): Promise<{ started: boolean }>;
+  addListener(
+    event: 'updateProgress',
+    handler: (data: { percent: number }) => void,
+  ): Promise<{ remove: () => Promise<void> }>;
+};
+
+const HebUpdater = registerPlugin<HebUpdaterPlugin>('HebUpdater');
 
 const RELEASE_API =
   (import.meta.env.VITE_UPDATE_RELEASE_API as string | undefined) ??
@@ -254,6 +267,62 @@ export async function applyWebUpdate(update: UpdateInfo): Promise<string | null>
     return null;
   } catch (e) {
     return (e as { message?: string }).message?.trim() || 'העדכון נכשל';
+  }
+}
+
+/* ==========================================================================
+   התקנת APK מתוך האפליקציה
+   ========================================================================== */
+
+/** מה שיכול לעצור התקנה, ושהמשתמש צריך לדעת עליו. */
+export type InstallBlock = 'permission' | 'failed';
+
+/** האם המשתמש כבר אישר לאפליקציה להתקין עדכונים. */
+export async function canInstallUpdates(): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const { granted } = await HebUpdater.canInstall();
+    return granted;
+  } catch {
+    return false;
+  }
+}
+
+/** פותח את מסך ההרשאה. חד-פעמי, ואחריו כל עדכון עובר בתוך האפליקציה. */
+export async function openInstallSettings(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await HebUpdater.openInstallSettings();
+  } catch {
+    /* אין מסך כזה בגרסאות ישנות - שם ההתקנה מותרת ממילא */
+  }
+}
+
+/**
+ * מוריד ומתקין עדכון APK בלי לצאת מהאפליקציה.
+ *
+ * הפונקציה חוזרת ברגע שחלון ההתקנה של המערכת נפתח. מה שקורה משם - אישור,
+ * התקנה, וסגירת האפליקציה - הוא כבר בידי אנדרואיד, ואין לנו דרך (ולא
+ * צריכה להיות) להמשיך לעקוב אחריו.
+ */
+export async function installNativeUpdate(
+  update: UpdateInfo,
+  onProgress?: (percent: number) => void,
+): Promise<InstallBlock | null> {
+  if (!isNative()) return 'failed';
+  if (!(await canInstallUpdates())) return 'permission';
+
+  let handle: { remove: () => Promise<void> } | null = null;
+  try {
+    if (onProgress) {
+      handle = await HebUpdater.addListener('updateProgress', ({ percent }) => onProgress(percent));
+    }
+    await HebUpdater.downloadAndInstall({ url: update.url, version: update.versionName });
+    return null;
+  } catch {
+    return 'failed';
+  } finally {
+    void handle?.remove();
   }
 }
 

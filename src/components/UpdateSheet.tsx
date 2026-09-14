@@ -1,17 +1,27 @@
 /**
- * הודעה על גרסה חדשה.
+ * הודעה על גרסה חדשה, ועדכון בלחיצה אחת.
  *
- * שני מסלולים, ושניהם נראים כאן אותו דבר למשתמש חוץ מהכיתוב: עדכון חי
- * מוחלף בתוך האפליקציה ונטען מחדש מיד, והתקנת APK עוברת לדפדפן של
- * המערכת - הוא זה שיודע להוריד APK ולהגיש אותו להתקנה, ואילו הורדה
- * בתוך ה-WebView הייתה נתקעת בלי שום חיווי.
+ * שני המסלולים נראים כאן אותו דבר למשתמש: לוחצים "עדכון", רואים
+ * התקדמות, ונגמר. מה שמשתנה מתחת הוא מה מוחלף - חבילת ה-web לבדה, או
+ * החבילה המותקנת כולה.
+ *
+ * בהתקנת APK יש שני אישורים שאנדרואיד מחייב ואי אפשר לעקוף: הרשאה
+ * חד-פעמית "התקנת אפליקציות לא מוכרות", ואחריה חלון ההתקנה עצמו. שניהם
+ * מכוונים בדיוק למקרה הזה - אפליקציה שמתקינה קוד.
  */
 import { useState } from 'react';
-import { Download, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, Download, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 import type { UpdateInfo } from '@/lib/appUpdate';
-import { applyWebUpdate } from '@/lib/appUpdate';
+import {
+  applyWebUpdate,
+  canInstallUpdates,
+  installNativeUpdate,
+  openInstallSettings,
+} from '@/lib/appUpdate';
 import { Sheet } from './ui/Sheet';
 import { ICON, STROKE } from '@/lib/motion';
+
+type Stage = 'idle' | 'working' | 'permission' | 'installing';
 
 export function UpdateSheet({
   update,
@@ -20,79 +30,148 @@ export function UpdateSheet({
   update: UpdateInfo | null;
   onClose: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<Stage>('idle');
+  const [percent, setPercent] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const apply = async () => {
+  const busy = stage === 'working' || stage === 'installing';
+  const live = update?.kind === 'web';
+
+  const run = async () => {
     if (!update) return;
-    setBusy(true);
     setError(null);
-    // בהצלחה האפליקציה נטענת מחדש, ולכן אין כאן המשך
-    const failure = await applyWebUpdate(update);
-    setBusy(false);
-    if (failure) setError(failure);
+    setPercent(0);
+    setStage('working');
+
+    if (live) {
+      // בהצלחה האפליקציה נטענת מחדש, ולכן אין כאן המשך
+      const failure = await applyWebUpdate(update);
+      setStage('idle');
+      if (failure) setError(failure);
+      return;
+    }
+
+    const blocked = await installNativeUpdate(update, setPercent);
+    if (blocked === 'permission') {
+      setStage('permission');
+      return;
+    }
+    if (blocked === 'failed') {
+      setStage('idle');
+      setError('ההורדה נכשלה. נסו שוב, או הורידו ידנית מדף השחרורים.');
+      return;
+    }
+    // חלון ההתקנה נפתח. מכאן זה כבר בידי המערכת.
+    setStage('installing');
   };
 
-  const live = update?.kind === 'web';
+  /** אחרי שהמשתמש חוזר ממסך ההרשאה, מנסים שוב באותה לחיצה. */
+  const retryAfterPermission = async () => {
+    if (await canInstallUpdates()) await run();
+    else await openInstallSettings();
+  };
+
+  const label = () => {
+    if (stage === 'installing') return 'ממתין לאישור ההתקנה…';
+    if (stage === 'working') {
+      if (live) return 'מעדכן…';
+      return percent > 0 ? `מוריד… ${percent}%` : 'מתחיל…';
+    }
+    return 'עדכון עכשיו';
+  };
 
   return (
     <Sheet
       open={Boolean(update)}
       onClose={busy ? () => undefined : onClose}
-      title="יש גרסה חדשה"
+      title={stage === 'permission' ? 'צריך אישור חד-פעמי' : 'יש גרסה חדשה'}
       subtitle={
         update ? `גרסה ${update.versionName} · מותקנת ${update.currentVersionName}` : undefined
       }
       footer={
         update ? (
           <div className="space-y-2">
-            {live ? (
+            {stage === 'permission' ? (
               <button
                 type="button"
-                onClick={() => void apply()}
-                disabled={busy}
-                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised disabled:opacity-60"
-              >
-                <RefreshCw size={ICON.md} strokeWidth={STROKE} className={busy ? 'animate-spin' : ''} />
-                {busy ? 'מעדכן…' : 'עדכון עכשיו'}
-              </button>
-            ) : (
-              <a
-                href={update.url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={onClose}
+                onClick={() => void retryAfterPermission()}
                 className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised"
               >
-                <Download size={ICON.md} strokeWidth={STROKE} />
-                הורדה והתקנה
-              </a>
+                <ShieldCheck size={ICON.md} strokeWidth={STROKE} />
+                פתיחת ההגדרה
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void run()}
+                disabled={busy}
+                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised disabled:opacity-70"
+              >
+                {stage === 'installing' ? (
+                  <Check size={ICON.md} strokeWidth={STROKE} />
+                ) : live ? (
+                  <RefreshCw
+                    size={ICON.md}
+                    strokeWidth={STROKE}
+                    className={busy ? 'animate-spin' : ''}
+                  />
+                ) : (
+                  <Download size={ICON.md} strokeWidth={STROKE} />
+                )}
+                {label()}
+              </button>
             )}
+
             <button
               type="button"
               onClick={onClose}
-              disabled={busy}
+              disabled={stage === 'working'}
               className="focus-ring w-full rounded-2xl py-3 text-label font-medium text-muted disabled:opacity-50"
             >
-              לא עכשיו
+              {stage === 'installing' ? 'סגירה' : 'לא עכשיו'}
             </button>
           </div>
         ) : undefined
       }
     >
       <div className="pb-2">
-        <div className="flex items-start gap-3 rounded-2xl bg-well px-4 py-4">
-          <Sparkles size={ICON.md} strokeWidth={STROKE} className="mt-0.5 shrink-0 text-brand-ink" />
-          <p className="text-body leading-relaxed text-ink">
-            {update?.notes?.trim() || 'שיפורים ותיקונים.'}
+        {stage === 'permission' ? (
+          <p className="rounded-2xl bg-well px-4 py-4 text-body leading-relaxed text-ink">
+            אנדרואיד מבקש אישור חד-פעמי לפני שאפליקציה מתקינה עדכון של עצמה.
+            הכפתור למטה פותח את המסך הזה - מפעילים שם את המתג, חוזרים, והעדכון
+            ימשיך מעצמו. בפעמים הבאות לא תישאלו.
           </p>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-start gap-3 rounded-2xl bg-well px-4 py-4">
+              <Sparkles
+                size={ICON.md}
+                strokeWidth={STROKE}
+                className="mt-0.5 shrink-0 text-brand-ink"
+              />
+              <p className="text-body leading-relaxed text-ink">
+                {update?.notes?.trim() || 'שיפורים ותיקונים.'}
+              </p>
+            </div>
 
-        <p className="mt-3 px-1 text-caption leading-relaxed text-muted">
-          {live
-            ? 'העדכון מוחל בתוך האפליקציה, והיא תיטען מחדש. אין מה להתקין, והאירועים וההגדרות נשמרים.'
-            : 'בגרסה הזו השתנה גם החלק המותקן, ולכן צריך להתקין אותה. הקובץ יירד בדפדפן, ואנדרואיד יבקש אישור. האירועים וההגדרות נשמרים.'}
-        </p>
+            {stage === 'working' && !live && (
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-well">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-200"
+                  style={{ width: `${Math.max(4, percent)}%` }}
+                />
+              </div>
+            )}
+
+            <p className="mt-3 px-1 text-caption leading-relaxed text-muted">
+              {stage === 'installing'
+                ? 'חלון ההתקנה נפתח. אשרו אותו, והאפליקציה תיסגר ותיפתח מעודכנת.'
+                : live
+                  ? 'העדכון מוחל בתוך האפליקציה, והיא תיטען מחדש. האירועים וההגדרות נשמרים.'
+                  : 'בגרסה הזו השתנה גם החלק המותקן. ההורדה מתבצעת כאן, ואנדרואיד יבקש אישור אחד להתקנה. האירועים וההגדרות נשמרים.'}
+            </p>
+          </>
+        )}
 
         {error && (
           <p className="mt-3 break-words rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-caption leading-relaxed text-[rgb(194_60_90)]">
