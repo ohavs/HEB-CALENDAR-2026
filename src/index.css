@@ -312,27 +312,6 @@
     cursor: pointer;
   }
 
-  /*
-   * שורה נגללת לרוחב: הדהייה בקצוות אומרת שיש עוד, במקום שהצ׳יפ האחרון
-   * ייראה חתוך. הכיוון לוגי ולכן נכון גם ב-RTL.
-   */
-  .fade-inline {
-    -webkit-mask-image: linear-gradient(
-      to left,
-      transparent 0,
-      #000 14px,
-      #000 calc(100% - 14px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to left,
-      transparent 0,
-      #000 14px,
-      #000 calc(100% - 14px),
-      transparent 100%
-    );
-  }
-
   /* טבלת מספרים מיושרת */
   .tnum-tight {
     font-variant-numeric: tabular-nums;

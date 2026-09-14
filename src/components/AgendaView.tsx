@@ -16,7 +16,7 @@ import { useRangeData } from '@/hooks/useMonthData';
 import { addDays, dateKey, dayTitleLabel, relativeDayLabel, startOfDay } from '@/lib/dates';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
-import { AgendaFilterBar } from './AgendaFilterBar';
+import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
 import { EventCard } from './EventChip';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 
@@ -143,6 +143,7 @@ export function AgendaView({
 
   const hidden = settings.agendaHidden;
   const setValue = useSettingsStore((s) => s.set);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   /**
    * שינוי הסינון ממסגר את הרשימה מחדש מהחלון הקרוב.
@@ -196,11 +197,7 @@ export function AgendaView({
       style={{ paddingBottom: bottomInset + 24 }}
     >
       <div className="app-shell-narrow">
-        <AgendaFilterBar
-          hidden={hidden}
-          onToggle={(category) => setValue('agendaHidden', toggleCategory(hidden, category))}
-          onReset={() => setValue('agendaHidden', [])}
-        />
+        <AgendaFilterButton hidden={hidden} onOpen={() => setFiltersOpen(true)} />
 
         {entries.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-hairline px-5 py-14 text-center">
@@ -243,6 +240,14 @@ export function AgendaView({
             />
           ))
         )}
+
+        <AgendaFilterSheet
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          hidden={hidden}
+          onToggle={(category) => setValue('agendaHidden', toggleCategory(hidden, category))}
+          onReset={() => setValue('agendaHidden', [])}
+        />
 
         <div ref={sentinel} className="flex justify-center py-6 text-caption text-faint">
           {days >= MAX_DAYS ? (
