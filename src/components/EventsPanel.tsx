@@ -16,7 +16,7 @@ import {
   useTransform,
   type PanInfo,
 } from 'framer-motion';
-import { useRef } from 'react';
+import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
@@ -222,7 +222,16 @@ export function EventsPanel({
   const controls = useDragControls();
   // חלונית פתוחה היא מצב שאפשר לחזור ממנו, בדיוק כמו גיליון
   useOverlayHistory(open, () => onOpenChange(false));
-  const { scrollRef, handleProps, contentProps } = useSheetDrag(controls);
+  const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
+
+  // שני ref-ים על אותו אלמנט: מדידת הגובה, ומאזיני המגע של המשיכה
+  const attachPanel = useCallback(
+    (node: HTMLDivElement | null) => {
+      (ref as MutableRefObject<HTMLDivElement | null>).current = node;
+      panelRef(node);
+    },
+    [ref, panelRef],
+  );
   const y = useMotionValue(0);
   const collapsedY = Math.max(0, height - PEEK_HEIGHT);
 
@@ -253,7 +262,7 @@ export function EventsPanel({
 
   return (
     <motion.div
-      ref={ref}
+      ref={attachPanel}
       className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-overlay"
       style={{ y, bottom: bottomInset, willChange: 'transform' }}
       animate={{ y: open ? 0 : collapsedY }}
@@ -264,6 +273,7 @@ export function EventsPanel({
       dragConstraints={{ top: 0, bottom: collapsedY }}
       dragElastic={{ top: 0.02, bottom: 0.06 }}
       onDragEnd={onDragEnd}
+      {...panelProps}
     >
       {/* ידית + סיכום - גם כפתור פתיחה וסגירה */}
       <button
@@ -298,7 +308,6 @@ export function EventsPanel({
         ref={scrollRef}
         className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5"
         style={{ opacity: contentOpacity, pointerEvents: open ? 'auto' : 'none' }}
-        {...contentProps}
       >
         <DayPanelContent
           day={day}

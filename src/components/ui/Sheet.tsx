@@ -1,8 +1,8 @@
 /**
  * חלונית תחתונה (bottom sheet) עם סגירה בגרירה למטה.
  *
- * הגרירה מופעלת מידית האחיזה ומכותרת החלונית, וגם מגוף התוכן כשהוא גלול
- * עד למעלה - כך ש"משיכה למטה" תמיד סוגרת, בלי להתנגש בגלילה הפנימית.
+ * המשיכה עובדת מכל מקום בחלונית - מהידית, מהכותרת, מהתוכן ומהפוטר -
+ * ומוותרת לגלילה הפנימית כשיש לאן לגלול למעלה. הפרטים ב-useSheetDrag.
  */
 import {
   AnimatePresence,
@@ -53,7 +53,7 @@ export function Sheet({
   className = '',
 }: SheetProps) {
   const controls = useDragControls();
-  const { scrollRef, handleProps, contentProps } = useSheetDrag(controls);
+  const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
   const reduceMotion = useReducedMotion();
 
   // נעילת גלילת הרקע כל עוד החלונית פתוחה
@@ -104,6 +104,8 @@ export function Sheet({
           />
 
           <motion.div
+            ref={panelRef}
+            {...panelProps}
             className={`relative mx-auto flex max-h-[92svh] w-full max-w-[640px] flex-col rounded-t-sheet bg-surface shadow-overlay lg:mb-6 lg:max-w-[720px] lg:rounded-sheet ${
               size === 'tall' ? 'h-[88svh]' : ''
             } ${className}`}
@@ -163,7 +165,6 @@ export function Sheet({
             <div
               ref={scrollRef}
               className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-3"
-              {...contentProps}
             >
               {children}
             </div>
