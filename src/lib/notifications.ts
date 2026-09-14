@@ -360,9 +360,9 @@ export function permissionLabel(state: PermissionState): string {
     case 'granted':
       return 'ההתראות מאושרות';
     case 'denied':
-      return 'ההתראות חסומות בדפדפן';
+      return isNative() ? 'ההתראות חסומות בהגדרות המכשיר' : 'ההתראות חסומות בדפדפן';
     case 'unsupported':
-      return 'הדפדפן הזה לא תומך בהתראות';
+      return isNative() ? 'ההתראות אינן זמינות' : 'הדפדפן הזה לא תומך בהתראות';
     default:
       return 'נדרש אישור להתראות';
   }

@@ -216,22 +216,50 @@
     display: none;
   }
 
-  /* שורת הכותרת: מרווח נדיב מהקצה, ומעליו גם אזור הבטיחות של המכשיר */
+  /*
+    אזורי הבטיחות.
+
+    בדפדפן זה `env(safe-area-inset-*)` - חריץ במסך. באפליקציה מותקנת
+    הערכים האלה הם אפס, כי הם לא מתארים סרגלי מערכת, והאפליקציה מציירת
+    מקצה לקצה: MainActivity מודדת את הסרגלים האמיתיים וכותבת אותם
+    למשתנים. `max` לוקח את הגדול מבין השניים, ולכן אותו קוד משרת את
+    שניהם.
+  */
   .safe-t {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+    padding-top: calc(max(env(safe-area-inset-top, 0px), var(--inset-top, 0px)) + 10px);
   }
   .safe-b {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--inset-bottom, 0px));
   }
   .mb-safe {
-    margin-bottom: env(safe-area-inset-bottom, 0px);
+    margin-bottom: max(env(safe-area-inset-bottom, 0px), var(--inset-bottom, 0px));
   }
 
-  /* בזמן גרירת אירוע - מבטלים בחירת טקסט וגלילה */
+  /*
+    בחירת טקסט מכובה בכל האפליקציה.
+
+    לחיצה ארוכה על כותרת אירוע העלתה את ידיות הבחירה ואת תפריט "העתק" -
+    התנהגות של דף, שגם מתנגשת ישירות בלחיצה הארוכה שמתחילה גרירה.
+    שדות קלט והערות הם החריג, ושם היא נחוצה.
+  */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable],
+  .selectable {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  /* בזמן גרירת אירוע - גם הסמן משתנה */
   .dragging,
   .dragging * {
-    user-select: none !important;
-    -webkit-user-select: none !important;
     cursor: grabbing !important;
   }
 
@@ -245,8 +273,10 @@
    ========================================================================== */
 @layer utilities {
   /* מרווח צד אחיד שגדל עם המסך */
+  /* הרווח הצדי כולל את חיתוך המסך, למכשירים עם מסך מעוגל או ניווט צדי */
   .gutter-x {
-    padding-inline: var(--gutter);
+    padding-inline: calc(var(--gutter) + var(--inset-start, 0px))
+      calc(var(--gutter) + var(--inset-end, 0px));
   }
 
   /* מרכז את האפליקציה במסכים רחבים במקום למתוח אותה לכל הרוחב */

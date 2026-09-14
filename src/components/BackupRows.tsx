@@ -11,6 +11,7 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { fromICS, icsFileName, toICS } from '@/lib/ics';
+import { isNative, shareTextFile } from '@/lib/native';
 import { useEventsStore, type EventDraft } from '@/store/events';
 import { SettingRow } from './ui/controls';
 import { ICON } from '@/lib/motion';
@@ -31,13 +32,27 @@ export function BackupRows() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  const exportAll = () => {
+  const exportAll = async () => {
     const events = Object.values(useEventsStore.getState().byId).filter((e) => !e.deleted);
     if (!events.length) {
       setStatus('אין אירועים לייצוא');
       return;
     }
-    download(icsFileName(), toICS(events));
+    const name = icsFileName();
+    const text = toICS(events);
+    const count = events.length === 1 ? 'אירוע אחד' : `${events.length} אירועים`;
+
+    /*
+      באנדרואיד הורדה של Blob לא עושה כלום: אין מי שיקלוט אותה ב-WebView.
+      הקובץ נכתב בצד הנייטיבי ונמסר לגיליון השיתוף של המערכת.
+    */
+    if (isNative()) {
+      const failure = await shareTextFile(name, text, 'text/calendar', 'ייצוא הלוח');
+      setStatus(failure ? `הייצוא נכשל. ${failure}` : `${count} מוכנים לשיתוף`);
+      return;
+    }
+
+    download(name, text);
     setStatus(events.length === 1 ? 'יוצא אירוע אחד' : `יוצאו ${events.length} אירועים`);
   };
 

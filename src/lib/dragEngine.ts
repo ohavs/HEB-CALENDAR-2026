@@ -8,6 +8,7 @@
  * - מיקום המצביע מוחזק ב-motion values, כך שהצל הנגרר זז ב-60fps בלי רינדור.
  */
 import { motionValue } from 'framer-motion';
+import { tick } from './native';
 import { create } from 'zustand';
 import type { DateKey } from '@/types';
 import type { Occurrence } from './recurrence';
@@ -88,12 +89,8 @@ type Session = {
 
 let session: Session | null = null;
 
-function buzz(pattern: number | number[]) {
-  try {
-    navigator.vibrate?.(pattern);
-  } catch {
-    /* לא נתמך */
-  }
+function buzz() {
+  void tick();
 }
 
 function dayKeyAtPoint(x: number, y: number): DateKey | null {
@@ -121,7 +118,7 @@ function handleEdges(x: number) {
   if (!edge) return;
   session.edgeTimer = setTimeout(() => {
     if (!session || !session.started) return;
-    buzz(8);
+    buzz();
     callbacks?.onEdge(edge);
     session.edgeTimer = null;
     session.edge = null;
@@ -144,7 +141,7 @@ function onPointerMove(e: PointerEvent) {
   ghostY.set(e.clientY);
   const over = dayKeyAtPoint(e.clientX, e.clientY);
   if (over !== useDragStore.getState().overKey) {
-    if (over) buzz(6);
+    if (over) buzz();
     useDragStore.setState({ overKey: over });
   }
   handleEdges(e.clientX);
@@ -159,7 +156,7 @@ function onPointerUp(e: PointerEvent) {
   teardown();
 
   if (started && overKey && overKey !== fromKey) {
-    buzz([10, 40, 14]);
+    buzz();
     callbacks?.onDrop(occurrence.baseId, overKey, occurrence);
   }
 }
@@ -241,7 +238,7 @@ export function beginLongPress(
       /* לא חובה */
     }
     document.documentElement.classList.add('dragging');
-    buzz(14);
+    buzz();
     useDragStore.setState({
       active: true,
       occurrence,

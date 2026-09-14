@@ -178,6 +178,8 @@ export function SettingsScreen({
   };
 
   useEffect(() => {
+    // באפליקציה מותקנת האירוע הזה לא נורה לעולם, ואין מה להתקין
+    if (isNative()) return;
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e as InstallPrompt);

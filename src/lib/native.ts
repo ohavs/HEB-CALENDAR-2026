@@ -50,6 +50,54 @@ const MAX_SCHEDULED = 60;
 
 export type NativeReminder = { id: string; at: number; title: string; body: string };
 
+/**
+ * ערוצי ההתראות.
+ *
+ * מאנדרואיד 8 המשתמש שולט בהתראות לפי ערוץ - צליל, רטט, חשיבות והשתקה,
+ * לכל ערוץ בנפרד. בלי ערוצים הכול נוחת בערוץ ברירת המחדל, וכניסת שבת,
+ * תזכורת לאירוע והתראת הגעה למקום הן אותו דבר מבחינת המערכת: מי שרצה
+ * להשתיק התראות מיקום היה חייב להשתיק את הכול.
+ *
+ * הסוג נגזר מהמזהה, שממילא נושא אותו - אין צורך בשדה נוסף שאפשר לשכוח
+ * למלא.
+ */
+const CHANNELS = [
+  { id: 'shabbat', name: 'זמני שבת ומועדים', description: 'כניסת שבת, יציאתה וערבי חג' },
+  { id: 'events', name: 'אירועים', description: 'תזכורות לאירועים שהוספתם' },
+  { id: 'places', name: 'מקומות', description: 'התראות בהגעה למקום שמור וביציאה ממנו' },
+] as const;
+
+export type ChannelId = (typeof CHANNELS)[number]['id'];
+
+/** לאיזה ערוץ שייכת תזכורת, לפי המזהה שלה. */
+export function channelFor(reminderId: string): ChannelId {
+  if (reminderId.startsWith('event-')) return 'events';
+  if (reminderId.startsWith('place-')) return 'places';
+  return 'shabbat';
+}
+
+let channelsReady = false;
+
+async function ensureChannels(): Promise<void> {
+  if (channelsReady || !isNative()) return;
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    for (const channel of CHANNELS) {
+      await LocalNotifications.createChannel({
+        id: channel.id,
+        name: channel.name,
+        description: channel.description,
+        importance: 4,
+        visibility: 1,
+        vibration: true,
+      });
+    }
+    channelsReady = true;
+  } catch {
+    /* גרסאות ישנות בלי ערוצים - ההתראות עדיין עובדות */
+  }
+}
+
 export async function nativeNotificationPermission(): Promise<'granted' | 'denied' | 'default'> {
   if (!isNative()) return 'default';
   try {
@@ -83,8 +131,17 @@ export async function showNativeNotification(
   if (!isNative()) return;
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+    await ensureChannels();
     await LocalNotifications.schedule({
-      notifications: [{ id: notificationId(tag), title, body, smallIcon: 'ic_stat_notify' }],
+      notifications: [
+        {
+          id: notificationId(tag),
+          title,
+          body,
+          smallIcon: 'ic_stat_notify',
+          channelId: channelFor(tag),
+        },
+      ],
     });
   } catch {
     /* התראה שלא נשלחה אינה סיבה להפיל מסך */
@@ -101,6 +158,7 @@ export async function scheduleNativeReminders(reminders: NativeReminder[]): Prom
   if (!isNative()) return;
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+    await ensureChannels();
     const pending = await LocalNotifications.getPending();
     if (pending.notifications.length) {
       await LocalNotifications.cancel({ notifications: pending.notifications });
@@ -117,6 +175,7 @@ export async function scheduleNativeReminders(reminders: NativeReminder[]): Prom
         title: r.title,
         body: r.body,
         smallIcon: 'ic_stat_notify',
+        channelId: channelFor(r.id),
         // התראה מדויקת גם כשהמכשיר נם: תזכורת שמגיעה באיחור של שעה
         // לכניסת שבת היא תזכורת מיותרת
         schedule: { at: new Date(r.at), allowWhileIdle: true },
@@ -262,5 +321,69 @@ export async function paintNativeChrome(dark: boolean): Promise<void> {
     await StatusBar.setBackgroundColor({ color: dark ? '#09090F' : '#F6F6FA' });
   } catch {
     /* לא קריטי */
+  }
+}
+
+/* ==========================================================================
+   קבצים
+   ========================================================================== */
+
+/**
+ * שומר קובץ טקסט ופותח את גיליון השיתוף של המערכת.
+ *
+ * בדפדפן זו הורדה רגילה. באנדרואיד `<a download>` על Blob לא עושה כלום -
+ * אין מי שיקלוט אותו ב-WebView - ולכן שם הקובץ נכתב בצד הנייטיבי ונמסר
+ * דרך FileProvider.
+ *
+ * @returns הודעת שגיאה, או null בהצלחה
+ */
+export async function shareTextFile(
+  filename: string,
+  text: string,
+  mimeType = 'text/plain',
+  title = '',
+): Promise<string | null> {
+  if (!isNative()) return 'not-native';
+  try {
+    const { registerPlugin } = await import('@capacitor/core');
+    const HebFiles = registerPlugin<{
+      shareText(options: {
+        filename: string;
+        text: string;
+        mimeType: string;
+        title: string;
+      }): Promise<void>;
+    }>('HebFiles');
+    await HebFiles.shareText({ filename, text, mimeType, title });
+    return null;
+  } catch (e) {
+    return (e as { message?: string }).message?.trim() || 'השיתוף נכשל';
+  }
+}
+
+/* ==========================================================================
+   משוב מישוש
+   ========================================================================== */
+
+/**
+ * רטט קצר לפעולה שהצליחה.
+ *
+ * באנדרואיד זה משוב המישוש של המערכת - קליק קל, לא רטט של טלפון שמצלצל.
+ * בדפדפן נופלים ל-API הפשוט, שהוא כל מה שיש שם.
+ */
+export async function tick(): Promise<void> {
+  if (isNative()) {
+    try {
+      const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+      await Haptics.impact({ style: ImpactStyle.Light });
+      return;
+    } catch {
+      /* אין רכיב רטט - ממשיכים לנפילה */
+    }
+  }
+  try {
+    navigator.vibrate?.(14);
+  } catch {
+    /* לא נתמך */
   }
 }

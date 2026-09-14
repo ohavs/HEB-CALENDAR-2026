@@ -17,13 +17,14 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="mask-icon" href="/icons/icon.svg" color="#6366F1" />
 
-    <!-- פונט עברי נקי -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      פונט עברי נקי, ארוז בתוך האפליקציה.
+      הוא היה נטען מגוגל, ואז אפליקציה מותקנת שנפתחה בלי רשת הציגה את
+      פונט ברירת המחדל ואז קפצה. נוצר על ידי `npm run fonts`.
+    -->
+    <link rel="preload" href="/fonts/heebo-hebrew-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/heebo-hebrew-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/fonts/heebo.css" />
 
     <script>
       // מחילים ערכת נושא לפני הצביעה הראשונה, כדי שלא יהיה הבהוב לבן במצב לילה
