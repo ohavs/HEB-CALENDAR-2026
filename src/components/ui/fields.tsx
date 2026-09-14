@@ -210,7 +210,6 @@ export function DateField({
   onChange,
   icon,
   hint,
-  weekStart = 0,
   min,
 }: {
   label: string;
@@ -219,7 +218,6 @@ export function DateField({
   onChange: (next: string) => void;
   icon?: ReactNode;
   hint?: ReactNode;
-  weekStart?: 0 | 1;
   /** התאריך המוקדם ביותר שאפשר לבחור */
   min?: string;
 }) {
@@ -239,7 +237,6 @@ export function DateField({
         title={label}
         value={value}
         onChange={onChange}
-        weekStart={weekStart}
         min={min}
       />
     </>

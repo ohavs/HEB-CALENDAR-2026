@@ -46,11 +46,9 @@ const pageVariants = {
   exit: (direction: number) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0.4 }),
 };
 
-/** תחילת השבוע שבו נמצא התאריך, לפי ההעדפה של המשתמש. */
-function weekStartOf(date: Date, weekStart: 0 | 1): Date {
-  const day = date.getDay();
-  const back = (day - weekStart + 7) % 7;
-  return addDays(startOfDay(date), -back);
+/** תחילת השבוע שבו נמצא התאריך. השבוע מתחיל ביום ראשון. */
+function weekStartOf(date: Date): Date {
+  return addDays(startOfDay(date), -date.getDay());
 }
 
 /** "12–18 בספטמבר" או "27 בספטמבר – 3 באוקטובר" */
@@ -116,10 +114,7 @@ export function CalendarScreen({
   );
 
   /* --------------------------- נתוני תצוגת השבוע --------------------------- */
-  const weekStart = useMemo(
-    () => weekStartOf(selectedDate, settings.weekStart),
-    [selectedDate, settings.weekStart],
-  );
+  const weekStart = useMemo(() => weekStartOf(selectedDate), [selectedDate]);
   const weekData = useRangeData(weekStart, addDays(weekStart, 6));
 
   const page = useCallback(
@@ -216,7 +211,7 @@ export function CalendarScreen({
 
     return (
       <>
-        <WeekdayHeader weekStart={settings.weekStart} />
+        <WeekdayHeader />
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div

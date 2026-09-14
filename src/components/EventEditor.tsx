@@ -293,7 +293,6 @@ export function EventEditor({
           }
           icon={<CalendarDays size={ICON.sm} strokeWidth={STROKE} />}
           hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-          weekStart={settings.weekStart}
         />
 
         {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
@@ -318,7 +317,6 @@ export function EventEditor({
             onChange={(endDate) => patch({ endDate })}
             icon={<CalendarRange size={ICON.sm} strokeWidth={STROKE} />}
             hint={spanHint}
-            weekStart={settings.weekStart}
             min={draft.date}
           />
         )}

@@ -46,9 +46,9 @@ export function useMonthData(month: Date): MonthData {
   const signature = useFiltersSignature(settings);
 
   const gridDays = useMemo(
-    () => monthGridDays(month, settings.weekStart),
+    () => monthGridDays(month),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mk, settings.weekStart],
+    [mk],
   );
 
   const days = useMemo(

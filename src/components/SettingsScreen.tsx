@@ -319,17 +319,6 @@ export function SettingsScreen({
             onChange={(v) => setValue('showHebrewMonths', v)}
           />
         </SettingRow>
-        <SettingRow title="תחילת השבוע">
-          <Segmented<'0' | '1'>
-            value={String(settings.weekStart) as '0' | '1'}
-            onChange={(v) => setValue('weekStart', v === '0' ? 0 : 1)}
-            size="sm"
-            options={[
-              { value: '0', label: 'ראשון' },
-              { value: '1', label: 'שני' },
-            ]}
-          />
-        </SettingRow>
 
         <SettingRow
           title="צפיפות הלוח"

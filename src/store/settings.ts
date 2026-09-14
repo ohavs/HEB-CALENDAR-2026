@@ -36,7 +36,6 @@ export function defaultSettings(): Settings {
     notifyEvents: true,
     notifyHolidayEve: false,
     notifyHolidayEveTime: '20:00',
-    weekStart: 0,
     defaultEventColor: 'violet',
     customLocation: null,
     places: [],
@@ -93,6 +92,8 @@ export const useSettingsStore = create<SettingsStore>()(
           saved.notifyHolidayEveTime = `${String(saved.notifyHolidayEveHour).padStart(2, '0')}:00`;
         }
         delete saved.notifyHolidayEveHour;
+        // הגירה: תחילת השבוע ירדה. אצלנו יום ראשון הוא הראשון, תמיד.
+        delete (saved as { weekStart?: number }).weekStart;
         // הגירה: דגלי ההגעה והיציאה עברו מהמקום לאירוע, וההודעה המותאמת
         // התייתרה איתם. מנקים כדי שלא יישארו שדות מתים באחסון ובסנכרון.
         if (Array.isArray(saved.places)) {

@@ -16,8 +16,8 @@ import { useElementSize } from '@/hooks/useElementSize';
 import type { MonthData } from '@/hooks/useMonthData';
 import { DayCell } from './DayCell';
 
-export function WeekdayHeader({ weekStart }: { weekStart: 0 | 1 }) {
-  const names = orderedWeekdays(weekStart);
+export function WeekdayHeader() {
+  const names = orderedWeekdays();
   return (
     <div className="grid shrink-0 grid-cols-7 px-1.5 pb-2.5 lg:pb-3.5" role="row">
       {names.map((name, i) => (
@@ -25,9 +25,7 @@ export function WeekdayHeader({ weekStart }: { weekStart: 0 | 1 }) {
           key={name}
           role="columnheader"
           className={`text-center text-tiny font-medium ${
-            (weekStart === 0 && i === 6) || (weekStart === 1 && i === 5)
-              ? 'text-brand-ink/70'
-              : 'text-faint'
+            i === 6 ? 'text-brand-ink/70' : 'text-faint'
           }`}
         >
           {name}
@@ -86,8 +84,8 @@ export function MonthGrid({
       let target: Date | null = null;
 
       if (delta !== undefined) target = addDays(currentDate, delta);
-      else if (e.key === 'Home') target = addDays(currentDate, -((currentDate.getDay() - settings.weekStart + 7) % 7));
-      else if (e.key === 'End') target = addDays(currentDate, 6 - ((currentDate.getDay() - settings.weekStart + 7) % 7));
+      else if (e.key === 'Home') target = addDays(currentDate, -currentDate.getDay());
+      else if (e.key === 'End') target = addDays(currentDate, 6 - currentDate.getDay());
       else if (e.key === 'PageDown') target = addDays(currentDate, 28);
       else if (e.key === 'PageUp') target = addDays(currentDate, -28);
       else return;
@@ -101,7 +99,7 @@ export function MonthGrid({
       const next = ref.current?.querySelector<HTMLElement>(`[data-day-key="${key}"]`);
       next?.focus();
     },
-    [data.days, onNavigate, ref, settings.weekStart],
+    [data.days, onNavigate, ref],
   );
 
   return (

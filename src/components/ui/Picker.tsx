@@ -368,7 +368,6 @@ export function DatePickerSheet({
   title,
   value,
   onChange,
-  weekStart = 0,
   min,
 }: {
   open: boolean;
@@ -377,7 +376,6 @@ export function DatePickerSheet({
   /** YYYY-MM-DD */
   value: string;
   onChange: (next: string) => void;
-  weekStart?: 0 | 1;
   /** התאריך המוקדם ביותר שאפשר לבחור (YYYY-MM-DD) */
   min?: string;
 }) {
@@ -392,10 +390,10 @@ export function DatePickerSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, value]);
 
-  const days = useMemo(() => monthGridDays(month, weekStart), [month, weekStart]);
+  const days = useMemo(() => monthGridDays(month), [month]);
   const markers = useDateMarkers(days);
   const today = new Date();
-  const weekdays = orderedWeekdays(weekStart);
+  const weekdays = orderedWeekdays();
 
   return (
     <Sheet open={open} onClose={onClose} title={title}>

@@ -5,7 +5,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { GREG_MONTHS_HE, dateKey, isSameDay, monthGridDays, orderedWeekdays } from '@/lib/dates';
-import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { ICON, STROKE } from '@/lib/motion';
 
@@ -25,7 +24,6 @@ export function YearPicker({
   onPick: (date: Date) => void;
   onYearChange: (year: number) => void;
 }) {
-  const settings = useSettings();
   const scrollTarget = useRef<HTMLDivElement>(null);
   const today = new Date();
 
@@ -33,9 +31,9 @@ export function YearPicker({
     () =>
       Array.from({ length: 12 }, (_, m) => ({
         month: m,
-        days: monthGridDays(new Date(year, m, 1), settings.weekStart),
+        days: monthGridDays(new Date(year, m, 1)),
       })),
-    [year, settings.weekStart],
+    [year],
   );
 
   useEffect(() => {
@@ -46,7 +44,7 @@ export function YearPicker({
     return () => clearTimeout(timer);
   }, [open, focusMonth]);
 
-  const weekdays = orderedWeekdays(settings.weekStart);
+  const weekdays = orderedWeekdays();
 
   return (
     <Sheet
