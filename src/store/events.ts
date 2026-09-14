@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
+import type { DateKey, EventColor, EventException, PlaceTrigger, UserEvent } from '@/types';
 
 const STORAGE_KEY = 'heb-cal:events';
 
@@ -33,6 +33,7 @@ export type EventDraft = {
   allDay: boolean;
   location?: string;
   placeId?: string;
+  placeTrigger?: PlaceTrigger;
   notes?: string;
   color: EventColor;
   reminderMinutes: number | null;

@@ -1,6 +1,6 @@
 /** רכיבי בקרה קטנים ואחידים לכל האפליקציה. */
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { SNAP, TAP } from '@/lib/motion';
 
 /* ---------------------------------- מתג ---------------------------------- */
@@ -109,30 +109,65 @@ export function Segmented<T extends string>({
   onChange: (next: T) => void;
   size?: 'sm' | 'md';
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; width: number } | null>(null);
+  const index = options.findIndex((o) => o.value === value);
+
+  /*
+    הגלולה נמדדת ולא מחושבת: הכפתורים נמתחים לפי הטקסט, וכיתוב עברי
+    משנה רוחב בין אפשרות לאפשרות.
+
+    למה לא layoutId: אנימציית פריסה משותפת נשארת תלויה כשהעץ שמכיל
+    אותה מתפרק, וגיליון שנסגר אחרי בחירה כאן פשוט לא היה נעלם -
+    AnimatePresence המתין לה לנצח. offsetLeft עובד גם ב-RTL, כי הוא
+    פיזי.
+  */
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const measure = () => {
+      const button = list.querySelectorAll<HTMLElement>('[data-seg]')[index];
+      const next = button ? { x: button.offsetLeft, width: button.offsetWidth } : null;
+      // בלי ההשוואה הזו כל מדידה הייתה יוצרת אובייקט חדש ומריצה רינדור נוסף
+      setPill((prev) =>
+        prev?.x === next?.x && prev?.width === next?.width ? prev : next,
+      );
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [index, options.length]);
+
   return (
     <div
+      ref={listRef}
       className={`relative flex gap-1 rounded-2xl bg-well p-1 ${
         size === 'sm' ? 'text-caption' : 'text-label'
       }`}
     >
+      {pill && (
+        <motion.span
+          aria-hidden
+          className="absolute inset-y-1 left-0 rounded-xl bg-brand"
+          initial={false}
+          animate={{ x: pill.x, width: pill.width }}
+          transition={SNAP}
+        />
+      )}
       {options.map((opt) => {
         const active = opt.value === value;
         return (
           <button
             key={opt.value}
+            data-seg
             type="button"
             onClick={() => onChange(opt.value)}
             className={`relative flex-1 whitespace-nowrap rounded-xl px-3.5 py-2.5 font-medium transition-colors ${
               active ? 'text-white' : 'text-muted'
             }`}
           >
-            {active && (
-              <motion.span
-                layoutId={`seg-${options.map((o) => o.value).join('-')}`}
-                className="absolute inset-0 rounded-xl bg-brand"
-                transition={SNAP}
-              />
-            )}
             <span className="relative flex items-center justify-center gap-1.5">
               {opt.icon}
               {opt.label}

@@ -12,8 +12,6 @@ const place = (id: string, name: string): SavedPlace => ({
   latitude: 32.08,
   longitude: 34.78,
   radius: 150,
-  notifyOnArrive: true,
-  notifyOnLeave: false,
   createdAt: 0,
 });
 

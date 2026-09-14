@@ -19,7 +19,7 @@ import { mapsUrl } from '@/lib/eventLocations';
 import { CITIES } from '@/lib/locations';
 import { bestScore } from '@/lib/search';
 import { Sheet } from './ui/Sheet';
-import { PrimaryButton, Toggle } from './ui/controls';
+import { PrimaryButton } from './ui/controls';
 import { NumberField, TextField } from './ui/fields';
 import { ICON, STROKE } from '@/lib/motion';
 
@@ -103,9 +103,6 @@ const EMPTY: Draft = {
   latitude: 0,
   longitude: 0,
   radius: 150,
-  notifyOnArrive: true,
-  notifyOnLeave: false,
-  message: '',
 };
 
 export function PlaceEditor({
@@ -143,9 +140,6 @@ export function PlaceEditor({
             latitude: editing.latitude,
             longitude: editing.longitude,
             radius: editing.radius,
-            notifyOnArrive: editing.notifyOnArrive,
-            notifyOnLeave: editing.notifyOnLeave,
-            message: editing.message ?? '',
           }
         : EMPTY,
     );
@@ -203,7 +197,6 @@ export function PlaceEditor({
       createdAt: editing?.createdAt ?? Date.now(),
       ...draft,
       name: draft.name.trim(),
-      message: draft.message?.trim() || undefined,
     });
     onClose();
   };
@@ -214,7 +207,7 @@ export function PlaceEditor({
       onClose={onClose}
       size="tall"
       title={editing ? 'עריכת מקום' : 'מקום חדש'}
-      subtitle="קבלו התראה כשאתם מגיעים או יוצאים"
+      subtitle="שם, נקודת ציון ורדיוס"
       headerAction={
         editing ? (
           <motion.button
@@ -325,31 +318,15 @@ export function PlaceEditor({
           hint={`התראה תישלח כשתהיו בטווח ${radiusLabel(draft.radius)} מהנקודה`}
         />
 
-        <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
-          <div className="flex items-center justify-between px-4 py-4">
-            <span className="text-body font-medium text-ink">התראה בהגעה</span>
-            <Toggle
-              label="התראה בהגעה"
-              checked={draft.notifyOnArrive}
-              onChange={(notifyOnArrive) => patch({ notifyOnArrive })}
-            />
-          </div>
-          <div className="flex items-center justify-between px-4 py-4">
-            <span className="text-body font-medium text-ink">התראה ביציאה</span>
-            <Toggle
-              label="התראה ביציאה"
-              checked={draft.notifyOnLeave}
-              onChange={(notifyOnLeave) => patch({ notifyOnLeave })}
-            />
-          </div>
-        </div>
-
-        <TextField
-          label="טקסט ההתראה"
-          value={draft.message ?? ''}
-          onChange={(message) => patch({ message })}
-          placeholder="ברירת מחדל"
-        />
+        {/*
+          מתי להתריע נקבע על האירוע ולא כאן: "תזכיר לי כשאגיע הביתה" היא
+          תכונה של התזכורת, לא של הבית. כך שתי תזכורות שונות באותו מקום
+          הן שני דברים שונים.
+        */}
+        <p className="px-1 text-caption leading-relaxed text-muted">
+          את ההתראה עצמה בוחרים באירוע: בעת יצירת אירוע אפשר לקבוע שהוא
+          יזכיר לכם כשתגיעו לכאן או כשתצאו מכאן.
+        </p>
       </div>
 
       <CityStartSheet

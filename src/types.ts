@@ -29,6 +29,11 @@ export type UserEvent = {
    * שם של מקום שמור היה מנתק ממנו את כל האירועים.
    */
   placeId?: string;
+  /**
+   * התראה מבוססת מיקום לאירוע הזה: כשמגיעים למקום או כשיוצאים ממנו.
+   * חסר = בלי התראת מיקום. רלוונטי רק כשיש placeId.
+   */
+  placeTrigger?: PlaceTrigger;
   notes?: string;
   color: EventColor;
   /** דקות לפני האירוע לתזכורת; null = בלי תזכורת */
@@ -67,6 +72,7 @@ export type EventException = {
   allDay?: boolean;
   location?: string;
   placeId?: string;
+  placeTrigger?: PlaceTrigger;
   notes?: string;
   color?: EventColor;
   reminderMinutes?: number | null;
@@ -159,9 +165,16 @@ export type AgendaCategory =
   | 'roshchodesh'
   | 'times';
 
+/** מתי התראת המיקום של אירוע נורית. */
+export type PlaceTrigger = 'arrive' | 'leave';
+
 /**
  * מקום שמור של המשתמש ("בית", "עבודה").
- * אפשר לקבל התראה בהגעה אליו, ביציאה ממנו, או בשניהם.
+ *
+ * הגדרת מיקום בלבד: שם, נקודת ציון ורדיוס. *מתי* להתריע עליו נקבע על
+ * האירוע ולא כאן - "תזכיר לי כשאגיע הביתה" היא תכונה של התזכורת, לא של
+ * הבית. קודם הדגלים ישבו כאן, וכך אי אפשר היה להבחין בין שתי תזכורות
+ * שונות באותו מקום.
  */
 export type SavedPlace = {
   id: string;
@@ -170,10 +183,6 @@ export type SavedPlace = {
   longitude: number;
   /** רדיוס הזיהוי במטרים */
   radius: number;
-  notifyOnArrive: boolean;
-  notifyOnLeave: boolean;
-  /** הודעה מותאמת, או ריק לברירת המחדל */
-  message?: string;
   createdAt: number;
 };
 

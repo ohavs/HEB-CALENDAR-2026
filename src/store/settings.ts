@@ -1,7 +1,7 @@
 /** הגדרות המשתמש - נשמרות מקומית ומסונכרנות לענן כשמתחברים. */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CalendarFilters, Settings, ThemeMode } from '@/types';
+import type { CalendarFilters, SavedPlace, Settings, ThemeMode } from '@/types';
 import { DEFAULT_CITY_ID, findCity, guessCityId } from '@/lib/locations';
 
 const STORAGE_KEY = 'heb-cal:settings';
@@ -93,6 +93,25 @@ export const useSettingsStore = create<SettingsStore>()(
           saved.notifyHolidayEveTime = `${String(saved.notifyHolidayEveHour).padStart(2, '0')}:00`;
         }
         delete saved.notifyHolidayEveHour;
+        // הגירה: דגלי ההגעה והיציאה עברו מהמקום לאירוע, וההודעה המותאמת
+        // התייתרה איתם. מנקים כדי שלא יישארו שדות מתים באחסון ובסנכרון.
+        if (Array.isArray(saved.places)) {
+          saved.places = saved.places.map((place) => {
+            const legacy = place as SavedPlace & {
+              notifyOnArrive?: boolean;
+              notifyOnLeave?: boolean;
+              message?: string;
+            };
+            return {
+              id: legacy.id,
+              name: legacy.name,
+              latitude: legacy.latitude,
+              longitude: legacy.longitude,
+              radius: legacy.radius,
+              createdAt: legacy.createdAt,
+            };
+          });
+        }
         return {
           ...current,
           settings: { ...current.settings, ...saved },

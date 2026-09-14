@@ -573,13 +573,7 @@ export function SettingsScreen({
           <SettingRow
             key={place.id}
             title={place.name}
-            hint={[
-              radiusLabel(place.radius),
-              place.notifyOnArrive ? 'בהגעה' : null,
-              place.notifyOnLeave ? 'ביציאה' : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
+            hint={radiusLabel(place.radius)}
             icon={<MapPinned size={ICON.lg} strokeWidth={2.1} />}
             onClick={() => setPlaceEditor({ open: true, editing: place })}
           >

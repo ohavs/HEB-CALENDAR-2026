@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import type { CalendarView, DateKey, UserEvent } from '@/types';
-import type { Occurrence } from '@/lib/recurrence';
+import { eventsOnDay, type Occurrence } from '@/lib/recurrence';
 import {
   addDays,
   addMonths,
@@ -131,13 +131,20 @@ export default function App() {
   const placesRef = useRef(settings.places);
   placesRef.current = settings.places;
 
+  // המופעים של היום: מהם נגזרות ההתראות הדרוכות. נקראים דרך ref כדי
+  // שהמעקב לא יתחיל מחדש בכל שינוי באירועים.
+  const todayOccurrences = useMemo(() => eventsOnDay(events, today), [events, today]);
+  const occurrencesRef = useRef(todayOccurrences);
+  occurrencesRef.current = todayOccurrences;
+
   useEffect(() => {
     if (!settings.placeAlertsEnabled || settings.places.length === 0) return;
     return startGeofenceWatch({
       getPlaces: () => placesRef.current,
-      onEvents: (events) => {
-        for (const e of events) {
-          void notifyNow(e.title, e.body, `place-${e.place.id}-${e.kind}`);
+      getOccurrences: () => occurrencesRef.current,
+      onEvents: (alerts) => {
+        for (const a of alerts) {
+          void notifyNow(a.title, a.body, `place-${a.occurrence.occurrenceId}-${a.kind}`);
         }
       },
     });

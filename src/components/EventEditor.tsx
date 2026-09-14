@@ -5,8 +5,17 @@
  */
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, CalendarDays, CalendarRange, Clock, MapPin, Repeat, Trash2 } from 'lucide-react';
-import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
+import {
+  Bell,
+  CalendarDays,
+  CalendarRange,
+  Clock,
+  MapPin,
+  Navigation,
+  Repeat,
+  Trash2,
+} from 'lucide-react';
+import type { DateKey, EventColor, EventException, PlaceTrigger, UserEvent } from '@/types';
 import { REPEAT_LABELS, spanLengthOf, type Occurrence } from '@/lib/recurrence';
 import {
   EVENT_COLORS,
@@ -21,7 +30,7 @@ import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinute
 import { hebrewDateParts } from '@/lib/hebrew';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
-import { PrimaryButton, Toggle } from './ui/controls';
+import { PrimaryButton, Segmented, Toggle } from './ui/controls';
 import {
   DateField,
   PickerField,
@@ -103,6 +112,7 @@ export function EventEditor({
         allDay: editing.allDay,
         location: editing.location ?? '',
         placeId: editing.placeId,
+        placeTrigger: editing.placeTrigger,
         notes: editing.notes ?? '',
         color: editing.color,
         reminderMinutes: editing.reminderMinutes,
@@ -121,6 +131,8 @@ export function EventEditor({
     title: draft.title.trim(),
     location: draft.location?.trim() || undefined,
     placeId: draft.placeId,
+    // בלי מקום שמור אין על מה לגדר
+    placeTrigger: draft.placeId ? draft.placeTrigger : undefined,
     notes: draft.notes?.trim() || undefined,
     startTime: draft.allDay ? null : draft.startTime,
     endTime: draft.allDay ? null : draft.endTime,
@@ -137,6 +149,7 @@ export function EventEditor({
     if (p.endTime !== occurrence.endTime) exception.endTime = p.endTime;
     if ((p.location ?? '') !== (occurrence.location ?? '')) exception.location = p.location;
     if (p.placeId !== occurrence.placeId) exception.placeId = p.placeId;
+    if (p.placeTrigger !== occurrence.placeTrigger) exception.placeTrigger = p.placeTrigger;
     if ((p.notes ?? '') !== (occurrence.notes ?? '')) exception.notes = p.notes;
     if (p.endDate !== occurrence.endDate) exception.endDate = p.endDate;
     if (p.color !== occurrence.color) exception.color = p.color;
@@ -191,6 +204,8 @@ export function EventEditor({
 
   const eventDate = keyToDate(draft.date);
   const hebrew = hebrewDateParts(eventDate);
+  /** המקום השמור שנבחר, אם נבחר כזה */
+  const savedPlace = draft.placeId ? places.find((pl) => pl.id === draft.placeId) : undefined;
   const multiDay = Boolean(draft.endDate && draft.endDate > draft.date);
   const spanDays = spanLengthOf({ date: draft.date, endDate: draft.endDate });
   const spanHint = multiDay ? `${spanDays} ימים` : '';
@@ -340,13 +355,36 @@ export function EventEditor({
           label="מקום"
           display={draft.location || 'לא הוגדר'}
           icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
-          hint={
-            draft.placeId && places.some((pl) => pl.id === draft.placeId)
-              ? 'מקום שמור'
-              : undefined
-          }
+          hint={savedPlace ? 'מקום שמור' : undefined}
           onOpen={() => setLocationOpen(true)}
         />
+
+        {/*
+          התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
+          ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
+        */}
+        {savedPlace && (
+          <div className="rounded-2xl bg-well px-4 py-3.5">
+            <span className="mb-3 flex items-center gap-2 text-caption font-medium text-muted">
+              <Navigation size={ICON.xs} strokeWidth={STROKE} />
+              תזכורת כשאני
+            </span>
+            <Segmented<'none' | PlaceTrigger>
+              value={draft.placeTrigger ?? 'none'}
+              onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
+              options={[
+                { value: 'none', label: 'בלי' },
+                { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
+                { value: 'leave', label: `יוצא מ${savedPlace.name}` },
+              ]}
+            />
+            {draft.placeTrigger && (
+              <p className="mt-3 text-caption leading-relaxed text-muted">
+                ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.
+              </p>
+            )}
+          </div>
+        )}
 
         <SelectField<UserEvent['repeat']>
           label="חזרה"

@@ -1,10 +1,16 @@
 /**
- * גדרות גאוגרפיות. הלוגיקה כאן היא שתעבור כמות שהיא לאנדרואיד, ולכן היא
- * נבדקת בלי דפדפן - רק עם אחסון מקומי מדומה.
+ * התראות מבוססות מיקום.
+ *
+ * ההתראה שייכת לאירוע ולא למקום, ולכן כל בדיקה כאן מרכיבה גם מקום שמור
+ * וגם אירוע שמצביע עליו. זו הלוגיקה שתעבור כמות שהיא לאנדרואיד, ולכן
+ * היא נבדקת בלי דפדפן - רק עם אחסון מקומי מדומה.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { distanceMeters, evaluatePosition, radiusLabel } from './geofence';
-import type { SavedPlace } from '@/types';
+import { distanceMeters, evaluatePosition, isTriggerArmed, radiusLabel } from './geofence';
+import { eventsOnDay } from './recurrence';
+import { dateKey, keyToDate } from './dates';
+import type { PlaceTrigger, SavedPlace } from '@/types';
+import { event } from '@/test/factories';
 
 const HOME: SavedPlace = {
   id: 'home',
@@ -12,8 +18,6 @@ const HOME: SavedPlace = {
   latitude: 32.0853,
   longitude: 34.7818,
   radius: 150,
-  notifyOnArrive: true,
-  notifyOnLeave: true,
   createdAt: 0,
 };
 
@@ -25,7 +29,24 @@ function north(meters: number) {
 const INSIDE = north(0);
 const FAR = north(5_000);
 
-// המצב נשמר באחסון המקומי, ולכן מנקים בין בדיקות
+/** "היום" מנקודת המבט של הבדיקה */
+const NOW = new Date(2026, 8, 20, 12, 0);
+const TODAY = dateKey(NOW);
+
+/** מופע של אירוע שמבקש התראה במקום נתון, נפרש ביום שלו עצמו. */
+function occurrenceAt(trigger: PlaceTrigger | undefined, patch: Record<string, unknown> = {}) {
+  const ev = event({
+    date: TODAY,
+    title: 'לקנות חלב',
+    placeId: 'home',
+    placeTrigger: trigger,
+    ...patch,
+  });
+  return eventsOnDay([ev], keyToDate(ev.date))[0];
+}
+
+const arriving = [occurrenceAt('arrive')];
+
 beforeEach(() => localStorage.clear());
 
 describe('distanceMeters', () => {
@@ -52,96 +73,173 @@ describe('distanceMeters', () => {
   });
 });
 
-describe('evaluatePosition', () => {
+describe('isTriggerArmed', () => {
+  it('דרוך ביום האירוע', () => {
+    expect(isTriggerArmed(occurrenceAt('arrive'), NOW)).toBe(true);
+  });
+
+  it('לא דרוך ביום אחר', () => {
+    expect(isTriggerArmed(occurrenceAt('arrive'), new Date(2026, 8, 25))).toBe(false);
+  });
+
+  it('בלי טריגר אינו דרוך', () => {
+    expect(isTriggerArmed(occurrenceAt(undefined), NOW)).toBe(false);
+  });
+
+  it('בלי מקום שמור אינו דרוך', () => {
+    expect(isTriggerArmed(occurrenceAt('arrive', { placeId: undefined }), NOW)).toBe(false);
+  });
+
+  it('באירוע רב־יומי רק היום הראשון דרוך', () => {
+    const ev = event({
+      date: TODAY,
+      endDate: dateKey(new Date(2026, 8, 23)),
+      allDay: true,
+      placeId: 'home',
+      placeTrigger: 'arrive',
+    });
+    const first = eventsOnDay([ev], new Date(NOW))[0];
+    const second = eventsOnDay([ev], new Date(2026, 8, 21))[0];
+    expect(isTriggerArmed(first, NOW)).toBe(true);
+    expect(isTriggerArmed(second, new Date(2026, 8, 21))).toBe(false);
+  });
+});
+
+describe('התראה על הגעה', () => {
   it('הקריאה הראשונה רק קובעת מצב ולא מתריעה', () => {
-    expect(evaluatePosition([HOME], INSIDE)).toHaveLength(0);
+    expect(evaluatePosition([HOME], arriving, INSIDE, NOW.getTime())).toHaveLength(0);
   });
 
-  it('מתריע על הגעה אחרי שהיה בחוץ', () => {
-    evaluatePosition([HOME], FAR, 0);
-    const events = evaluatePosition([HOME], INSIDE, 10 * 60_000);
-    expect(events).toHaveLength(1);
-    expect(events[0].kind).toBe('arrive');
-    expect(events[0].title).toContain('בית');
+  it('מתריעה על הגעה אחרי שהיה בחוץ', () => {
+    evaluatePosition([HOME], arriving, FAR, NOW.getTime());
+    const out = evaluatePosition([HOME], arriving, INSIDE, NOW.getTime() + 10 * 60_000);
+    expect(out).toHaveLength(1);
+    expect(out[0].kind).toBe('arrive');
   });
 
-  it('מתריע על יציאה אחרי שהיה בפנים', () => {
-    evaluatePosition([HOME], INSIDE, 0);
-    const events = evaluatePosition([HOME], FAR, 10 * 60_000);
-    expect(events).toHaveLength(1);
-    expect(events[0].kind).toBe('leave');
+  it('הכותרת היא שם האירוע, והגוף אומר מה קרה', () => {
+    evaluatePosition([HOME], arriving, FAR, NOW.getTime());
+    const [alert] = evaluatePosition([HOME], arriving, INSIDE, NOW.getTime() + 10 * 60_000);
+    expect(alert.title).toBe('לקנות חלב');
+    expect(alert.body).toContain('בית');
+    expect(alert.occurrence.placeId).toBe('home');
   });
 
-  it('לא מתריע פעמיים על אותה כניסה', () => {
-    evaluatePosition([HOME], FAR, 0);
-    evaluatePosition([HOME], INSIDE, 10 * 60_000);
-    expect(evaluatePosition([HOME], INSIDE, 20 * 60_000)).toHaveLength(0);
+  it('אירוע שמבקש יציאה לא מתריע על הגעה', () => {
+    const leaving = [occurrenceAt('leave')];
+    evaluatePosition([HOME], leaving, FAR, NOW.getTime());
+    expect(evaluatePosition([HOME], leaving, INSIDE, NOW.getTime() + 10 * 60_000)).toHaveLength(0);
   });
 
-  it('היסטרזיס: יציאה קצרה מעבר לרדיוס לא מפעילה התראה', () => {
-    evaluatePosition([HOME], INSIDE, 0);
+  it('אותה התראה לא נורית פעמיים באותו יום', () => {
+    const t = NOW.getTime();
+    evaluatePosition([HOME], arriving, FAR, t);
+    expect(evaluatePosition([HOME], arriving, INSIDE, t + 10 * 60_000)).toHaveLength(1);
+    // יוצאים וחוזרים - התזכורת כבר נמסרה
+    evaluatePosition([HOME], arriving, FAR, t + 30 * 60_000);
+    expect(evaluatePosition([HOME], arriving, INSIDE, t + 60 * 60_000)).toHaveLength(0);
+  });
+});
+
+describe('התראה על יציאה', () => {
+  const leaving = [occurrenceAt('leave')];
+
+  it('מתריעה על יציאה אחרי שהיה בפנים', () => {
+    evaluatePosition([HOME], leaving, INSIDE, NOW.getTime());
+    const out = evaluatePosition([HOME], leaving, FAR, NOW.getTime() + 10 * 60_000);
+    expect(out).toHaveLength(1);
+    expect(out[0].kind).toBe('leave');
+  });
+});
+
+describe('היסטרזיס וזמן צינון', () => {
+  it('יציאה קצרה מעבר לרדיוס לא מפעילה התראה', () => {
+    const leaving = [occurrenceAt('leave')];
+    evaluatePosition([HOME], leaving, INSIDE, NOW.getTime());
     // 30 מטר מעבר לרדיוס - בתוך שולי ההיסטרזיס של 40 מטר
-    expect(evaluatePosition([HOME], north(HOME.radius + 30), 10 * 60_000)).toHaveLength(0);
+    expect(
+      evaluatePosition([HOME], leaving, north(HOME.radius + 30), NOW.getTime() + 10 * 60_000),
+    ).toHaveLength(0);
   });
 
   it('יציאה אמיתית מעבר לשולי ההיסטרזיס כן מתריעה', () => {
-    evaluatePosition([HOME], INSIDE, 0);
-    expect(evaluatePosition([HOME], north(HOME.radius + 100), 10 * 60_000)).toHaveLength(1);
-  });
-
-  it('זמן צינון חוסם התראה צמודה', () => {
-    evaluatePosition([HOME], FAR, 0);
-    evaluatePosition([HOME], INSIDE, 10 * 60_000); // התראת הגעה
-    // יציאה דקה אחר כך - בתוך זמן הצינון
-    expect(evaluatePosition([HOME], FAR, 10 * 60_000 + 60_000)).toHaveLength(0);
-  });
-
-  it('מיקום לא מדויק נזרק', () => {
-    evaluatePosition([HOME], FAR, 0);
-    const events = evaluatePosition(
-      [HOME],
-      { ...INSIDE, accuracy: 500 },
-      10 * 60_000,
-    );
-    expect(events).toHaveLength(0);
-  });
-
-  it('מיקום מדויק מספיק מתקבל', () => {
-    evaluatePosition([HOME], FAR, 0);
+    const leaving = [occurrenceAt('leave')];
+    evaluatePosition([HOME], leaving, INSIDE, NOW.getTime());
     expect(
-      evaluatePosition([HOME], { ...INSIDE, accuracy: 20 }, 10 * 60_000),
+      evaluatePosition([HOME], leaving, north(HOME.radius + 100), NOW.getTime() + 10 * 60_000),
     ).toHaveLength(1);
   });
 
-  it('מקום בלי התראות כלל נדלג', () => {
-    const quiet = { ...HOME, notifyOnArrive: false, notifyOnLeave: false };
-    evaluatePosition([quiet], FAR, 0);
-    expect(evaluatePosition([quiet], INSIDE, 10 * 60_000)).toHaveLength(0);
+  it('זמן צינון חוסם התראה צמודה', () => {
+    const both = [occurrenceAt('arrive'), occurrenceAt('leave')];
+    const t = NOW.getTime();
+    evaluatePosition([HOME], both, FAR, t);
+    expect(evaluatePosition([HOME], both, INSIDE, t + 10 * 60_000)).toHaveLength(1);
+    // יציאה דקה אחר כך - בתוך זמן הצינון
+    expect(evaluatePosition([HOME], both, FAR, t + 11 * 60_000)).toHaveLength(0);
+  });
+});
+
+describe('מה לא מפעיל התראה', () => {
+  it('מיקום לא מדויק נזרק', () => {
+    evaluatePosition([HOME], arriving, FAR, NOW.getTime());
+    expect(
+      evaluatePosition([HOME], arriving, { ...INSIDE, accuracy: 500 }, NOW.getTime() + 10 * 60_000),
+    ).toHaveLength(0);
   });
 
-  it('מכבד התראת הגעה בלבד', () => {
-    const arriveOnly = { ...HOME, notifyOnLeave: false };
-    evaluatePosition([arriveOnly], FAR, 0);
-    expect(evaluatePosition([arriveOnly], INSIDE, 10 * 60_000)).toHaveLength(1);
-    expect(evaluatePosition([arriveOnly], FAR, 30 * 60_000)).toHaveLength(0);
+  it('מיקום מדויק מספיק מתקבל', () => {
+    evaluatePosition([HOME], arriving, FAR, NOW.getTime());
+    expect(
+      evaluatePosition([HOME], arriving, { ...INSIDE, accuracy: 20 }, NOW.getTime() + 10 * 60_000),
+    ).toHaveLength(1);
   });
 
-  it('הודעה מותאמת מוצגת במקום ברירת המחדל', () => {
-    const custom = { ...HOME, message: 'להדליק נרות' };
-    evaluatePosition([custom], FAR, 0);
-    expect(evaluatePosition([custom], INSIDE, 10 * 60_000)[0].body).toBe('להדליק נרות');
+  it('בלי אירועים דרוכים לא קורה כלום', () => {
+    evaluatePosition([HOME], [], FAR, NOW.getTime());
+    expect(evaluatePosition([HOME], [], INSIDE, NOW.getTime() + 10 * 60_000)).toHaveLength(0);
   });
 
-  it('כמה מקומות נבדקים במקביל', () => {
-    const work: SavedPlace = { ...HOME, id: 'work', name: 'עבודה', latitude: 32.2, longitude: 34.9 };
-    evaluatePosition([HOME, work], FAR, 0);
-    const events = evaluatePosition([HOME, work], INSIDE, 10 * 60_000);
-    expect(events).toHaveLength(1);
-    expect(events[0].place.id).toBe('home');
+  it('אירוע של יום אחר אינו דרוך', () => {
+    const tomorrow = [occurrenceAt('arrive', { date: dateKey(new Date(2026, 8, 21)) })];
+    evaluatePosition([HOME], tomorrow, FAR, NOW.getTime());
+    expect(evaluatePosition([HOME], tomorrow, INSIDE, NOW.getTime() + 10 * 60_000)).toHaveLength(0);
   });
 
-  it('רשימה ריקה לא מפילה כלום', () => {
-    expect(evaluatePosition([], INSIDE)).toEqual([]);
+  it('אירוע שמצביע על מקום אחר אינו רלוונטי', () => {
+    const elsewhere = [occurrenceAt('arrive', { placeId: 'work' })];
+    evaluatePosition([HOME], elsewhere, FAR, NOW.getTime());
+    expect(evaluatePosition([HOME], elsewhere, INSIDE, NOW.getTime() + 10 * 60_000)).toHaveLength(0);
+  });
+
+  it('רשימת מקומות ריקה לא מפילה כלום', () => {
+    expect(evaluatePosition([], arriving, INSIDE, NOW.getTime())).toEqual([]);
+  });
+});
+
+describe('כמה אירועים באותו מקום', () => {
+  it('שתי תזכורות באותה הגעה נשלחות שתיהן', () => {
+    const two = [
+      occurrenceAt('arrive'),
+      occurrenceAt('arrive', { title: 'להוציא את הכביסה' }),
+    ];
+    evaluatePosition([HOME], two, FAR, NOW.getTime());
+    const out = evaluatePosition([HOME], two, INSIDE, NOW.getTime() + 10 * 60_000);
+    expect(out).toHaveLength(2);
+    expect(out.map((a) => a.title)).toContain('להוציא את הכביסה');
+  });
+
+  it('הגעה ויציאה על אותו מקום הן שתי תזכורות נפרדות', () => {
+    const both = [occurrenceAt('arrive'), occurrenceAt('leave')];
+    const t = NOW.getTime();
+    evaluatePosition([HOME], both, FAR, t);
+    const arrived = evaluatePosition([HOME], both, INSIDE, t + 10 * 60_000);
+    expect(arrived).toHaveLength(1);
+    expect(arrived[0].kind).toBe('arrive');
+    // אחרי שזמן הצינון עבר
+    const left = evaluatePosition([HOME], both, FAR, t + 40 * 60_000);
+    expect(left).toHaveLength(1);
+    expect(left[0].kind).toBe('leave');
   });
 });
 

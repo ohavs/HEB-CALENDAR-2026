@@ -1,5 +1,9 @@
 /**
- * התראות הגעה ויציאה ממקום שמור.
+ * התראות מבוססות מיקום לאירועים.
+ *
+ * ההתראה שייכת לאירוע ולא למקום: המקום אומר *איפה*, והאירוע אומר *על
+ * מה* ו*מתי*. קודם הדגלים ישבו על המקום עצמו, וכך אי אפשר היה להבחין
+ * בין שתי תזכורות שונות באותו בית.
  *
  * המימוש עוקב אחרי מיקום המכשיר ומשווה אותו למקומות השמורים. לכל מקום
  * נשמר מצב אחרון (בפנים/בחוץ), ורק מעבר בין המצבים מפעיל התראה - כך
@@ -9,7 +13,9 @@
  * גאו-פנסינג אמיתי ברקע יגיע עם אפליקציית האנדרואיד; כל הלוגיקה כאן
  * (הסף, ההיסטרזיס, ניסוח ההתראה) תישאר כמות שהיא.
  */
-import type { SavedPlace } from '@/types';
+import type { PlaceTrigger, SavedPlace } from '@/types';
+import type { Occurrence } from './recurrence';
+import { dateKey } from './dates';
 
 /** שוליים סביב הרדיוס, כדי שלא יהיו התראות כפולות על הגבול */
 const HYSTERESIS_M = 40;
@@ -17,11 +23,17 @@ const HYSTERESIS_M = 40;
 const MAX_ACCURACY_M = 120;
 /** מרווח מינימלי בין שתי התראות של אותו מקום */
 const COOLDOWN_MS = 5 * 60 * 1000;
+/** כמה התראות שכבר נורו לזכור, כדי שהמצב לא יתפח בלי גבול */
+const FIRED_MEMORY = 60;
 
 const STATE_KEY = 'heb-cal:place-state';
 
 type PlaceState = { inside: boolean; lastNotifiedAt: number };
-type StateMap = Record<string, PlaceState>;
+/**
+ * מצב לכל מקום, ובנוסף `fired` - רשימת ההתראות שכבר נשלחו. בלעדיה
+ * יציאה וכניסה חוזרת באותו יום היו יורות את אותה תזכורת שוב.
+ */
+type StateMap = Record<string, PlaceState> & { fired?: string[] };
 
 function loadState(): StateMap {
   try {
@@ -58,27 +70,57 @@ export function distanceMeters(
 
 export type GeofenceEvent = {
   place: SavedPlace;
-  kind: 'arrive' | 'leave';
+  kind: PlaceTrigger;
+  /** האירוע שביקש את ההתראה */
+  occurrence: Occurrence;
   title: string;
   body: string;
 };
 
 /**
- * משווה מיקום למקומות השמורים ומחזיר את המעברים שיש להתריע עליהם.
- * פונקציה טהורה למעט קריאה וכתיבה של המצב האחרון, כדי שיהיה קל לבדוק אותה.
+ * האם התראת המיקום של המופע דרוכה עכשיו.
+ *
+ * בלי חלון זמן, "תזכיר לי כשאגיע הביתה" היה יורה בכל פעם שנכנסים הביתה,
+ * לנצח. החלון הוא יום האירוע: מתחילתו ועד סופו. באירוע רב־יומי דרוך רק
+ * היום הראשון, בדיוק כמו בתזכורת רגילה.
+ */
+export function isTriggerArmed(occurrence: Occurrence, now: Date): boolean {
+  if (!occurrence.placeId || !occurrence.placeTrigger) return false;
+  if (occurrence.spanIndex > 0) return false;
+  return occurrence.date === dateKey(now);
+}
+
+/** מזהה ייחודי להתראה שכבר נורתה, כדי לא לחזור עליה באותו יום. */
+function firedKey(occurrence: Occurrence, kind: PlaceTrigger): string {
+  return `${occurrence.occurrenceId}|${occurrence.date}|${kind}`;
+}
+
+/**
+ * משווה מיקום למקומות השמורים ומחזיר את ההתראות שיש לשלוח.
+ *
+ * ההתראה שייכת לאירוע ולא למקום: המקום רק אומר *איפה*, והאירוע אומר
+ * *על מה* ו*מתי*. כך שתי תזכורות שונות באותו מקום הן שני דברים שונים,
+ * ולא דגל אחד משותף.
+ *
+ * פונקציה טהורה למעט קריאה וכתיבה של המצב האחרון, כדי שיהיה קל לבדוק.
  */
 export function evaluatePosition(
   places: SavedPlace[],
+  occurrences: Occurrence[],
   coords: { latitude: number; longitude: number; accuracy?: number },
   now = Date.now(),
 ): GeofenceEvent[] {
   if (coords.accuracy !== undefined && coords.accuracy > MAX_ACCURACY_M) return [];
 
   const state = loadState();
+  const armed = occurrences.filter((o) => isTriggerArmed(o, new Date(now)));
   const events: GeofenceEvent[] = [];
 
   for (const place of places) {
-    if (!place.notifyOnArrive && !place.notifyOnLeave) continue;
+    // מקום שאף אירוע דרוך לא מצביע עליו אינו מעניין, וגם לא צריך לעקוב
+    // אחרי המצב שלו
+    const waiting = armed.filter((o) => o.placeId === place.id);
+    if (!waiting.length) continue;
 
     const distance = distanceMeters(
       coords.latitude,
@@ -93,16 +135,26 @@ export function evaluatePosition(
       : distance <= place.radius;
 
     if (previous && previous.inside !== inside) {
-      const kind = inside ? 'arrive' : 'leave';
-      const wanted = inside ? place.notifyOnArrive : place.notifyOnLeave;
+      const kind: PlaceTrigger = inside ? 'arrive' : 'leave';
       const cooled = now - (previous.lastNotifiedAt ?? 0) > COOLDOWN_MS;
-      if (wanted && cooled) {
-        events.push({
-          place,
-          kind,
-          title: inside ? `הגעת ל${place.name}` : `יצאת מ${place.name}`,
-          body: place.message?.trim() || (inside ? 'ברוך הבא' : 'נסיעה טובה'),
-        });
+      const matching = waiting.filter(
+        (o) => o.placeTrigger === kind && !state.fired?.includes(firedKey(o, kind)),
+      );
+
+      if (matching.length && cooled) {
+        for (const occurrence of matching) {
+          events.push({
+            place,
+            kind,
+            occurrence,
+            title: occurrence.title,
+            body: inside ? `הגעת ל${place.name}` : `יצאת מ${place.name}`,
+          });
+        }
+        state.fired = [
+          ...(state.fired ?? []),
+          ...matching.map((o) => firedKey(o, kind)),
+        ].slice(-FIRED_MEMORY);
         state[place.id] = { inside, lastNotifiedAt: now };
         continue;
       }
@@ -123,12 +175,15 @@ let watchId: number | null = null;
 
 export type GeofenceWatchOptions = {
   getPlaces: () => SavedPlace[];
+  /** המופעים של היום, שמהם נגזרות ההתראות הדרוכות */
+  getOccurrences: () => Occurrence[];
   onEvents: (events: GeofenceEvent[]) => void;
 };
 
 /** מתחיל מעקב מיקום. מחזיר פונקציית עצירה. */
 export function startGeofenceWatch({
   getPlaces,
+  getOccurrences,
   onEvents,
 }: GeofenceWatchOptions): () => void {
   if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
@@ -140,7 +195,7 @@ export function startGeofenceWatch({
     (pos) => {
       const places = getPlaces();
       if (!places.length) return;
-      const events = evaluatePosition(places, pos.coords);
+      const events = evaluatePosition(places, getOccurrences(), pos.coords);
       if (events.length) onEvents(events);
     },
     () => {

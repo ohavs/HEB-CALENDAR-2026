@@ -22,14 +22,17 @@ service cloud.firestore {
         // אחד לא יוכל לתפוח בלי גבול.
         && (!('placeId' in d) || d.placeId == null
             || (d.placeId is string && d.placeId.size() <= 64))
+        && (!('placeTrigger' in d) || d.placeTrigger == null
+            || d.placeTrigger in ['arrive', 'leave'])
         && (!('endDate' in d) || d.endDate == null
             || (d.endDate is string && d.endDate.size() == 10))
         && (!('exceptions' in d) || d.exceptions == null
             || (d.exceptions is map && d.exceptions.keys().size() <= 400))
         && d.keys().hasOnly([
              'title', 'date', 'endDate', 'startTime', 'endTime', 'allDay',
-             'location', 'placeId', 'notes', 'color', 'reminderMinutes',
-             'repeat', 'exceptions', 'createdAt', 'updatedAt', 'deleted'
+             'location', 'placeId', 'placeTrigger', 'notes', 'color',
+             'reminderMinutes', 'repeat', 'exceptions', 'createdAt',
+             'updatedAt', 'deleted'
            ]);
     }
 
