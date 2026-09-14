@@ -201,9 +201,20 @@ let socialReady: Promise<void> | null = null;
  */
 export async function nativeGoogleIdToken(webClientId: string): Promise<string> {
   const { SocialLogin } = await import('@capgo/capacitor-social-login');
-  socialReady ??= SocialLogin.initialize({ google: { webClientId } });
+  // אתחול כושל לא נשמר: אחרת ניסיון אחד שנפל היה נועל את ההתחברות עד
+  // הפעלה מחדש של האפליקציה
+  socialReady ??= SocialLogin.initialize({ google: { webClientId } }).catch((e: unknown) => {
+    socialReady = null;
+    throw e;
+  });
   await socialReady;
-  const res = await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
+  /*
+    בלי scopes במפורש. הפלאגין מבקש ממילא email, profile ו-openid, וכל
+    scope מפורש - גם אם הוא אחד מהם - מפעיל בצד אנדרואיד מסלול הרשאות
+    אחר שדורש לרשת את MainActivity. זו הייתה השגיאה "You CANNOT use
+    scopes without modifying the main activity".
+  */
+  const res = await SocialLogin.login({ provider: 'google', options: {} });
   const result = res.result as { idToken?: string | null };
   if (!result?.idToken) throw new Error('google-no-id-token');
   return result.idToken;
