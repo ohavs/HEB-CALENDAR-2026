@@ -11,6 +11,7 @@
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import { isNative } from './native';
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
@@ -47,6 +48,9 @@ export function getFirebase(): Promise<Services> {
 
 /** אנליטיקס - רק בפרודקשן וכשיש measurementId. נכשל בשקט. */
 export async function initAnalytics(): Promise<void> {
+  // אנליטיקס של web מודד ביקורי דפים. באפליקציה אין דפים, והמדידה לא
+  // הייתה מתארת שום דבר אמיתי - בתמורה לחבילה שנטענת ולבקשות רשת.
+  if (isNative()) return;
   if (!isFirebaseConfigured || !config.measurementId || !import.meta.env.PROD) return;
   try {
     const { app } = await getFirebase();

@@ -34,6 +34,7 @@ import {
   type UpdateInfo,
 } from '@/lib/appUpdate';
 import { UpdateSheet } from '@/components/UpdateSheet';
+import { WelcomeSheet, markWelcomeSeen, welcomeSeen } from '@/components/WelcomeSheet';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
@@ -112,6 +113,29 @@ export default function App() {
     // באנדרואיד גם שורת הסטטוס צריכה להתהפך, אחרת היא נשארת בהירה על כהה
     void paintNativeChrome(document.documentElement.classList.contains('dark'));
   }, [settings.theme]);
+
+  /* --------------------------- מסך פתיחה --------------------------- */
+  /*
+    נשאל פעם אחת, ורק למי שעוד לא התחבר: בלי חשבון כל הלוח חי באחסון
+    שאנדרואיד רשאי למחוק. ההשהיה קצרה בכוונה - שהאפליקציה תצייר קודם,
+    ולא תיפתח על גיליון.
+  */
+  const [welcome, setWelcome] = useState(false);
+  useEffect(() => {
+    if (welcomeSeen() || wasSignedIn()) return;
+    const timer = setTimeout(() => setWelcome(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const closeWelcome = useCallback(() => {
+    markWelcomeSeen();
+    setWelcome(false);
+  }, []);
+
+  // התחברות מוצלחת סוגרת את המסך מעצמה
+  useEffect(() => {
+    if (authUser && welcome) closeWelcome();
+  }, [authUser, welcome, closeWelcome]);
 
   /* -------------------------- אתחול נייטיבי -------------------------- */
   // מצב ההרשאה באנדרואיד נקרא אסינכרונית; הדגל הזה מרנדר מחדש אחרי שהוא ידוע
@@ -505,6 +529,8 @@ export default function App() {
         seriesLabel="את כל הסדרה"
         seriesHint="כל המופעים יזוזו באותו הפרש"
       />
+
+      <WelcomeSheet open={welcome} onClose={closeWelcome} />
 
       <UpdateSheet
         update={update}
