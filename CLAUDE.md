@@ -13,6 +13,9 @@ npm run lint        # eslint
 npm run typecheck   # tsc -b --noEmit
 npm run build       # typecheck + build לייצור
 PREVIEW_BUILD=1 npm run build   # בלי service worker ובלי manifest
+
+npm run icons:android   # משאבים גרפיים לאנדרואיד
+npm run android:sync    # build + npx cap sync android
 ```
 
 `npm run lint`, `npm test` ו-`npm run build` רצים בפריסה. מה שנשבר לא
@@ -110,27 +113,38 @@ d.toISOString().slice(0, 10)   // ✗ יזוז ביום שלם בערב
 במקלדת (Alt+חיצים). פעולה שמשנה את המסך בלי להזיז את המיקוד מדווחת דרך
 `announce()` ב-`src/lib/announce.ts`.
 
-## התפרים להמרה לאנדרואיד
+## אנדרואיד
 
-שלוש נקודות שהעבודה על אנדרואיד נוגעת בהן, וכולן מבודדות בכוונה:
+האפליקציה נארזת ל-APK דרך Capacitor, וה-WebView טוען את אותו `dist` שהאתר
+טוען. אין גרסה שנייה של הקוד.
 
-| מה | איפה | מה צריך להחליף |
+**כל מה שנוגע למערכת ההפעלה עובר דרך `src/lib/native.ts`, ורק דרכו.**
+אין בקובץ הזה ייבוא סטטי של אף פלאגין: `isNative()` בודק את הגשר
+שקפסיטור מזריק ל-window, וכל פלאגין נטען ב-import דינמי רק אחרי תשובה
+חיובית. זה מה ששומר על `src/lib` טהור ועל הבדיקות רצות ב-node. פלאגין
+שייובא סטטית באחד מקבצי הלוגיקה ישבור את שניהם.
+
+| מה | בדפדפן | באנדרואיד |
 |---|---|---|
-| תזכורות | `buildReminders()` ב-`src/lib/notifications.ts` | רק שכבת ההצגה. החישוב טהור, מחזיר 30 יום מראש, ויש לו 26 בדיקות. |
-| גדר גאוגרפית | `evaluatePosition()` ב-`src/lib/geofence.ts` | כלום בלוגיקה. רדיוס, היסטרזיס וזמן צינון עוברים כמות שהם; רק מקור המיקום משתנה. |
-| נתוני וידג׳ט | `buildDay()`, `upcomingShabbatot()` ב-`src/lib/hebrew.ts` | כלום. קוראים מהם ישירות. |
+| תזכורות | טיימרים בדף + service worker | `scheduleNativeReminders()` - התראות מקומיות |
+| מיקום | `navigator.geolocation` | `@capacitor/geolocation` |
+| התחברות | `signInWithPopup` | Credential Manager עם idToken |
+| כפתור החזרה | היסטוריית הדפדפן | אותה היסטוריה (`overlayHistory.ts`) |
 
-בנוסף:
+`buildReminders()`, `evaluatePosition()` ו-`buildDay()` לא ידעו על השינוי
+הזה בכלל - הם היו טהורים מלכתחילה, וזה מה שאיפשר את ההחלפה הנקודתית.
 
-- **כפתור החזרה** כבר מטופל דרך `src/lib/overlayHistory.ts`. כל שכבה
-  דוחפת רשומה להיסטוריה, וחזרה סוגרת את העליונה. אין צורך ב-listener
-  נפרד של Capacitor.
-- **קישורים עמוקים וקיצורי דרך** נקראים ב-`src/lib/launchParams.ts`.
-  Capacitor טוען את אותו `index.html` עם אותה שאילתה, ולכן כוונה חיצונית
-  תגיע לאותו קוד.
-- **התחברות גוגל** היא הדבר היחיד שידרוש החלפה אמיתית: `signInWithPopup`
-  לא עובד ב-WebView וצריך את הפלאגין המקורי.
-- `webDir` ל-Capacitor הוא `dist`.
+דברים שקל לשכוח:
+
+- **מזהה החבילה הוא `com.ohav.hebcal`.** שינוי שלו מנתק את החתימה ואת
+  רישום OAuth של גוגל, ומחייב התקנה מאפס.
+- **מפתח החתימה לעולם לא במאגר.** הוא מגיע מסוד ב-Actions, וה-CI כותב
+  אותו מחוץ לעץ העבודה. בלעדיו הבנייה עדיין עוברת, בחתימת דיבאג.
+- **המשאבים הגרפיים נוצרים, לא נערכים ידנית.** `npm run icons:android`
+  גוזר אותם מ-`scripts/logo.mjs`. אייקון ההתראה חייב להיות לבן על שקוף,
+  כי אנדרואיד צובע אותו בעצמו.
+- **הבנייה לאנדרואיד היא `PREVIEW_BUILD=1`** - בלי service worker. בתוך
+  WebView הוא רק היה מחזיק גרסה ישנה במטמון.
 
 ## אבטחה
 
