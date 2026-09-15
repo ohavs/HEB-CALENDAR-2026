@@ -59,5 +59,137 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
     }
+
+    /* ====================================================================
+       רשימות משותפות
+       ====================================================================
+
+       זה הנתיב היחיד במסד שחוצה משתמשים, ולכן הוא הנתיב היחיד שבו טעות
+       מדליפה נתונים בין חשבונות. שני מנגנונים שומרים עליו:
+
+       1. חברות מפורשת. `memberUids` על מסמך הרשימה הוא מקור האמת, וכל
+          קריאה או כתיבה - גם לפריטים שבתוכה - נבדקת מולו.
+
+       2. הצטרפות דורשת הזמנה קיימת. הכלל אינו יכול לחפש מסמך, רק לבדוק
+          קיום של נתיב ידוע, ולכן מזהה ההזמנה נגזר מהרשימה ומהאימייל
+          שבטוקן: `<listId>__<email>`. מי שאין לו הזמנה בשמו אינו יכול
+          להוסיף את עצמו, גם אם השיג את מזהה הרשימה.
+    */
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return signedIn() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    function listData(listId) {
+      return get(/databases/$(database)/documents/lists/$(listId)).data;
+    }
+
+    function memberOf(listId) {
+      return signedIn() && request.auth.uid in listData(listId).memberUids;
+    }
+
+    /** האם קיימת הזמנה בשמי לרשימה הזו */
+    function invitedTo(listId) {
+      return myEmail() != ''
+        && exists(/databases/$(database)/documents/invites/$(listId + '__' + myEmail()));
+    }
+
+    function validList(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.ownerUid is string
+        && d.memberUids is list && d.memberUids.size() <= 25
+        && d.members is map && d.members.keys().size() <= 25
+        && d.categories is list && d.categories.size() <= 30
+        && d.createdAt is number && d.updatedAt is number
+        && d.keys().hasOnly([
+             'name', 'color', 'ownerUid', 'memberUids', 'members',
+             'categories', 'createdAt', 'updatedAt'
+           ]);
+    }
+
+    /*
+      הצטרפות: מותר להוסיף אך ורק את עצמי, ורק לשדות החברות. כל שינוי
+      אחר באותה כתיבה - שם, בעלים, קטגוריות - פוסל אותה. בלי ההגבלה הזו
+      מוזמן היה יכול, באותה פעולה, למנות את עצמו לבעלים.
+    */
+    function joiningSelf(listId) {
+      return invitedTo(listId)
+        && !(request.auth.uid in resource.data.memberUids)
+        && request.resource.data.memberUids.hasAll(resource.data.memberUids)
+        && request.resource.data.memberUids.hasOnly(
+             resource.data.memberUids.concat([request.auth.uid]))
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['memberUids', 'members', 'updatedAt']);
+    }
+
+    /* עזיבה: הסרת עצמי בלבד, ורק אם איני הבעלים */
+    function leavingSelf() {
+      return signedIn()
+        && request.auth.uid in resource.data.memberUids
+        && request.auth.uid != resource.data.ownerUid
+        && !(request.auth.uid in request.resource.data.memberUids)
+        && resource.data.memberUids.hasAll(request.resource.data.memberUids)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['memberUids', 'members', 'updatedAt']);
+    }
+
+    match /lists/{listId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      // יוצר הרשימה הוא הבעלים והחבר היחיד בה
+      allow create: if signedIn()
+        && validList(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+
+      allow update: if validList(request.resource.data)
+        && (
+          // חבר קיים: הכול חוץ מהחלפת בעלים ומהוספת אחרים בכוח
+          (signedIn()
+            && request.auth.uid in resource.data.memberUids
+            && request.resource.data.ownerUid == resource.data.ownerUid
+            && (request.auth.uid == resource.data.ownerUid
+                || request.resource.data.memberUids == resource.data.memberUids))
+          || joiningSelf(listId)
+          || leavingSelf()
+        );
+
+      allow delete: if signedIn() && request.auth.uid == resource.data.ownerUid;
+
+      match /items/{itemId} {
+        allow read, write: if memberOf(listId);
+      }
+    }
+
+    /*
+      הזמנות. הנמען קורא רק את שלו - וגם שאילתה חייבת להיות מסוננת
+      לפיו, אחרת Firestore דוחה אותה כולה ולא רק את השורות החורגות.
+    */
+    match /invites/{inviteId} {
+      allow read, delete: if signedIn()
+        && (resource.data.toEmail == myEmail() || resource.data.fromUid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toEmail is string
+        && request.resource.data.toEmail == request.resource.data.toEmail.lower()
+        && request.resource.data.toEmail != myEmail()
+        && inviteId == request.resource.data.listId + '__' + request.resource.data.toEmail
+        && memberOf(request.resource.data.listId)
+        && request.resource.data.keys().hasOnly([
+             'listId', 'listName', 'fromUid', 'fromName', 'toEmail', 'createdAt'
+           ]);
+
+      // הזמנה אינה משתנה - מזמינים מחדש או מוחקים
+      allow update: if false;
+    }
   }
 }

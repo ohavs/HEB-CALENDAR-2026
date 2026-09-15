@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test:rules": "node scripts/rules-check.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
