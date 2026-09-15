@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Moon, Sunset } from 'lucide-react';
 import { upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
-import { dayTitleLabel, startOfDay, weekdayDateLabel } from '@/lib/dates';
+import { GREG_MONTHS_HE, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
 import { ICON, STROKE } from '@/lib/motion';
@@ -22,6 +22,23 @@ function countdownLabel(entry: ShabbatEntry, now = Date.now()): string {
   if (days === 1) return 'מחר';
   if (days === 2) return 'בעוד יומיים';
   return `בעוד ${days} ימים`;
+}
+
+/**
+ * "18-19 בספטמבר", או "30 בספטמבר - 1 באוקטובר" כשהחודש מתחלף.
+ *
+ * ברשימה של שמונה שורות התאריך הוא מה שמפריד ביניהן, ולכן הוא קצר
+ * ומודגש: "יום שישי, 18 בספטמבר - שבת, 19 בספטמבר" נקרא כמשפט ולא
+ * כתאריך, וכל השורות נראו אותו דבר.
+ */
+function rangeLabel(start: Date, end: Date): string {
+  const day = (d: Date) => d.getDate();
+  const month = (d: Date) => GREG_MONTHS_HE[d.getMonth()];
+  if (start.getTime() === end.getTime()) return `${day(start)} ב${month(start)}`;
+  if (start.getMonth() === end.getMonth()) {
+    return `${day(start)}–${day(end)} ב${month(start)}`;
+  }
+  return `${day(start)} ב${month(start)} – ${day(end)} ב${month(end)}`;
 }
 
 export function ShabbatScreen({
@@ -76,49 +93,54 @@ export function ShabbatScreen({
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="mb-5 overflow-hidden rounded-3xl bg-surface shadow-raised"
         >
-          <div className="bg-brand px-6 pb-5 pt-5 text-white">
-            <p className="text-caption opacity-85">
-              {next.isHoliday ? 'החג הקרוב' : 'השבת הקרובה'}
-            </p>
-            <h2 className="mt-1 text-heading font-semibold leading-tight">{next.title}</h2>
-            <p className="mt-2 text-caption opacity-85">
-              {dayTitleLabel(next.startDate)}
-              {next.candles ? ` · ${countdownLabel(next)}` : ''}
-            </p>
+          {/*
+            שם הפרשה ירד לשורה אחת בראש הכרטיס. מה שמחפשים כאן הוא שתי
+            שעות, והן מקבלות את הגובה: המסך הזה נפתח ביום שישי אחר הצהריים
+            כדי לענות על שאלה אחת.
+          */}
+          <div className="flex items-baseline gap-2 bg-brand px-6 pb-3.5 pt-4 text-white">
+            <h2 className="min-w-0 flex-1 truncate text-label font-semibold leading-tight">
+              {next.title}
+            </h2>
+            <span className="shrink-0 text-caption opacity-85">
+              {next.candles ? countdownLabel(next) : ''}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 divide-x divide-x-reverse divide-hairline">
-            <div className="px-6 py-5">
-              <p className="flex items-center gap-2 text-caption text-muted">
+            <div className="px-5 py-6 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
                 <Sunset size={ICON.sm} strokeWidth={STROKE} className="text-[rgb(var(--c-shabbat))]" />
                 הדלקת נרות
               </p>
-              <p className="tnum mt-2 text-display font-semibold leading-none text-ink">
+              <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
                 {next.candles?.time ?? '—'}
               </p>
+              <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.startDate)}</p>
             </div>
-            <div className="px-6 py-5">
-              <p className="flex items-center gap-2 text-caption text-muted">
+            <div className="px-5 py-6 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
                 <Moon size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
-                יציאה / הבדלה
+                צאת השבת
               </p>
-              <p className="tnum mt-2 text-display font-semibold leading-none text-ink">
+              <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
                 {next.havdalah?.time ?? '—'}
               </p>
+              <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.endDate)}</p>
             </div>
           </div>
 
-          {(next.parsha || next.holidays.length > 0) && (
-            <div className="flex flex-wrap gap-2 border-t border-hairline px-6 py-4">
-              {next.parsha && (
-                <span className="rounded-xl bg-brand-soft px-3.5 py-2 text-caption font-medium text-brand-ink">
-                  פרשת {next.parsha}
-                </span>
-              )}
+          {/*
+            צ׳יפ הפרשה ירד: הכותרת כבר אומרת "שבת פרשת האזינו", והצ׳יפ
+            חזר על אותן מילים בשורה נפרדת. מה שנשאר הוא מה שהכותרת לא
+            אומרת - שבת שובה, חול המועד וכדומה.
+          */}
+          {next.holidays.length > 0 && (
+            <div className="flex flex-wrap gap-2 border-t border-hairline px-5 py-3">
               {next.holidays.map((h) => (
                 <span
                   key={h}
-                  className="rounded-xl bg-well px-3.5 py-2 text-caption font-medium text-muted"
+                  className="rounded-lg bg-well px-3 py-1.5 text-caption font-medium text-muted"
                 >
                   {h}
                 </span>
@@ -142,13 +164,11 @@ export function ShabbatScreen({
             className="flex items-center gap-4 px-5 py-4"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-body font-medium text-ink">{entry.title}</p>
-              <p className="mt-1 truncate text-caption text-muted">
-                {dayTitleLabel(entry.startDate)}
-                {entry.endKey !== entry.startKey
-                  ? ` – ${weekdayDateLabel(entry.endDate)}`
-                  : ''}
+              {/* התאריך קודם ומודגש: ברשימה של שמונה שורות הוא מה שמפריד ביניהן */}
+              <p className="truncate text-caption font-semibold text-ink">
+                {rangeLabel(entry.startDate, entry.endDate)}
               </p>
+              <p className="mt-0.5 truncate text-caption text-muted">{entry.title}</p>
             </div>
             {/*
               אותם שני אייקונים של הכרטיס העליון. בלעדיהם שני הזמנים
@@ -156,22 +176,22 @@ export function ShabbatScreen({
             */}
             <div className="shrink-0 text-left">
               <p className="flex items-center justify-end gap-1.5">
-                <span className="tnum text-title font-semibold leading-tight text-ink">
+                <span className="tnum text-title font-bold leading-tight text-ink">
                   {entry.candles?.time ?? '—'}
                 </span>
                 <Sunset
-                  size={ICON.xs}
+                  size={ICON.sm}
                   strokeWidth={STROKE}
                   className="text-[rgb(var(--c-shabbat))]"
                   aria-label="הדלקת נרות"
                 />
               </p>
-              <p className="mt-0.5 flex items-center justify-end gap-1.5">
-                <span className="tnum text-caption leading-tight text-muted">
+              <p className="mt-1 flex items-center justify-end gap-1.5">
+                <span className="tnum text-label font-semibold leading-tight text-muted">
                   {entry.havdalah?.time ?? '—'}
                 </span>
                 <Moon
-                  size={ICON.xs}
+                  size={ICON.sm}
                   strokeWidth={STROKE}
                   className="text-brand"
                   aria-label="יציאה והבדלה"

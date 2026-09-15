@@ -11,7 +11,7 @@
  * המנוע - וזה מה שמאפשר לגרור פריט אל מחוץ ללוח ובחזרה אליו.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
 import type { DateKey, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
@@ -24,7 +24,7 @@ import { beginLongPress, useDragActive, useIsDropTarget } from '@/lib/dragEngine
 import { DatePickerSheet } from './ui/Picker';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 
 /** מה הכפתור מציע כברירת מחדל: היום, מחר, או בלי תאריך */
 type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
@@ -56,6 +56,8 @@ export function RemindersScreen({
   const [slot, setSlot] = useState<Slot>('none');
   const [picked, setPicked] = useState<DateKey | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** יש מה להוסיף: רק אז נפתחות אפשרויות התאריך והכפתור */
+  const composing = title.trim().length > 0;
 
   useEffect(() => {
     if (composeOnMount) document.getElementById('reminder-input')?.focus();
@@ -101,8 +103,13 @@ export function RemindersScreen({
       </header>
 
       {/* ------------------------------ הוספה ------------------------------ */}
-      <div className="rounded-3xl bg-surface p-3 shadow-raised">
-        <div className="flex items-center gap-2.5">
+      {/*
+        במנוחה זו שורה אחת נקייה. אפשרויות התאריך נפתחות רק כשיש מה
+        לשייך: קודם הן ישבו שם תמיד, ארבע גלולות ברוחב משתנה מתחת לשדה
+        ריק, ולקחו שליש מגובה הכרטיס כדי לענות על שאלה שאיש לא שאל.
+      */}
+      <div className="overflow-hidden rounded-2xl bg-surface shadow-raised">
+        <div className="flex items-center gap-2 ps-4 pe-2">
           <input
             id="reminder-input"
             type="text"
@@ -110,51 +117,71 @@ export function RemindersScreen({
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             placeholder="מה צריך לזכור?"
-            className="field-reset flex-1 bg-transparent px-2 py-2.5 text-body text-ink placeholder:text-faint"
+            className="field-reset min-w-0 flex-1 bg-transparent py-4 text-body text-ink placeholder:text-faint"
           />
-          <motion.button
-            type="button"
-            onClick={submit}
-            disabled={!title.trim()}
-            whileTap={{ scale: 0.94 }}
-            transition={TAP}
-            aria-label="הוספת תזכורת"
-            className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-raised disabled:opacity-40"
-          >
-            <Plus size={ICON.lg} strokeWidth={2.4} />
-          </motion.button>
+          <AnimatePresence initial={false}>
+            {composing && (
+              <motion.button
+                type="button"
+                onClick={submit}
+                initial={{ opacity: 0, scale: 0.6, width: 0 }}
+                animate={{ opacity: 1, scale: 1, width: 36 }}
+                exit={{ opacity: 0, scale: 0.6, width: 0 }}
+                whileTap={{ scale: 0.9 }}
+                transition={SNAP}
+                aria-label="הוספת תזכורת"
+                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white"
+              >
+                <Plus size={ICON.md} strokeWidth={2.6} />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="mt-1 flex flex-wrap gap-1.5 px-1">
-          {(
-            [
-              ['none', 'בלי תאריך'],
-              ['today', 'היום'],
-              ['tomorrow', 'מחר'],
-            ] as const
-          ).map(([id, label]) => (
+        <motion.div
+          initial={false}
+          animate={{ height: composing ? 'auto' : 0, opacity: composing ? 1 : 0 }}
+          transition={{ height: GLIDE, opacity: composing ? ENTER : EXIT }}
+          className="overflow-hidden"
+          aria-hidden={!composing}
+        >
+          <div className="flex items-center gap-1.5 border-t border-hairline px-2.5 py-2">
+            {(
+              [
+                ['none', 'בלי תאריך'],
+                ['today', 'היום'],
+                ['tomorrow', 'מחר'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  void haptic('light');
+                  setSlot(id);
+                }}
+                aria-pressed={slot === id}
+                className={`focus-ring flex-1 whitespace-nowrap rounded-lg py-1.5 text-caption font-medium transition-colors ${
+                  slot === id ? 'bg-brand text-white' : 'bg-well text-muted'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
             <button
-              key={id}
               type="button"
-              onClick={() => setSlot(id)}
-              className={`focus-ring rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-                slot === id ? 'bg-brand-soft text-brand-ink' : 'bg-well text-muted'
+              onClick={() => setPickerOpen(true)}
+              aria-pressed={slot === 'pick'}
+              aria-label="בחירת תאריך"
+              className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption font-medium transition-colors ${
+                slot === 'pick' ? 'bg-brand text-white' : 'bg-well text-muted'
               }`}
             >
-              {label}
+              <CalendarPlus size={ICON.xs} strokeWidth={STROKE} />
+              {slot === 'pick' && picked ? relativeShort(picked) : ''}
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className={`focus-ring flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-              slot === 'pick' ? 'bg-brand-soft text-brand-ink' : 'bg-well text-muted'
-            }`}
-          >
-            <CalendarPlus size={ICON.xs} strokeWidth={STROKE} />
-            {slot === 'pick' && picked ? relativeShort(picked) : 'תאריך'}
-          </button>
-        </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* ------------------------------ הרשימה ------------------------------ */}

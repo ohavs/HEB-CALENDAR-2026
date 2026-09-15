@@ -119,25 +119,46 @@ export function SettingsGroup({
     <section className="mb-7">
       {title &&
         (collapsible ? (
-          <button
+          /*
+            קבוצה סגורה הופכת בעצמה לכרטיס - אותו משטח, אותו רדיוס ואותו
+            צל של שורות ההגדרה. קודם היא הייתה כיתוב זעיר וחץ שמרחפים על
+            הקנבס, ומסך עם שמונה כאלה נראה כמו רשימה שלא נגמרה לטעון.
+            פתוחה היא חוזרת להיות תווית שקטה מעל הכרטיס.
+          */
+          <motion.button
             type="button"
             onClick={toggle}
             aria-expanded={!collapsed}
             aria-controls={panelId}
-            className="focus-ring -mx-1 mb-2.5 flex items-center gap-1 rounded-xl px-3 py-1 text-right"
+            initial={false}
+            animate={{
+              paddingTop: collapsed ? 16 : 4,
+              paddingBottom: collapsed ? 16 : 4,
+              paddingInline: collapsed ? 20 : 8,
+            }}
+            transition={SNAP}
+            className={`focus-ring mb-2.5 flex w-full items-center gap-2 rounded-3xl text-right transition-[background-color,box-shadow] duration-200 ${
+              collapsed ? 'bg-surface shadow-raised' : ''
+            }`}
           >
-            <span className="text-caption font-semibold uppercase tracking-wide text-faint">
+            <span
+              className={`flex-1 transition-colors ${
+                collapsed
+                  ? 'text-label font-medium text-ink'
+                  : 'text-caption font-semibold uppercase tracking-wide text-faint'
+              }`}
+            >
               {title}
             </span>
             <motion.span
-              className="text-faint"
+              className={collapsed ? 'text-muted' : 'text-faint'}
               initial={false}
               animate={{ rotate: collapsed ? 0 : 180 }}
               transition={SNAP}
             >
-              <ChevronDown size={ICON.sm} strokeWidth={STROKE} />
+              <ChevronDown size={collapsed ? ICON.md : ICON.sm} strokeWidth={STROKE} />
             </motion.span>
-          </button>
+          </motion.button>
         ) : (
           <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
             {title}
