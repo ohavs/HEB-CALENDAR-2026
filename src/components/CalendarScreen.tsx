@@ -32,7 +32,7 @@ import { CalendarHeader } from './CalendarHeader';
 import { MonthGrid, WeekdayHeader } from './MonthGrid';
 import { WeekView } from './WeekView';
 import { AgendaView } from './AgendaView';
-import { DockedDayPanel, EventsPanel } from './EventsPanel';
+import { DockedDayPanel, EventsPanel, type PanelDetent } from './EventsPanel';
 import { OfflineBar } from './OfflineBar';
 import { GLIDE } from '@/lib/motion';
 
@@ -67,8 +67,8 @@ export function CalendarScreen({
   onMonthChange,
   selectedDate,
   onSelectDate,
-  panelOpen,
-  onPanelOpenChange,
+  panelDetent,
+  onPanelDetentChange,
   onOpenDayView,
   onAddEvent,
   onEditEvent,
@@ -86,8 +86,8 @@ export function CalendarScreen({
   onMonthChange: (month: Date, direction: number) => void;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
-  panelOpen: boolean;
-  onPanelOpenChange: (open: boolean) => void;
+  panelDetent: PanelDetent;
+  onPanelDetentChange: (next: PanelDetent) => void;
   onOpenDayView: (date: Date) => void;
   onAddEvent: (date: DateKey) => void;
   onEditEvent: (occurrence: Occurrence) => void;
@@ -138,7 +138,14 @@ export function CalendarScreen({
     else if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(-1);
   };
 
-  /** לחיצה על יום: בחירה; לחיצה חוזרת על היום הנבחר פותחת תצוגת יום. */
+  /**
+   * לחיצה על יום: בחירה; לחיצה חוזרת על היום הנבחר פותחת תצוגת יום.
+   *
+   * יום שיש בו אירועים מרים גם את החלונית לעצירת הביניים, אם היא
+   * מקופלת. בלי זה "מה יש לי ביום הזה" עלה פעולה שנייה - גרירה, או
+   * הקשה נוספת שיוצאת מהלוח כולו. חלונית שכבר פתוחה נשארת כפי שהיא:
+   * דילוג בין ימים לא אמור להזיז אותה.
+   */
   const onSelectDay = useCallback(
     (day: DayInfo) => {
       if (day.key === selectedKey) {
@@ -150,8 +157,20 @@ export function CalendarScreen({
         const delta = day.date > month ? 1 : -1;
         onMonthChange(new Date(day.date.getFullYear(), day.date.getMonth(), 1), delta);
       }
+      if (panelDetent === 'peek' && (data.occurrences.get(day.key)?.length ?? 0) > 0) {
+        onPanelDetentChange('half');
+      }
     },
-    [selectedKey, onOpenDayView, onSelectDate, month, onMonthChange],
+    [
+      selectedKey,
+      onOpenDayView,
+      onSelectDate,
+      month,
+      onMonthChange,
+      panelDetent,
+      onPanelDetentChange,
+      data.occurrences,
+    ],
   );
 
   /** ניווט מקלדת: בוחר תאריך, ומחליף חודש אם צריך. */
@@ -297,8 +316,8 @@ export function CalendarScreen({
         <EventsPanel
           day={selectedDay}
           occurrences={selectedOccurrences}
-          open={panelOpen}
-          onOpenChange={onPanelOpenChange}
+          detent={panelDetent}
+          onDetentChange={onPanelDetentChange}
           onOpenDay={() => onOpenDayView(selectedDate)}
           onAddEvent={() => onAddEvent(selectedKey)}
           onEditEvent={onEditEvent}

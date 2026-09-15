@@ -39,6 +39,7 @@ import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
 import { CalendarScreen } from '@/components/CalendarScreen';
+import type { PanelDetent } from '@/components/EventsPanel';
 import { RemindersScreen } from '@/components/RemindersScreen';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
@@ -81,7 +82,7 @@ export default function App() {
     direction: 0,
   }));
   const [selectedDate, setSelectedDate] = useState<Date>(today);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelDetent, setPanelDetent] = useState<PanelDetent>('peek');
 
   const [dayViewDate, setDayViewDate] = useState<Date | null>(null);
   const [editor, setEditor] = useState<EditorState>({
@@ -430,8 +431,8 @@ export default function App() {
                 onMonthChange={goToMonth}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
-                panelOpen={panelOpen}
-                onPanelOpenChange={setPanelOpen}
+                panelDetent={panelDetent}
+                onPanelDetentChange={setPanelDetent}
                 onOpenDayView={setDayViewDate}
                 onAddEvent={openEditor}
                 onEditEvent={editOccurrence}

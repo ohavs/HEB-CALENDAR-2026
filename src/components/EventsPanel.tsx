@@ -36,10 +36,21 @@ import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
  * עבר לשורה אחת, והגובה שהתפנה חזר לשורות הרשת.
  */
 const PEEK_HEIGHT = 58;
-const SNAP_OFFSET = 70;
-const SNAP_VELOCITY = 420;
+/**
+ * עצירת הביניים: ידית + כשלושה כרטיסי אירוע, בלי לכסות את הרשת.
+ *
+ * זו העצירה שהקשה על יום מגיעה אליה. קודם היו שתי עצירות בלבד, ולכן
+ * "מה יש לי ביום הזה" - המסלול השכיח בלוח - עלה שתי פעולות: הקשה
+ * לבחירה, ואז גרירה או הקשה שנייה שיוצאת מהלוח למסך היום.
+ */
+const HALF_HEIGHT = 330;
+/** כמה מהמהירות נזקפת לכיוון שאליו המשתמש התכוון */
+const FLING_PROJECTION = 0.12;
 /** מרחק המשיכה שבו התוכן מגיע לשקיפות מלאה */
 const FADE_DISTANCE = 90;
+
+/** שלוש העצירות של החלונית, מלמטה למעלה. */
+export type PanelDetent = 'peek' | 'half' | 'full';
 
 type ContentProps = {
   day: DayInfo | undefined;
@@ -214,23 +225,24 @@ export function DockedDayPanel(props: ContentProps) {
 export function EventsPanel({
   day,
   occurrences,
-  open,
-  onOpenChange,
+  detent,
+  onDetentChange,
   onOpenDay,
   onAddEvent,
   onEditEvent,
   onMoveEvent,
   bottomInset,
 }: ContentProps & {
-  open: boolean;
-  onOpenChange: (next: boolean) => void;
+  detent: PanelDetent;
+  onDetentChange: (next: PanelDetent) => void;
   /** מרווח מלמטה, כדי שהחלונית תשב מעל סרגל הלשוניות */
   bottomInset: number;
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
   const controls = useDragControls();
+  const open = detent !== 'peek';
   // חלונית פתוחה היא מצב שאפשר לחזור ממנו, בדיוק כמו גיליון
-  useOverlayHistory(open, () => onOpenChange(false));
+  useOverlayHistory(open, () => onDetentChange('peek'));
   const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
 
   // שני ref-ים על אותו אלמנט: מדידת הגובה, ומאזיני המגע של המשיכה
@@ -243,6 +255,8 @@ export function EventsPanel({
   );
   const y = useMotionValue(0);
   const collapsedY = Math.max(0, height - PEEK_HEIGHT);
+  const halfY = Math.max(0, height - Math.min(HALF_HEIGHT, height));
+  const targetY = detent === 'full' ? 0 : detent === 'half' ? halfY : collapsedY;
 
   // שומרים את נקודת הקיפול ב-ref כדי שהטרנספורם יקרא ערך עדכני
   // בלי ליצור את עצמו מחדש בכל מדידה.
@@ -258,15 +272,23 @@ export function EventsPanel({
     return Math.min(1, Math.max(0, progress));
   });
 
+  /*
+    בסוף הגרירה נבחרת העצירה הקרובה ביותר למקום שאליו התנועה מכוונת,
+    ולא למקום שבו האצבע עזבה: זריקה מהירה כלפי מעלה מתכוונת לפתוח את
+    החלונית גם אם היא הספיקה לזוז 20px בלבד.
+  */
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (open) {
-      if (info.offset.y > SNAP_OFFSET || info.velocity.y > SNAP_VELOCITY) onOpenChange(false);
-      else onOpenChange(true);
-    } else if (info.offset.y < -SNAP_OFFSET || info.velocity.y < -SNAP_VELOCITY) {
-      onOpenChange(true);
-    } else {
-      onOpenChange(false);
+    const projected = y.get() + info.velocity.y * FLING_PROJECTION;
+    const stops: [PanelDetent, number][] = [
+      ['full', 0],
+      ['half', halfY],
+      ['peek', collapsedY],
+    ];
+    let best = stops[0];
+    for (const stop of stops) {
+      if (Math.abs(stop[1] - projected) < Math.abs(best[1] - projected)) best = stop;
     }
+    onDetentChange(best[0]);
   };
 
   return (
@@ -274,7 +296,7 @@ export function EventsPanel({
       ref={attachPanel}
       className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-overlay"
       style={{ y, bottom: bottomInset, willChange: 'transform' }}
-      animate={{ y: open ? 0 : collapsedY }}
+      animate={{ y: targetY }}
       transition={GLIDE}
       drag="y"
       dragListener={false}
@@ -287,7 +309,7 @@ export function EventsPanel({
       {/* ידית + סיכום - גם כפתור פתיחה וסגירה */}
       <button
         type="button"
-        onClick={() => onOpenChange(!open)}
+        onClick={() => onDetentChange(open ? 'peek' : 'half')}
         aria-label={open ? 'סגירת אירועי היום' : 'פתיחת אירועי היום'}
         aria-expanded={open}
         className="focus-ring-inset shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-2.5 text-right active:cursor-grabbing"
