@@ -112,12 +112,40 @@ jobs:
       # Blaze, וכשל שלה לא אמור למנוע מהאתר ומהכללים לעלות. היא נכשלת
       # ברעש ולא בשקט - פונקציה שלא נפרסה פירושה שאיש לא יקבל התראה על
       # הזמנה.
+      # האזור נקרא מהמסד ולא נכתב ביד.
+      #
+      # הוא חייב להתאים למיקום מסד הנתונים (טריגר Firestore עובר דרך
+      # Eventarc), ושתי פריסות נשרפו על ניחוש שגוי שלו. מקור האמת היחיד
+      # הוא המסד עצמו, אז שואלים אותו. vars.FUNCTION_REGION גובר, אם אי
+      # פעם יידרש משהו אחר.
+      - name: Resolve the function region from the database location
+        id: region
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          OVERRIDE: ${{ vars.FUNCTION_REGION }}
+        run: |
+          set -u
+          if [ -n "$OVERRIDE" ]; then
+            echo "region=$OVERRIDE" >> "$GITHUB_OUTPUT"
+            echo "אזור מתוך vars: $OVERRIDE"
+            exit 0
+          fi
+          raw=$(npx --yes firebase-tools@13 firestore:databases:get "(default)" --project "$FIREBASE_PROJECT_ID" --json 2>/dev/null || true)
+          loc=$(printf '%s' "$raw" | grep -o '"locationId"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+          case "$loc" in
+            eur3) region=europe-west1 ;;
+            nam5|nam7) region=us-central1 ;;
+            "") echo "::warning title=Unknown database location::לא הצלחנו לקרוא את מיקום המסד; נופלים ל-europe-west1"; region=europe-west1 ;;
+            *) region="$loc" ;;
+          esac
+          echo "מיקום המסד: ${loc:-לא ידוע} → אזור הפונקציה: $region"
+          echo "region=$region" >> "$GITHUB_OUTPUT"
+          echo "מיקום המסד \`${loc:-?}\` ← הפונקציה ב-\`$region\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Deploy the invite notification function
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          # חייב להתאים למיקום של מסד הנתונים - ראו functions/index.js.
-          # המסד יושב ב-europe-west3, ולכן גם הפונקציה.
-          FUNCTION_REGION: ${{ vars.FUNCTION_REGION || 'europe-west3' }}
+          FUNCTION_REGION: ${{ steps.region.outputs.region }}
         # --force: החלפת אזור משאירה את הפונקציה הישנה יתומה בפרויקט,
         # וה-CLI מסרב למחוק אותה במצב לא-אינטראקטיבי ונעצר. יש כאן
         # פונקציה אחת בלבד, ולכן "מה שאינו בקוד - יימחק" הוא בדיוק

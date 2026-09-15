@@ -36,10 +36,13 @@ import { getMessaging } from 'firebase-admin/messaging';
   באותו מיקום של המסד שהוא מאזין לו. מסד ב-eur3 ופונקציה ב-us-central1
   לא ייפרסו יחד, והכשל מגיע רק בסוף הפריסה.
 
-  זה משתנה סביבה ולא קבוע בקוד, כדי שהחלפת מיקום תהיה שינוי בהגדרות
-  ולא בקוד. ברירת המחדל היא europe-west3, כי שם יושב המסד.
+  ב-CI הערך אינו נכתב ביד אלא נקרא מהמסד עצמו - ראו את שלב
+  "Resolve the function region" ב-deploy.yml. ניחוש של המיקום כבר שרף
+  שתי פריסות, ולכן מקור האמת הוא המסד.
+
+  ברירת המחדל כאן משרתת רק פריסה ידנית מהמחשב, והיא מתאימה למסד ב-eur3.
 */
-setGlobalOptions({ region: process.env.FUNCTION_REGION || 'europe-west3' });
+setGlobalOptions({ region: process.env.FUNCTION_REGION || 'europe-west1' });
 
 initializeApp();
 
