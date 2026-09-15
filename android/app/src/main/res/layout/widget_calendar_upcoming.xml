@@ -8,7 +8,7 @@
     android:paddingTop="3dp"
     android:paddingBottom="3dp">
 
-    <View
+    <ImageView
         android:id="@+id/up_dot"
         android:layout_width="6dp"
         android:layout_height="6dp"

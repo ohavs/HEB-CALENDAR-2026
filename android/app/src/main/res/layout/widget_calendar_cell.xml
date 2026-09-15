@@ -7,7 +7,7 @@
     android:layout_weight="1"
     android:padding="1dp">
 
-    <View
+    <ImageView
         android:id="@+id/cell_today"
         android:layout_width="26dp"
         android:layout_height="26dp"
@@ -44,7 +44,7 @@
             android:orientation="horizontal"
             android:paddingTop="1dp">
 
-            <View
+            <ImageView
                 android:id="@+id/cell_holiday_dot"
                 android:layout_width="4dp"
                 android:layout_height="4dp"
@@ -53,7 +53,7 @@
                 android:background="@drawable/widget_dot_holiday"
                 android:visibility="gone" />
 
-            <View
+            <ImageView
                 android:id="@+id/cell_event_dot"
                 android:layout_width="4dp"
                 android:layout_height="4dp"

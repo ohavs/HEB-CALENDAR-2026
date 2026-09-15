@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  וידג׳ט זמני השבת. הכרטיסייה העליונה תמיד מוצגת; השורות שמתחתיה
-  נוספות לפי הגובה בפועל - ראו ShabbatWidgetProvider.
+  וידג׳ט זמני השבת.
+
+  סדר האלמנטים הוא סדר החשיבות, וזו לא החלטה אסתטית: RemoteViews נחתך
+  מלמטה כשאין גובה, ולכן מה שחייב לשרוד חייב להיות ראשון. קודם שם
+  הפרשה והתאריך ישבו מעל השעות, ובוידג׳ט נמוך נחתכו דווקא שתי השעות -
+  הדבר היחיד שבשבילו פותחים את הוידג׳ט הזה.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sh_root"
@@ -10,20 +14,91 @@
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
     android:layoutDirection="rtl"
-    android:padding="14dp">
+    android:padding="12dp">
 
-    <TextView
-        android:id="@+id/sh_title"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:background="@drawable/widget_field_bg"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_candles"
+                android:textColor="@color/widget_muted"
+                android:textSize="10sp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/sh_candles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="1dp"
+                android:textColor="@color/widget_ink"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:background="@drawable/widget_field_bg"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_havdalah"
+                android:textColor="@color/widget_muted"
+                android:textSize="10sp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/sh_havdalah"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="1dp"
+                android:textColor="@color/widget_ink"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/sh_day"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="7dp"
         android:textColor="@color/widget_ink"
-        android:textSize="17sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end" />
 
     <TextView
-        android:id="@+id/sh_day"
+        android:id="@+id/sh_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="1dp"
@@ -32,70 +107,11 @@
         android:maxLines="1"
         android:ellipsize="end" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingTop="10dp">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="5dp"
-            android:orientation="vertical"
-            android:background="@drawable/widget_field_bg"
-            android:padding="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/widget_candles"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/sh_candles"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="2dp"
-                android:textColor="@color/widget_ink"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="5dp"
-            android:orientation="vertical"
-            android:background="@drawable/widget_field_bg"
-            android:padding="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/widget_havdalah"
-                android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/sh_havdalah"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingTop="2dp"
-                android:textColor="@color/widget_ink"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
-
     <TextView
         android:id="@+id/sh_city"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="5dp"
+        android:paddingTop="3dp"
         android:textColor="@color/widget_faint"
         android:textSize="10sp"
         android:maxLines="1" />

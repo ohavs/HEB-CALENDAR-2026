@@ -19,16 +19,20 @@ import org.json.JSONObject;
  */
 public class ShabbatWidgetProvider extends AppWidgetProvider {
 
-    /** גובה שמספיק לכותרת ולשעות, בלי רשימה */
+    /** גובה שורה ברשימת המועדים הבאים */
     private static final int ROW_HEIGHT = 44;
-    /** הגובה שתופסת הכרטיסייה הראשית */
-    private static final int HEAD_HEIGHT = 130;
-    /**
-     * מתחת לגובה הזה נשארות רק שתי השעות.
-     * זה המצב הכי קטן שעוד אומר משהו: מתי נכנסת ומתי יוצאת, בלי שם
-     * הפרשה ובלי שם העיר.
-     */
-    private static final int MIN_HEIGHT_FOR_TITLE = 100;
+    /** הגובה שתופסות שתי השעות לבדן, כולל הריפוד של הוידג׳ט */
+    private static final int TIMES_HEIGHT = 78;
+
+    /*
+      סדר הוויתור, מלמטה למעלה: קודם העיר, אחר כך שם הפרשה, ואחרון
+      התאריך. שתי השעות לא יורדות אף פעם - בלעדיהן אין לוידג׳ט סיבה
+      קיום. הסדר הזה מגובה גם בפריסה עצמה: השעות ראשונות, וכך אפילו אם
+      המדידה מחטיאה, מה שנחתך מלמטה הוא מה שפחות חשוב.
+    */
+    private static final int MIN_HEIGHT_FOR_DAY = 102;
+    private static final int MIN_HEIGHT_FOR_TITLE = 122;
+    private static final int MIN_HEIGHT_FOR_CITY = 142;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
@@ -55,8 +59,10 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             draw(context, manager, id);
         } catch (Throwable error) {
             RemoteViews fallback = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat);
-            fallback.setTextViewText(R.id.sh_title, context.getString(R.string.widget_error_title));
-            fallback.setTextViewText(R.id.sh_day, error.getClass().getSimpleName());
+            fallback.setTextViewText(R.id.sh_day, context.getString(R.string.widget_error_title));
+            fallback.setTextViewText(R.id.sh_title, error.getClass().getSimpleName());
+            fallback.setTextViewText(R.id.sh_candles, "--:--");
+            fallback.setTextViewText(R.id.sh_havdalah, "--:--");
             fallback.setViewVisibility(R.id.sh_more, View.GONE);
             manager.updateAppWidget(id, fallback);
         }
@@ -92,14 +98,22 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         Bundle options = manager.getAppWidgetOptions(id);
         int minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120);
 
-        // הכי קטן: רק השעות. שם הפרשה, התאריך והעיר יורדים ראשונים.
-        boolean showTitle = minHeight >= MIN_HEIGHT_FOR_TITLE;
-        views.setViewVisibility(R.id.sh_title, showTitle ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.sh_day, showTitle ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.sh_city, showTitle ? View.VISIBLE : View.GONE);
+        // הכי קטן: רק השעות. העיר, שם הפרשה והתאריך יורדים בסדר הזה.
+        views.setViewVisibility(
+            R.id.sh_day,
+            minHeight >= MIN_HEIGHT_FOR_DAY ? View.VISIBLE : View.GONE
+        );
+        views.setViewVisibility(
+            R.id.sh_title,
+            minHeight >= MIN_HEIGHT_FOR_TITLE ? View.VISIBLE : View.GONE
+        );
+        views.setViewVisibility(
+            R.id.sh_city,
+            minHeight >= MIN_HEIGHT_FOR_CITY ? View.VISIBLE : View.GONE
+        );
 
         // כמה שורות נוספות נכנסות בגובה שהמשתמש נתן בפועל
-        int room = (minHeight - HEAD_HEIGHT) / ROW_HEIGHT;
+        int room = (minHeight - MIN_HEIGHT_FOR_CITY - TIMES_HEIGHT / 2) / ROW_HEIGHT;
         int extra = Math.max(0, Math.min(room, entries.length() - 1));
 
         views.removeAllViews(R.id.sh_more);
