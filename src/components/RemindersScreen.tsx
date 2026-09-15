@@ -10,11 +10,11 @@
  * הרפאים והדגשת היעד מגיעים כמו שהם. `undated` הוא "יום" לכל דבר מבחינת
  * המנוע - וזה מה שמאפשר לגרור פריט אל מחוץ ללוח ובחזרה אליו.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
 import type { DateKey, UserEvent } from '@/types';
-import type { Occurrence } from '@/lib/recurrence';
+import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
 import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore } from '@/store/events';
@@ -23,6 +23,7 @@ import { useRangeData } from '@/hooks/useMonthData';
 import {
   beginLongPress,
   useDragActive,
+  useDragStore,
   useIsDraggingOccurrence,
   useIsDropTarget,
 } from '@/lib/dragEngine';
@@ -252,6 +253,38 @@ function relativeShort(key: DateKey): string {
   return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
 }
 
+/**
+ * באיזה מקום בקבוצה הפריט הנגרר ייכנס.
+ *
+ * זה לא מקום האצבע אלא המקום האמיתי: לתזכורות אין סדר ידני, והן ממוינות
+ * באותו `sortOccurrences` של הלוח - אירוע של כל היום קודם, אחר כך לפי
+ * שעה. תצוגה מקדימה שהולכת אחרי האצבע הייתה משקרת, כי מיד אחרי השחרור
+ * הפריט היה קופץ למקום אחר.
+ */
+function previewIndex(
+  items: ReminderItem[],
+  dragged: Occurrence,
+  groupKey: DateKey | 'undated',
+): number {
+  if (groupKey === 'undated') {
+    // הקבוצה חסרת התאריך ממוינת מהחדש לישן
+    const i = items.findIndex((it) => (it.event?.createdAt ?? 0) < dragged.createdAt);
+    return i === -1 ? items.length : i;
+  }
+  const i = items.findIndex((it) => it.occurrence && sortOccurrences(dragged, it.occurrence) < 0);
+  return i === -1 ? items.length : i;
+}
+
+/** השורה שמראה לאן זה נוחת. אפורה ומקווקוות - מקום פנוי, לא פריט. */
+function PreviewRow({ title }: { title: string }) {
+  return (
+    <div className="animate-fade-in flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-muted/40 p-3">
+      <span className="h-8 w-8 shrink-0 rounded-full border-2 border-muted/30" />
+      <span className="min-w-0 flex-1 truncate text-body font-medium text-muted/80">{title}</span>
+    </div>
+  );
+}
+
 /* ==========================================================================
    קבוצה
    ========================================================================== */
@@ -274,6 +307,11 @@ function Group({
   // אותו מנגנון של תא בלוח: המנוע מזהה יעד לפי התכונה הזו
   const isTarget = useIsDropTarget(groupKey as DateKey);
   const dragging = useDragActive();
+  const dragged = useDragStore((s) => s.occurrence);
+  const fromKey = useDragStore((s) => s.fromKey);
+  /* לא מציגים תצוגה מקדימה בקבוצה שממנה הפריט יצא - שם הוא כבר קיים */
+  const preview = isTarget && dragged && fromKey !== groupKey ? dragged : null;
+  const at = preview ? previewIndex(items, preview, groupKey) : -1;
 
   return (
     /*
@@ -290,7 +328,7 @@ function Group({
         {hebrew && <span className="truncate text-caption text-faint">{hebrew}</span>}
       </header>
 
-      {items.length ? (
+      {items.length || preview ? (
         <div
           // שוליים שליליים כנגד הריפוד: המסגרת מקיפה את השורות מבחוץ
           // בלי להזיז אותן כשהיא מופיעה
@@ -298,9 +336,13 @@ function Group({
             isTarget ? 'bg-brand-soft ring-2 ring-brand' : ''
           }`}
         >
-          {items.map((item) => (
-            <Row key={item.key} item={item} onToggle={onToggle} onOpen={onOpen} />
+          {items.map((item, i) => (
+            <Fragment key={item.key}>
+              {i === at && preview && <PreviewRow title={preview.title} />}
+              <Row item={item} onToggle={onToggle} onOpen={onOpen} />
+            </Fragment>
           ))}
+          {preview && at >= items.length && <PreviewRow title={preview.title} />}
         </div>
       ) : dragging ? (
         <p
