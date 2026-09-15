@@ -22,11 +22,24 @@
  * ההזמנה. הפונקציה רק מודיעה.
  */
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { setGlobalOptions } from 'firebase-functions/v2';
 import { logger } from 'firebase-functions';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
+
+/*
+  האזור חייב להתאים למיקום של מסד הנתונים.
+
+  טריגר של Firestore עובר דרך Eventarc, ו-Eventarc דורש שהטריגר יישב
+  באותו מיקום של המסד שהוא מאזין לו. מסד ב-eur3 ופונקציה ב-us-central1
+  לא ייפרסו יחד, והכשל מגיע רק בסוף הפריסה.
+
+  זה משתנה סביבה ולא קבוע בקוד, כדי שהחלפת מיקום תהיה שינוי בהגדרות
+  ולא בקוד. ברירת המחדל מתאימה למסד ב-eur3.
+*/
+setGlobalOptions({ region: process.env.FUNCTION_REGION || 'europe-west1' });
 
 initializeApp();
 

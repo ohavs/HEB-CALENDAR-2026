@@ -115,6 +115,10 @@ jobs:
       - name: Deploy the invite notification function
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          # חייב להתאים למיקום של מסד הנתונים - ראו functions/index.js.
+          # ברירת המחדל מתאימה למסד ב-eur3; מסד במיקום אחר מחייב לשנות
+          # כאן בלבד, לא בקוד.
+          FUNCTION_REGION: ${{ vars.FUNCTION_REGION || 'europe-west1' }}
         run: >-
           npx --yes firebase-tools@13 deploy
           --only functions
