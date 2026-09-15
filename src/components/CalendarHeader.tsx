@@ -1,9 +1,10 @@
 /** כותרת הלוח: פרופיל, שם החודש, חיפוש והוספה - בדיוק כמו בעיצוב הייחוס. */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Columns3, LayoutGrid, List, Plus, Search, User } from 'lucide-react';
+import { CalendarDays, Columns3, LayoutGrid, List, Plus, Search } from 'lucide-react';
 import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON, STROKE } from '@/lib/motion';
+import { Avatar } from './ui/Avatar';
 
 const VIEW_ICON = { month: LayoutGrid, week: Columns3, agenda: List } as const;
 const VIEW_LABEL: Record<CalendarView, string> = {
@@ -16,7 +17,6 @@ export function CalendarHeader({
   month,
   title,
   hebrewMonthLabel,
-  showToday,
   view,
   onPickView,
   photoURL,
@@ -30,7 +30,6 @@ export function CalendarHeader({
   /** כיתוב מפורש, כשהתצוגה אינה חודש שלם */
   title?: string;
   hebrewMonthLabel?: string;
-  showToday: boolean;
   view: CalendarView;
   onPickView: () => void;
   photoURL: string | null;
@@ -53,13 +52,7 @@ export function CalendarHeader({
           aria-label="חשבון והגדרות"
           className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-well ring-1 ring-hairline lg:h-[52px] lg:w-[52px]"
         >
-          {photoURL ? (
-            <img src={photoURL} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-muted">
-              <User size={ICON.lg} strokeWidth={STROKE} />
-            </span>
-          )}
+          <Avatar photoURL={photoURL} />
         </motion.button>
 
         <button
@@ -88,22 +81,25 @@ export function CalendarHeader({
         </button>
 
         <div className="flex shrink-0 items-center gap-1 lg:gap-2">
-          <AnimatePresence initial={false}>
-            {showToday && (
-              <motion.button
-                type="button"
-                onClick={onToday}
-                initial={{ opacity: 0, scale: 0.8, width: 0 }}
-                animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                exit={{ opacity: 0, scale: 0.8, width: 0 }}
-                whileTap={{ scale: 0.92 }}
-                aria-label="חזרה להיום"
-                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-muted lg:h-12 lg:w-12"
-              >
-                <CalendarDays size={ICON.xl} strokeWidth={2.1} />
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {/*
+            תמיד כאן, בלי תנאי.
+
+            קודם הוא הופיע רק מחוץ לחודש הנוכחי, ולכן כל יציאה מהחודש
+            שינתה את רוחב שורת האייקונים - והכותרת שביניהם נדחסה וזזה.
+            כפתור שמופיע ונעלם גם מאלץ את העין לחפש אותו מחדש בכל פעם.
+
+            כשכבר נמצאים בחודש הנוכחי הלחיצה פשוט לא משנה דבר, וזה מחיר
+            זול בהרבה מפריסה שרוקדת.
+          */}
+          <motion.button
+            type="button"
+            onClick={onToday}
+            whileTap={{ scale: 0.92 }}
+            aria-label="חזרה להיום"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
+          >
+            <CalendarDays size={ICON.xl} strokeWidth={2.1} />
+          </motion.button>
 
           <motion.button
             type="button"

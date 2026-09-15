@@ -34,6 +34,7 @@ import {
 } from '@/lib/notifications';
 import { Segmented, SettingRow, SettingsGroup, Toggle } from './ui/controls';
 import { PlaceEditor } from './PlaceEditor';
+import { Avatar } from './ui/Avatar';
 import { BackupRows } from './BackupRows';
 import { radiusLabel } from '@/lib/geofence';
 import type { SavedPlace } from '@/types';
@@ -232,17 +233,10 @@ export function SettingsScreen({
         {user ? (
           <>
             <div className="flex items-center gap-4 px-5 py-5">
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt=""
-                  className="h-14 w-14 rounded-full object-cover ring-1 ring-hairline"
-                />
-              ) : (
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-title font-semibold text-brand-ink">
-                  {(user.name ?? user.email ?? '?').slice(0, 1)}
-                </span>
-              )}
+              {/* אותו רכיב של הכותרת, כולל שלד הטעינה */}
+              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-well ring-1 ring-hairline">
+                <Avatar photoURL={user.photoURL} name={user.name ?? user.email} size="lg" />
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-medium text-ink">
                   {user.name ?? 'מחובר'}

@@ -126,6 +126,39 @@
    פלטת צבעים פסטלית לאירועים (bg / ink / bar), עם גרסת מצב לילה.
    ========================================================================== */
 @layer components {
+  /*
+    שלד טעינה - הבהוב אור שנע על פני המשטח.
+
+    לא ספינר: ספינר אומר "משהו קורה" בלי לומר מה, ותופס את העין. שלד
+    אומר "כאן תהיה תמונה", בגודל ובצורה הנכונים, ולכן המעבר לתוכן
+    האמיתי אינו מזיז דבר.
+
+    הגרדיאנט רחב מהאלמנט פי שלושה ונע לרוחבו; הכיוון פיזי ולא לוגי,
+    ולכן הוא זהה ב-RTL וב-LTR - אור אינו זורם עם שפה.
+
+    `prefers-reduced-motion` הגלובלי כבר עוצר את האנימציה, ואז נשאר
+    משטח אפור אחיד - עדיין שלד תקף.
+  */
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--c-well)) 0%,
+      rgb(var(--c-hairline)) 50%,
+      rgb(var(--c-well)) 100%
+    );
+    background-size: 300% 100%;
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-sweep {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
+
   .ev {
     background-color: rgb(var(--ev-bg));
     color: rgb(var(--ev-ink));

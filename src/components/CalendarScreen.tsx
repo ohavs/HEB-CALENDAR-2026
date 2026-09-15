@@ -217,9 +217,6 @@ export function CalendarScreen({
     onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1), today > month ? 1 : -1);
   };
 
-  const showToday =
-    view === 'week' ? today < weekStart || today > addDays(weekStart, 6) : !isSameMonth(month, today);
-
   /** התצוגה שמתחת לכותרת, בלי החלונית התחתונה. */
   const body = () => {
     if (view === 'agenda') {
@@ -307,7 +304,6 @@ export function CalendarScreen({
                   ? hebrewMonthSpanLabel(month)
                   : undefined
               }
-              showToday={showToday}
               view={view}
               onPickView={onPickView}
               photoURL={photoURL}
