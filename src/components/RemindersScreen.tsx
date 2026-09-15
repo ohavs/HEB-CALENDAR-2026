@@ -9,6 +9,11 @@
  * נושאת `data-day-key`, בדיוק כמו תא בלוח, ולכן לחיצה ארוכה, הרטט,
  * הרפאים והדגשת היעד מגיעים כמו שהם. `undated` הוא "יום" לכל דבר מבחינת
  * המנוע - וזה מה שמאפשר לגרור פריט אל מחוץ ללוח ובחזרה אליו.
+ *
+ * למסך שתי לשוניות פנימיות: "שלי" ו"משותף". ההפרדה מלאה בכוונה - רשימה
+ * משותפת חיה בענן ולא במכשיר, יש לה חברים וקטגוריות, ולערבב אותה ברשימה
+ * האישית היה מטשטש את השאלה "מי עוד רואה את זה". `SharedReminders` שם,
+ * ומשתמש באותו מנוע.
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -31,6 +36,9 @@ import { DatePickerSheet } from './ui/Picker';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { Segmented } from './ui/controls';
+import { SharedReminders } from './SharedReminders';
+import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
 
 /** מה הכפתור מציע כברירת מחדל: היום, מחר, או בלי תאריך */
 type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
@@ -58,6 +66,7 @@ export function RemindersScreen({
   );
   const pending = pendingCount(groups, dateKey(now));
 
+  const [view, setView] = useState<RemindersView>(readRemindersView);
   const [title, setTitle] = useState('');
   const [slot, setSlot] = useState<Slot>('none');
   const [picked, setPicked] = useState<DateKey | null>(null);
@@ -66,7 +75,10 @@ export function RemindersScreen({
   const composing = title.trim().length > 0;
 
   useEffect(() => {
-    if (composeOnMount) document.getElementById('reminder-input')?.focus();
+    // הוידג׳ט מוסיף לרשימה האישית, ולכן הוא גם מחזיר אליה
+    if (!composeOnMount) return;
+    setView('mine');
+    document.getElementById('reminder-input')?.focus();
   }, [composeOnMount]);
 
   /** התאריך שהפריט החדש יקבל, או null כשאין לו תאריך. */
@@ -108,8 +120,35 @@ export function RemindersScreen({
     >
       <header className="safe-t pb-4 pt-5 lg:pt-8">
         <h1 className="text-heading font-semibold leading-tight text-ink">תזכורות</h1>
-        <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
+        {view === 'mine' && (
+          <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
+        )}
       </header>
+
+      {/*
+        הכרטיס אינו קישוט: `Segmented` מצייר את המסילה שלו ב-`bg-well`,
+        וברקע המסך - שהוא באותו גוון - היא נעלמת, והאפשרות שלא נבחרה
+        נראית כמו טקסט מרחף. על `bg-surface` המסילה חוזרת להיראות.
+      */}
+      <div className="mb-4 rounded-3xl bg-surface p-1.5 shadow-raised">
+        <Segmented
+          value={view}
+          onChange={(next) => {
+            setView(next);
+            writeRemindersView(next);
+            announce(next === 'mine' ? 'התזכורות שלי' : 'תזכורות משותפות');
+          }}
+          options={[
+            { value: 'mine', label: 'שלי' },
+            { value: 'shared', label: 'משותף' },
+          ]}
+        />
+      </div>
+
+      {view === 'shared' ? (
+        <SharedReminders bottomInset={bottomInset} />
+      ) : (
+        <>
 
       {/* ------------------------------ הוספה ------------------------------ */}
       {/*
@@ -235,6 +274,8 @@ export function RemindersScreen({
           setSlot('pick');
         }}
       />
+        </>
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { startGeofenceWatch } from '@/lib/geofence';
 import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
+import { startShared, stopShared } from '@/lib/sharedSync';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { initNative, isNative, paintNativeChrome } from '@/lib/native';
@@ -181,6 +182,16 @@ export default function App() {
     if (wasSignedIn()) void initAnalytics();
     return startSync();
   }, [initAuth]);
+
+  /*
+    הרשימות המשותפות נפתחות ונסגרות עם ההתחברות, ולא עם מסך התזכורות:
+    הזמנה שממתינה צריכה להגיע גם למי שלא פתח את הלשונית, ומאזין שנשאר
+    פתוח אחרי יציאה היה קורא נתונים של משתמש שכבר אינו כאן.
+  */
+  useEffect(() => {
+    if (authUser) void startShared();
+    else stopShared();
+  }, [authUser]);
 
   /* ------------------------------- תזכורות ------------------------------- */
   const reminderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
