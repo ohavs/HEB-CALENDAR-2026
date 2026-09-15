@@ -28,10 +28,11 @@ import {
 import { TemplatePlaceSheet } from './TemplatePlaceSheet';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
+import { ColorRow } from './ui/ColorRow';
 import { TextField } from './ui/fields';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, EXIT, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 
 export function TemplatesView({
   bottomInset,
@@ -45,6 +46,7 @@ export function TemplatesView({
   const templates = settings.templates;
 
   const [title, setTitle] = useState('');
+  const [color, setColor] = useState<EventColor>(settings.defaultEventColor);
   const [editing, setEditing] = useState<EventTemplate | null>(null);
   const [placing, setPlacing] = useState<EventTemplate | null>(null);
 
@@ -54,13 +56,11 @@ export function TemplatesView({
   const create = () => {
     const clean = title.trim();
     if (!clean || full) return;
-    const next = addTemplate(templates, {
-      ...emptyTemplate(settings.defaultEventColor),
-      title: clean,
-    });
+    const next = addTemplate(templates, { ...emptyTemplate(color), title: clean });
     if (!next) return;
     patch({ templates: next });
     setTitle('');
+    setColor(settings.defaultEventColor);
     void haptic('medium');
     announce(`התבנית "${clean}" נוצרה`);
   };
@@ -112,6 +112,22 @@ export function TemplatesView({
             )}
           </AnimatePresence>
         </div>
+
+        {/*
+          הצבע נבחר כבר כאן. הוא מה שיופיע על הלוח בכל שיבוץ של התבנית,
+          ולכן הוא חלק מהגדרתה - לא תיקון שעושים אחר כך.
+        */}
+        <motion.div
+          initial={false}
+          animate={{ height: composing ? 'auto' : 0, opacity: composing ? 1 : 0 }}
+          transition={{ height: GLIDE, opacity: composing ? ENTER : EXIT }}
+          className="overflow-hidden"
+          aria-hidden={!composing}
+        >
+          <div className="px-0.5 pt-2">
+            <ColorRow value={color} onChange={setColor} label="צבע התבנית" />
+          </div>
+        </motion.div>
       </div>
 
       {/* ------------------------------ הרשימה ------------------------------ */}

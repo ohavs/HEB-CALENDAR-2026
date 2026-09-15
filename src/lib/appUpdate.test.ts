@@ -6,7 +6,13 @@
  * אפליקציה שבורה.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { decideUpdate, dismissUpdate, isDismissed, parseRelease } from './appUpdate';
+import {
+  decideUpdate,
+  dismissUpdate,
+  isDismissed,
+  parseRelease,
+  rateLimitMessage,
+} from './appUpdate';
 
 const asset = (name: string) => ({ name, browser_download_url: `https://example.invalid/${name}` });
 
@@ -139,5 +145,37 @@ describe('1.0.26 מול שחרור 28', () => {
   // בלי הטביעה אין על מה להשוות, ואז APK הוא המסלול הבטוח
   it('בלי טביעה נופל להתקנה', () => {
     expect(decideUpdate(release, 26, 26, '')?.kind).toBe('native');
+  });
+});
+
+
+describe('rateLimitMessage', () => {
+  const at = (secondsFromNow: number) => ({
+    headers: {
+      get: () => String(Math.floor((Date.now() + secondsFromNow * 1000) / 1000)),
+    },
+  });
+
+  it('אומר בעוד כמה דקות, לפי הכותרת של GitHub', () => {
+    // "בעוד כמה דקות" הוא ניחוש; הכותרת יודעת את התשובה
+    expect(rateLimitMessage(at(10 * 60))).toContain('10 דקות');
+  });
+
+  it('דקה אחת ביחיד', () => {
+    expect(rateLimitMessage(at(40))).toContain('בעוד דקה');
+  });
+
+  it('מכסה שכבר התאפסה', () => {
+    expect(rateLimitMessage(at(-60))).toContain('עכשיו');
+  });
+
+  it('בלי כותרת - נשארת הנוסחה המעורפלת, שעדיין נכונה', () => {
+    const none = { headers: { get: () => null } };
+    expect(rateLimitMessage(none)).toContain('כמה דקות');
+  });
+
+  it('כותרת פגומה אינה מפילה', () => {
+    const bad = { headers: { get: () => 'לא-מספר' } };
+    expect(rateLimitMessage(bad)).toContain('כמה דקות');
   });
 });

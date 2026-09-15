@@ -18,7 +18,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
-import type { DateKey, EventTemplate, UserEvent } from '@/types';
+import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
 import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
@@ -37,6 +37,7 @@ import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { Segmented } from './ui/controls';
+import { ColorRow } from './ui/ColorRow';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
@@ -75,6 +76,7 @@ export function RemindersScreen({
 
   const [view, setView] = useState<RemindersView>(readRemindersView);
   const [title, setTitle] = useState('');
+  const [color, setColor] = useState<EventColor>(settings.defaultEventColor);
   const [slot, setSlot] = useState<Slot>('none');
   const [picked, setPicked] = useState<DateKey | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -115,12 +117,13 @@ export function RemindersScreen({
       startTime: null,
       endTime: null,
       allDay: true,
-      color: settings.defaultEventColor,
+      color,
       reminderMinutes: null,
       repeat: 'none',
       ...(date ? {} : { undated: true as const }),
     });
     setTitle('');
+    setColor(settings.defaultEventColor);
     void haptic('medium');
     announce(date ? 'התזכורת נוספה ליום' : 'התזכורת נוספה בלי תאריך');
   };
@@ -223,6 +226,15 @@ export function RemindersScreen({
           className="overflow-hidden"
           aria-hidden={!composing}
         >
+          {/*
+            הצבע נבחר כאן ולא רק בעורך: תזכורת עם תאריך מופיעה על הלוח,
+            ובלי בחירה כל התזכורות היו מקבלות את אותו צבע ברירת מחדל -
+            כלומר הלוח היה חד-גוני בדיוק במקום שבו צבע הוא המידע.
+          */}
+          <div className="flex items-center justify-between gap-2 px-0.5 pt-2">
+            <ColorRow value={color} onChange={setColor} label="צבע התזכורת" />
+          </div>
+
           <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-2">
             {(
               [

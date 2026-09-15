@@ -167,6 +167,25 @@ export function dismissUpdate(versionCode: number): void {
   }
 }
 
+/**
+ * "בעוד כמה דקות" אינו מידע - הוא ניחוש שהמשתמש צריך לאמת בעצמו.
+ *
+ * GitHub מחזיר `x-ratelimit-reset` (שניות אפוך) בדיוק לשם כך, ולכן
+ * אפשר לומר עד מתי. הבקשה מהמכשיר אינה מאומתת, והמכסה שם היא 60 לשעה
+ * לכל כתובת IP - מה שקל לגמור בלחיצות חוזרות על כפתור הבדיקה.
+ *
+ * כשהכותרת חסרה או פגומה נשארת הנוסחה המעורפלת, כי היא עדיין נכונה.
+ */
+export function rateLimitMessage(res: { headers: { get(name: string): string | null } }): string {
+  const raw = Number(res.headers.get('x-ratelimit-reset'));
+  if (!Number.isFinite(raw) || raw <= 0) return 'יותר מדי בדיקות. לנסות שוב בעוד כמה דקות';
+
+  const minutes = Math.ceil((raw * 1000 - Date.now()) / 60000);
+  if (minutes <= 0) return 'יותר מדי בדיקות. אפשר לנסות שוב עכשיו';
+  if (minutes === 1) return 'יותר מדי בדיקות. לנסות שוב בעוד דקה';
+  return `יותר מדי בדיקות. לנסות שוב בעוד ${minutes} דקות`;
+}
+
 function dueForCheck(now: number): boolean {
   try {
     const last = Number(localStorage.getItem(LAST_CHECK_KEY) ?? 0);
@@ -236,7 +255,7 @@ export async function checkForUpdate(force = false): Promise<CheckOutcome> {
         kind: 'error',
         message:
           res.status === 403 || res.status === 429
-            ? 'יותר מדי בדיקות. לנסות שוב בעוד כמה דקות'
+            ? rateLimitMessage(res)
             : `השרת החזיר ${res.status}`,
       };
     }
