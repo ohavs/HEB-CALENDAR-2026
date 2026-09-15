@@ -28,8 +28,14 @@ import { useEventsStore } from '@/store/events';
 import { useElementSize } from '@/hooks/useElementSize';
 import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
 
-/** כמה מהחלונית נשאר גלוי כשהיא מקופלת */
-const PEEK_HEIGHT = 84;
+/**
+ * כמה מהחלונית נשאר גלוי כשהיא מקופלת.
+ *
+ * ירד מ-84: שורת הידית נשאה כותרת וסיכום בשתי שורות, ובמסך טלפון
+ * הכרום הקבוע (כותרת + חלונית + לשוניות) הגיע לרבע מהמסך. הסיכום
+ * עבר לשורה אחת, והגובה שהתפנה חזר לשורות הרשת.
+ */
+const PEEK_HEIGHT = 58;
 const SNAP_OFFSET = 70;
 const SNAP_VELOCITY = 420;
 /** מרחק המשיכה שבו התוכן מגיע לשקיפות מלאה */
@@ -284,16 +290,17 @@ export function EventsPanel({
         onClick={() => onOpenChange(!open)}
         aria-label={open ? 'סגירת אירועי היום' : 'פתיחת אירועי היום'}
         aria-expanded={open}
-        className="focus-ring-inset shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-3.5 text-right active:cursor-grabbing"
+        className="focus-ring-inset shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-2.5 text-right active:cursor-grabbing"
         {...handleProps}
       >
-        <span className="mx-auto mb-3 block h-1.5 w-12 rounded-full bg-hairline" />
+        <span className="mx-auto mb-2 block h-1.5 w-12 rounded-full bg-hairline" />
         <span className="flex items-center gap-3">
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-body font-semibold leading-tight text-ink">
+          {/* היום והסיכום בשורה אחת: זו שורת הצצה, לא כותרת מסך */}
+          <span className="flex min-w-0 flex-1 items-baseline gap-2 truncate">
+            <span className="shrink-0 text-body font-semibold leading-tight text-ink">
               {day ? relativeDayLabel(day.date) : ''}
             </span>
-            <span className="mt-1 block truncate text-caption leading-none text-muted">
+            <span className="truncate text-caption leading-tight text-muted">
               {summaryOf(day, occurrences.length)}
             </span>
           </span>

@@ -74,15 +74,6 @@ function DayCellInner({
   const compact = settings.density === 'compact';
 
   const holidays = settings.showJewishHolidays ? day.holidays : [];
-  // מועד ראשון תמיד מוצג; השאר מתחלקים עם האירועים לפי המקום שנשאר
-  const holidaySlots = Math.max(
-    Math.min(holidays.length, 1),
-    Math.min(holidays.length, capacity - Math.min(occurrences.length, 1)),
-  );
-  const shownHolidays = holidays.slice(0, holidaySlots);
-  const shownEvents = occurrences.slice(0, Math.max(0, capacity - shownHolidays.length));
-  const hidden =
-    holidays.length - shownHolidays.length + (occurrences.length - shownEvents.length);
 
   const candles = settings.showCandleTimes
     ? day.times.find((t) => t.kind === 'candles')
@@ -91,6 +82,41 @@ function DayCellInner({
     ? day.times.find((t) => t.kind === 'havdalah')
     : undefined;
   const time = candles ?? havdalah;
+
+  /*
+    תקציב השורות של התא, אחרי שזמן ההדלקה לוקח את שלו.
+
+    הזמן מוצמד לתחתית התא ולכן הוא יורד מהתקציב כאן ולא בנוסחה
+    הכללית: בלעדיו ימי שישי ושבת היו מציגים אירוע אחד פחות מכל יום
+    אחר בלי שאיש החליט על כך, וזה מה שגרם לתוצאה להשתנות מתא לתא.
+  */
+  const budget = Math.max(1, capacity - (time ? 1 : 0));
+
+  // מועד ראשון תמיד מוצג; השאר מתחלקים עם האירועים לפי המקום שנשאר
+  const holidaySlots = Math.max(
+    Math.min(holidays.length, 1),
+    Math.min(holidays.length, budget - Math.min(occurrences.length, 1)),
+  );
+  const shownHolidays = holidays.slice(0, holidaySlots);
+
+  /*
+    מה שנשאר מתחלק לאירועים. אירוע מקבל שתי שורות רק כשיש עודף גם
+    אחרי שמובטחת שורה לכל אירוע שעוד ממתין, אחרת הראשון היה בולע את
+    המקום של השני. פס רב־יומי נשאר בשורה אחת כדי שגובהו יהיה זהה
+    בכל הימים שהוא חוצה.
+  */
+  const shownEvents: { occ: Occurrence; lines: 1 | 2 }[] = [];
+  let left = Math.max(0, budget - shownHolidays.length);
+  occurrences.forEach((occ, i) => {
+    if (left <= 0) return;
+    const waiting = occurrences.length - i - 1;
+    const lines: 1 | 2 = left - waiting >= 2 && occ.spanLength === 1 ? 2 : 1;
+    shownEvents.push({ occ, lines });
+    left -= lines;
+  });
+
+  const hidden =
+    holidays.length - shownHolidays.length + (occurrences.length - shownEvents.length);
 
   return (
     <button
@@ -153,7 +179,7 @@ function DayCellInner({
       )}
 
       {/* מועדים, אירועים וזמנים */}
-      <span className="mt-1 flex min-h-0 flex-col gap-[3px]">
+      <span className="mt-1 flex min-h-0 flex-col items-stretch gap-[3px] text-start">
         {/*
           במצב קומפקטי התא מוותר על הכיתובים: מועד אחד בשורה קצרה,
           והאירועים כנקודות צבע. במסך צר זה ההבדל בין תא שאפשר לקרוא
@@ -193,10 +219,11 @@ function DayCellInner({
               </span>
             ))}
 
-            {shownEvents.map((occ) => (
+            {shownEvents.map(({ occ, lines }) => (
               <MiniEventChip
                 key={occ.occurrenceId}
                 occurrence={occ}
+                lines={lines}
                 // פס רב־יומי נושא כותרת בתחילתו, ושוב בתחילת כל שורת שבוע -
                 // אחרת השורה השנייה של החופשה היא פס צבע בלי שם
                 labelled={occ.spanIndex === 0 || day.date.getDay() === 0}
@@ -208,14 +235,20 @@ function DayCellInner({
         {!compact && hidden > 0 && (
           <span className="text-micro font-medium leading-none text-faint">+{hidden}</span>
         )}
-
-        {time && (
-          <span className="tnum flex items-center justify-center gap-0.5 text-micro leading-none text-[rgb(var(--c-shabbat))]">
-            <span aria-hidden="true">{candles ? '🕯' : '✦'}</span>
-            {time.time}
-          </span>
-        )}
       </span>
+
+      {/*
+        זמן ההדלקה יושב מיד אחרי הכיתובים ולא נצמד לתחתית התא: הצמדה
+        הייתה משאירה אותו מרחף 60px מתחת למספר בתא ריק, מנותק מהיום
+        שהוא שייך לו. מה שכן השתנה הוא שהוא שמור מראש בתקציב למעלה,
+        ולכן הוא כבר לא גוזל שורת אירוע בשקט.
+      */}
+      {time && (
+        <span className="tnum flex shrink-0 items-center justify-center gap-0.5 pt-0.5 text-micro leading-none text-[rgb(var(--c-shabbat))]">
+          <span aria-hidden="true">{candles ? '🕯' : '✦'}</span>
+          {time.time}
+        </span>
+      )}
     </button>
   );
 }

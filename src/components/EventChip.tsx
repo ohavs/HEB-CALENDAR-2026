@@ -13,21 +13,30 @@ import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
 import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
 
 /**
- * צ׳יפ זעיר לתוך תא בלוח - שורה אחת, רקע בגוון האירוע.
+ * ייצוג האירוע בתוך תא בלוח, בשתי צורות לפי מה שהאירוע *הוא*:
  *
- * באירוע רב־יומי הצ׳יפ נמשך על פני התאים: רק היום הראשון נושא את
- * הכותרת, והפינות מתעגלות רק בקצוות הפרישה. כך הפס נקרא כרצף אחד
- * ולא כשורה של מלבנים חוזרים.
+ * אירוע של יום אחד הוא נקודה בזמן, ולכן תווית: פס צבע בקצה ההתחלה
+ * וטקסט על רקע התא. ברוחב תא של טלפון זה ההבדל בין "פגיש…" לבין
+ * "פגישת צוות" - הגלולה לקחה כרבע מהרוחב לריפוד ולרקע.
+ *
+ * אירוע רב־יומי הוא טווח, ולכן פס מלא שנמשך על פני התאים: הפינות
+ * מתעגלות רק בקצוות, המקטעים נמשכים אל המרווח שביניהם, וקו תחתון
+ * רציף בצבע הרווי מחבר אותם לאובייקט אחד. רק היום הראשון של הפרישה
+ * ותחילת כל שורת שבוע נושאים את הכותרת; בלי הקו התחתון מקטע ההמשך
+ * היה מלבן פסטלי ריק, ואירוע של שלושה ימים נראה כאירוע של יום.
  */
 export function MiniEventChip({
   occurrence,
   draggable = true,
   labelled = true,
+  lines = 1,
 }: {
   occurrence: Occurrence;
   draggable?: boolean;
   /** האם היום הזה נושא את הכותרת (רלוונטי רק לפס רב־יומי) */
   labelled?: boolean;
+  /** כמה שורות טקסט מותר לתווית לתפוס, לפי המקום שנשאר בתא */
+  lines?: 1 | 2;
 }) {
   const isDragging = useIsDraggingOccurrence(occurrence.occurrenceId);
   const multiDay = occurrence.spanLength > 1;
@@ -35,23 +44,24 @@ export function MiniEventChip({
   const isEnd = isSpanEnd(occurrence);
 
   // הפינות בקצוות בלבד, ובאמצע הפס נמשך אל מחוץ לתא כדי לכסות את המרווח
-  const shape = !multiDay
-    ? 'rounded-lg'
-    : [
-        isStart ? 'rounded-s-lg' : '-ms-[3px] ps-[3px]',
-        isEnd ? 'rounded-e-lg' : '-me-[3px] pe-[3px]',
-      ].join(' ');
+  const shape = multiDay
+    ? [
+        'ev ev-span-rule px-1.5 py-1 font-semibold',
+        isStart ? 'rounded-s-md' : '-ms-[3px] ps-[3px]',
+        isEnd ? 'rounded-e-md' : '-me-[3px] pe-[3px]',
+      ].join(' ')
+    : 'ev-label ps-[5px] font-medium';
 
   return (
     <div
-      className={`ev ev-${occurrence.color} overflow-hidden px-1.5 py-1 text-micro font-semibold leading-tight transition-opacity ${shape} ${
+      className={`ev-${occurrence.color} overflow-hidden text-micro leading-[1.2] transition-opacity ${shape} ${
         isDragging ? 'opacity-25' : ''
       }`}
       style={{ touchAction: draggable ? 'none' : undefined }}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
     >
       {/* בתא צר יש מקום רק לכותרת; השעה מופיעה בפאנל ובתצוגת היום */}
-      <span className="block truncate">
+      <span className={lines === 2 ? 'line-clamp-2' : 'block truncate'}>
         {multiDay && !labelled ? '\u00A0' : occurrence.title}
       </span>
     </div>

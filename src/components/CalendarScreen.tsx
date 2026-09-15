@@ -196,7 +196,7 @@ export function CalendarScreen({
       return (
         <div
           className="flex min-h-0 flex-1 flex-col"
-          style={{ paddingBottom: isDesktop ? 0 : bottomInset + 86 }}
+          style={{ paddingBottom: isDesktop ? 0 : bottomInset + 62 }}
         >
           <WeekView
             data={weekData}
@@ -228,7 +228,7 @@ export function CalendarScreen({
               dragElastic={0.14}
               onDragEnd={onDragEnd}
               className="absolute inset-0 flex flex-col"
-              style={{ paddingBottom: isDesktop ? 0 : bottomInset + 86 }}
+              style={{ paddingBottom: isDesktop ? 0 : bottomInset + 62 }}
             >
               <MonthGrid
                 data={data}

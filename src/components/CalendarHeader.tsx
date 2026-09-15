@@ -44,7 +44,7 @@ export function CalendarHeader({
   const ViewIcon = VIEW_ICON[view];
 
   return (
-    <header className="safe-t shrink-0 gutter-x pb-5 pt-7 lg:pb-6 lg:pt-9">
+    <header className="safe-t shrink-0 gutter-x pb-3.5 pt-5 lg:pb-6 lg:pt-9">
       <div className="flex items-center gap-2.5 lg:gap-3.5">
         <motion.button
           type="button"
@@ -81,7 +81,7 @@ export function CalendarHeader({
             </motion.span>
           </AnimatePresence>
           {hebrewMonthLabel && (
-            <span className="mt-1.5 block text-caption leading-none text-muted">
+            <span className="mt-1 block text-caption leading-none text-muted">
               {hebrewMonthLabel}
             </span>
           )}

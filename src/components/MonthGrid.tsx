@@ -60,12 +60,17 @@ export function MonthGrid({
   layoutGroupId: string;
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
-  // גובה שורה בפועל, פחות שורת המספר והתאריך העברי, חלקי גובה שורת כיתוב
   const rowHeight = height > 0 ? height / 6 : 0;
-  // הטיפוגרפיה נוזלית, ולכן מודדים את גובה השורה בפועל מול גובה שורת כיתוב
-  // משוער: מספר היום והתאריך העברי תופסים כ-58px, וכל כיתוב כ-17px.
+  /*
+    כמה שורות כיתוב נכנסות בתא.
+
+    הטיפוגרפיה נוזלית ולכן מודדים את גובה השורה בפועל: מספר היום,
+    התאריך העברי והריפוד תופסים כ-48px, וכל שורת כיתוב כ-16px.
+    הקבועים ירדו מ-58/17 אחרי שהצ׳יפ ויתר על הגלולה - הריפוד האנכי
+    שלה היה 8px לכל אירוע, והנוסחה הישנה הניחה אותו.
+  */
   const capacity =
-    rowHeight > 0 ? Math.max(1, Math.min(4, Math.floor((rowHeight - 58) / 17))) : 2;
+    rowHeight > 0 ? Math.max(1, Math.min(5, Math.floor((rowHeight - 48) / 16))) : 2;
 
   const weeks: Date[][] = [];
   for (let i = 0; i < data.gridDays.length; i += 7) {
@@ -110,7 +115,7 @@ export function MonthGrid({
       aria-rowcount={6}
       aria-colcount={7}
       onKeyDown={onKeyDown}
-      className="mb-auto grid max-h-[620px] lg:max-h-none min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-[2px] overflow-hidden px-1.5 lg:gap-1.5"
+      className="mb-auto grid max-h-[760px] lg:max-h-none min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-[2px] overflow-hidden px-1.5 lg:gap-1.5"
     >
       <LayoutGroup id={layoutGroupId}>
         {weeks.map((week, rowIndex) => (
