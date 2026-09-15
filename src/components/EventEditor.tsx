@@ -376,26 +376,38 @@ export function EventEditor({
           onChange={(allDay) => patch({ allDay })}
         />
 
-        {!draft.allDay && (
-          <div className="flex gap-2.5">
-            <div className="flex-1">
-              <TimeField
-                label="התחלה"
-                value={draft.startTime ?? '09:00'}
-                onChange={onStartChange}
-                variant="row"
-              />
-            </div>
-            <div className="flex-1">
-              <TimeField
-                label="סיום"
-                value={draft.endTime ?? '10:00'}
-                onChange={(endTime: string) => patch({ endTime })}
-                variant="row"
-              />
-            </div>
+        {/*
+          שדות השעה נשארים על המסך גם כש"כל היום" דלוק, מעומעמים ולא
+          לחיצים. קודם הם נעלמו לגמרי, והמסך קפץ מהמתג ישר ל"מקום" - מי
+          שפתח תזכורת (שהיא אירוע של כל היום) לא ראה שום רמז לכך שיש
+          בכלל שעות, ולא היה לו איך לנחש שהמתג הוא מה שחושף אותן.
+
+          aria-hidden ולא disabled על השדות עצמם: הם עדיין מציגים ערך
+          אמיתי, והם פשוט אינם חלק מהטופס במצב הזה.
+        */}
+        <div
+          className={`flex gap-2.5 transition-opacity ${
+            draft.allDay ? 'pointer-events-none opacity-40' : ''
+          }`}
+          aria-hidden={draft.allDay}
+        >
+          <div className="flex-1">
+            <TimeField
+              label="התחלה"
+              value={draft.startTime ?? '09:00'}
+              onChange={onStartChange}
+              variant="row"
+            />
           </div>
-        )}
+          <div className="flex-1">
+            <TimeField
+              label="סיום"
+              value={draft.endTime ?? '10:00'}
+              onChange={(endTime: string) => patch({ endTime })}
+              variant="row"
+            />
+          </div>
+        </div>
 
         <PickerField
           label="מקום"

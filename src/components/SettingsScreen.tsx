@@ -18,6 +18,8 @@ import {
   SunMoon,
 } from 'lucide-react';
 import type { Density, ThemeMode } from '@/types';
+import { useSyncState } from '@/hooks/useSyncState';
+import { syncErrorText } from '@/lib/sync';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
 import { useEventsStore } from '@/store/events';
@@ -140,6 +142,7 @@ export function SettingsScreen({
   const conflictCount = useEventsStore((s) => s.conflicts.length);
   const setValue = useSettingsStore((s) => s.set);
   const { user, status, busy, error, signInWithGoogle, signOut, clearError } = useAuthStore();
+  const sync = useSyncState();
 
   const [permission, setPermission] = useState<PermissionState>(() => notificationState());
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
@@ -246,10 +249,28 @@ export function SettingsScreen({
                 </span>
                 <span className="block truncate text-caption text-muted">{user.email}</span>
               </span>
-              <span className="shrink-0 rounded-xl bg-[rgb(52_179_138)]/15 px-3 py-1.5 text-caption font-semibold text-[rgb(25_125_95)]">
-                מסונכרן
-              </span>
+              {/*
+                התג הזה אמר "מסונכרן" בלי תנאי, ולכן הוא שיקר בדיוק כשזה
+                היה הכי חשוב: כשהסנכרון נכשל. עכשיו הוא מדווח מה באמת
+                קרה בניסיון האחרון.
+              */}
+              {sync.status === 'error' ? (
+                <span className="shrink-0 rounded-xl bg-[rgb(194_60_90)]/12 px-3 py-1.5 text-caption font-semibold text-[rgb(194_60_90)]">
+                  לא מסונכרן
+                </span>
+              ) : (
+                <span className="shrink-0 rounded-xl bg-[rgb(52_179_138)]/15 px-3 py-1.5 text-caption font-semibold text-[rgb(25_125_95)]">
+                  {sync.status === 'ok' ? 'מסונכרן' : 'מחובר'}
+                </span>
+              )}
             </div>
+            {sync.status === 'error' && (
+              <SettingRow
+                title="הסנכרון לענן נכשל"
+                hint={syncErrorText(sync.message)}
+                icon={<CloudOff size={ICON.md} strokeWidth={2.1} />}
+              />
+            )}
             {conflictCount > 0 && (
               <SettingRow
                 title="שינויים שהתנגשו"

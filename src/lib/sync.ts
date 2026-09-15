@@ -14,6 +14,55 @@ import { useSettingsStore } from '@/store/settings';
 
 const PUSH_DEBOUNCE_MS = 900;
 
+/*
+  מצב הסנכרון, כדי שכשל יהיה נראה.
+
+  כל מסלול הכישלון כאן היה `catch {}` שקט, והמסך הציג "מסונכרן" בלי
+  תנאי. כך קרה שמסד הנתונים כלל לא היה קיים בפרויקט - וכל סנכרון נכשל -
+  ואיש לא ידע: האפליקציה המשיכה להצהיר שהכול תקין. נתונים שנראים
+  מגובים ואינם מגובים הם גרוע יותר מנתונים שברור שאינם.
+*/
+export type SyncState = 'idle' | 'syncing' | 'ok' | 'error';
+
+const listeners = new Set<() => void>();
+let state: { status: SyncState; message: string | null; at: number } = {
+  status: 'idle',
+  message: null,
+  at: 0,
+};
+
+function setState(status: SyncState, message: string | null = null) {
+  state = { status, message, at: Date.now() };
+  for (const fn of listeners) fn();
+}
+
+/** נרשם לשינויים במצב. מחזיר פונקציית ביטול. */
+export function subscribeSyncState(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+export function getSyncState(): typeof state {
+  return state;
+}
+
+/** הודעה קריאה לבני אדם. קוד של Firestore אינו אומר דבר למשתמש. */
+export function syncErrorText(message: string | null): string {
+  if (!message) return 'הסנכרון נכשל';
+  if (message.includes('NOT_FOUND') || message.includes('not-found')) {
+    return 'מסד הנתונים אינו קיים בפרויקט';
+  }
+  if (message.includes('permission-denied') || message.includes('PERMISSION_DENIED')) {
+    return 'אין הרשאה לכתוב לענן';
+  }
+  if (message.includes('unavailable') || message.includes('UNAVAILABLE')) {
+    return 'אין חיבור לענן';
+  }
+  return message.slice(0, 120);
+}
+
 type Unsub = () => void;
 
 let activeUid: string | null = null;
@@ -152,8 +201,9 @@ async function startSession(uid: string) {
       applyingRemote = false;
       syncedSettingsAt = data.updatedAt ?? 0;
     }
-  } catch {
-    /* לא קריטי */
+  } catch (e) {
+    // ההגדרות אינן קריטיות, אבל כישלון כאן מעיד על הענן כולו
+    setState('error', (e as Error)?.message ?? null);
   }
 
   /* ---------- דחיפה ---------- */
@@ -180,8 +230,10 @@ async function startSession(uid: string) {
         await setDoc(settingsDoc, { settings: s.settings, updatedAt: s.updatedAt });
         syncedSettingsAt = s.updatedAt;
       }
-    } catch {
-      /* ננסה שוב בשינוי הבא */
+      setState('ok');
+    } catch (e) {
+      // ננסה שוב בשינוי הבא, אבל לא בשקט
+      setState('error', (e as Error)?.message ?? null);
     }
   };
 
