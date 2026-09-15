@@ -108,8 +108,14 @@ export function RemindersScreen({
         לשייך: קודם הן ישבו שם תמיד, ארבע גלולות ברוחב משתנה מתחת לשדה
         ריק, ולקחו שליש מגובה הכרטיס כדי לענות על שאלה שאיש לא שאל.
       */}
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-raised">
-        <div className="flex items-center gap-2 ps-4 pe-2">
+      <div className="rounded-3xl bg-surface p-2.5 shadow-raised">
+        {/*
+          אותה שפה של שאר השדות באפליקציה: מגרעת `bg-well` שמצייר אותה
+          ה-wrapper, וטבעת המיקוד עליו. ה-outline של ה-input עצמו נכבה -
+          בתוך כרטיס עם פינות הוא נחתך לשני פסים אנכיים בקצוות, ונראה
+          כמו מסגרת שבורה.
+        */}
+        <div className="flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
           <input
             id="reminder-input"
             type="text"
@@ -117,7 +123,7 @@ export function RemindersScreen({
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             placeholder="מה צריך לזכור?"
-            className="field-reset min-w-0 flex-1 bg-transparent py-4 text-body text-ink placeholder:text-faint"
+            className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint focus-visible:outline-none"
           />
           <AnimatePresence initial={false}>
             {composing && (
@@ -145,7 +151,7 @@ export function RemindersScreen({
           className="overflow-hidden"
           aria-hidden={!composing}
         >
-          <div className="flex items-center gap-1.5 border-t border-hairline px-2.5 py-2">
+          <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-2">
             {(
               [
                 ['none', 'בלי תאריך'],
@@ -186,7 +192,9 @@ export function RemindersScreen({
 
       {/* ------------------------------ הרשימה ------------------------------ */}
       <div className="mt-5 space-y-5">
-        {groups.map((group) => (
+        {/* כשאין כלום, מצב ריק אחד - לא כותרת יום עם "אין תזכורות" ומתחתיה עוד אחד */}
+        {groups.some((g) => g.items.length) &&
+          groups.map((group) => (
           <Group
             key={group.key}
             groupKey={group.key}
@@ -197,9 +205,9 @@ export function RemindersScreen({
               setDone(item.baseId, item.sourceKey, done);
               announce(`"${item.title}" ${done ? 'סומן כבוצע' : 'הוחזר לפתוח'}`);
             }}
-            onOpen={(item) => onEditEvent(item.occurrence ?? item.event!)}
-          />
-        ))}
+              onOpen={(item) => onEditEvent(item.occurrence ?? item.event!)}
+            />
+          ))}
 
         {groups.every((g) => !g.items.length) && (
           <p className="rounded-2xl border border-dashed border-hairline px-4 py-10 text-center text-body text-muted">

@@ -79,7 +79,12 @@ export function SettingRow({
 }
 
 /**
- * קבוצת הגדרות. קבוצה שקיבלה `id` אפשר לקפל, והבחירה נשמרת למכשיר.
+ * קבוצת הגדרות - כרטיס אחד שנפתח ונסגר.
+ *
+ * קודם הכותרת הייתה כיתוב זעיר מרחף מעל הכרטיס, וכשהקבוצה נסגרה היא
+ * הפכה בעצמה לכרטיס. שני מראות לאותו דבר, והחץ קפץ בין שני מקומות.
+ * כאן יש מראה אחד: שורת כותרת בראש הכרטיס, בדיוק באותו ריפוד של
+ * `SettingRow`, והחץ תמיד בקצה הסיום. מה שמשתנה הוא רק מה שמתחתיה.
  *
  * הקיפול מונפש בגובה ולא ב-`layoutId`: אנימציית פריסה משותפת בתוך המסך
  * הזה הייתה נתקעת בדיוק כפי שקרה ל-`Segmented`.
@@ -98,6 +103,7 @@ export function SettingsGroup({
   const collapsible = Boolean(id && title);
   const [collapsed, setCollapsed] = useState(() => (id ? isGroupCollapsed(id) : false));
   const panelId = useId();
+  const open = !collapsible || !collapsed;
 
   const toggle = () => {
     void haptic('light');
@@ -106,80 +112,52 @@ export function SettingsGroup({
     if (id) setGroupCollapsed(id, next);
   };
 
-  const body = (
-    <>
-      <div className="divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
-        {children}
-      </div>
-      {footer && <p className="mt-2.5 px-2 text-caption leading-relaxed text-muted">{footer}</p>}
-    </>
-  );
-
   return (
-    <section className="mb-7">
-      {title &&
-        (collapsible ? (
-          /*
-            קבוצה סגורה הופכת בעצמה לכרטיס - אותו משטח, אותו רדיוס ואותו
-            צל של שורות ההגדרה. קודם היא הייתה כיתוב זעיר וחץ שמרחפים על
-            הקנבס, ומסך עם שמונה כאלה נראה כמו רשימה שלא נגמרה לטעון.
-            פתוחה היא חוזרת להיות תווית שקטה מעל הכרטיס.
-          */
-          <motion.button
-            type="button"
-            onClick={toggle}
-            aria-expanded={!collapsed}
-            aria-controls={panelId}
-            initial={false}
-            animate={{
-              paddingTop: collapsed ? 16 : 4,
-              paddingBottom: collapsed ? 16 : 4,
-              paddingInline: collapsed ? 20 : 8,
-            }}
-            transition={SNAP}
-            className={`focus-ring mb-2.5 flex w-full items-center gap-2 rounded-3xl text-right transition-[background-color,box-shadow] duration-200 ${
-              collapsed ? 'bg-surface shadow-raised' : ''
-            }`}
-          >
-            <span
-              className={`flex-1 transition-colors ${
-                collapsed
-                  ? 'text-label font-medium text-ink'
-                  : 'text-caption font-semibold uppercase tracking-wide text-faint'
-              }`}
+    <section className="mb-4">
+      <div className="overflow-hidden rounded-2xl bg-surface shadow-raised">
+        {title &&
+          (collapsible ? (
+            <motion.button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              aria-controls={panelId}
+              whileTap={{ scale: 0.995 }}
+              transition={TAP}
+              className="focus-ring-inset flex w-full items-center gap-3 px-5 py-4 text-right transition-colors active:bg-well lg:px-6 lg:py-[18px]"
             >
-              {title}
-            </span>
-            <motion.span
-              className={collapsed ? 'text-muted' : 'text-faint'}
-              initial={false}
-              animate={{ rotate: collapsed ? 0 : 180 }}
-              transition={SNAP}
-            >
-              <ChevronDown size={collapsed ? ICON.md : ICON.sm} strokeWidth={STROKE} />
-            </motion.span>
-          </motion.button>
-        ) : (
-          <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
-            {title}
-          </h3>
-        ))}
+              <span className="flex-1 text-label font-semibold text-ink">{title}</span>
+              <motion.span
+                className="shrink-0 text-muted"
+                initial={false}
+                animate={{ rotate: open ? 180 : 0 }}
+                transition={SNAP}
+              >
+                <ChevronDown size={ICON.lg} strokeWidth={STROKE} />
+              </motion.span>
+            </motion.button>
+          ) : (
+            <div className="px-5 py-4 lg:px-6 lg:py-[18px]">
+              <span className="text-label font-semibold text-ink">{title}</span>
+            </div>
+          ))}
 
-      {collapsible ? (
         <motion.div
           id={panelId}
-          // הריפוד השלילי נותן לצל מקום בתוך אזור הגזירה. ב-border-box
-          // גובה 0 מאפס גם אותו, ולכן הקבוצה הסגורה באמת תופסת אפס.
-          className="-mx-1 -mb-1 overflow-hidden px-1 pb-1"
+          className="overflow-hidden"
           initial={false}
-          animate={{ height: collapsed ? 0 : 'auto', opacity: collapsed ? 0 : 1 }}
-          transition={{ height: GLIDE, opacity: collapsed ? EXIT : ENTER }}
-          aria-hidden={collapsed}
+          animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+          transition={{ height: GLIDE, opacity: open ? ENTER : EXIT }}
+          aria-hidden={!open}
         >
-          {body}
+          <div className={`divide-y divide-hairline ${title ? 'border-t border-hairline' : ''}`}>
+            {children}
+          </div>
         </motion.div>
-      ) : (
-        body
+      </div>
+
+      {footer && open && (
+        <p className="mt-2.5 px-2 text-caption leading-relaxed text-muted">{footer}</p>
       )}
     </section>
   );
