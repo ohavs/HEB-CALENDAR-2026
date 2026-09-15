@@ -1,6 +1,6 @@
 /** כותרת הלוח: פרופיל, שם החודש, חיפוש והוספה - בדיוק כמו בעיצוב הייחוס. */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Columns3, LayoutGrid, List, Plus, Search } from 'lucide-react';
+import { CalendarDays, Columns3, LayoutGrid, List, Plus } from 'lucide-react';
 import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON, STROKE } from '@/lib/motion';
@@ -21,7 +21,6 @@ export function CalendarHeader({
   onPickView,
   photoURL,
   onProfile,
-  onSearch,
   onAdd,
   onToday,
   onTitle,
@@ -34,7 +33,6 @@ export function CalendarHeader({
   onPickView: () => void;
   photoURL: string | null;
   onProfile: () => void;
-  onSearch: () => void;
   onAdd: () => void;
   onToday: () => void;
   onTitle: () => void;
@@ -68,7 +66,7 @@ export function CalendarHeader({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6, position: 'absolute' }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="block text-heading font-semibold leading-tight text-ink"
+              className="block whitespace-nowrap text-heading font-semibold leading-tight text-ink"
             >
               {label}
             </motion.span>
@@ -109,16 +107,6 @@ export function CalendarHeader({
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
           >
             <ViewIcon size={ICON.xl} strokeWidth={2.1} />
-          </motion.button>
-
-          <motion.button
-            type="button"
-            onClick={onSearch}
-            whileTap={{ scale: 0.92 }}
-            aria-label="חיפוש"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
-          >
-            <Search size={ICON.xl} strokeWidth={2.1} />
           </motion.button>
 
           <motion.button

@@ -227,6 +227,7 @@ export function CalendarScreen({
           onAddEvent={() => onAddEvent(selectedKey)}
           onEditEvent={onEditEvent}
           onMoveEvent={onMoveEvent}
+          onSearch={onSearch}
           bottomInset={isDesktop ? 0 : bottomInset}
         />
       );
@@ -308,7 +309,6 @@ export function CalendarScreen({
               onPickView={onPickView}
               photoURL={photoURL}
               onProfile={onProfile}
-              onSearch={onSearch}
               onAdd={() => onAddEvent(selectedKey)}
               onToday={goToToday}
               onTitle={onOpenYear}

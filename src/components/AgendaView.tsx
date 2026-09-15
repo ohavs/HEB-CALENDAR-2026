@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, ChevronDown, RotateCcw } from 'lucide-react';
+import { CalendarPlus, ChevronDown, RotateCcw, Search } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useRangeData } from '@/hooks/useMonthData';
@@ -19,7 +19,7 @@ import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agenda
 import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
 import { EventCard } from './EventChip';
 import { useEventsStore } from '@/store/events';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, STROKE, TAP, TAP_SCALE } from '@/lib/motion';
 
 /** כמה ימים נטענים בכל פעם */
 const WINDOW_DAYS = 92;
@@ -126,6 +126,7 @@ export function AgendaView({
   onAddEvent,
   onEditEvent,
   onMoveEvent,
+  onSearch,
   bottomInset,
 }: {
   /** מאיפה הרשימה מתחילה - בדרך כלל היום */
@@ -134,6 +135,8 @@ export function AgendaView({
   onAddEvent: () => void;
   onEditEvent: (occurrence: Occurrence) => void;
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
+  /** החיפוש חי כאן מאז שירד מכותרת הלוח */
+  onSearch: () => void;
   bottomInset: number;
 }) {
   const settings = useSettings();
@@ -200,7 +203,25 @@ export function AgendaView({
       style={{ paddingBottom: bottomInset + 24 }}
     >
       <div className="app-shell-narrow">
-        <AgendaFilterButton hidden={hidden} onOpen={() => setFiltersOpen(true)} />
+        {/*
+          החיפוש ירד מכותרת הלוח כדי שהשורה שם תישאר שורה אחת, והוא נחת
+          כאן: סדר היום הוא רשימה, וחיפוש ברשימה הוא המקום שמצפים לו.
+        */}
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <AgendaFilterButton hidden={hidden} onOpen={() => setFiltersOpen(true)} />
+          </div>
+          <motion.button
+            type="button"
+            onClick={onSearch}
+            whileTap={{ scale: 0.92 }}
+            transition={TAP}
+            aria-label="חיפוש"
+            className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-raised"
+          >
+            <Search size={ICON.md} strokeWidth={STROKE} />
+          </motion.button>
+        </div>
 
         {entries.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-hairline px-5 py-14 text-center">
