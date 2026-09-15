@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Plus, Settings2, Users } from 'lucide-react';
+import { Check, Plus, Settings2, UserPlus, Users } from 'lucide-react';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
 import { buildReminderGroups, type ReminderItem } from '@/lib/reminders';
@@ -21,6 +21,7 @@ import {
   acceptInvite,
   createList,
   declineInvite,
+  retryShared,
   saveItem,
   setItemDone,
 } from '@/lib/sharedSync';
@@ -47,6 +48,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
   const loaded = useSharedStore((s) => s.loaded);
   const invites = useSharedStore((s) => s.invites);
   const itemsByList = useSharedStore((s) => s.items);
+  const error = useSharedStore((s) => s.error);
   const category = useSharedStore((s) => s.category);
   const setCategory = useSharedStore((s) => s.setCategory);
   const select = useSharedStore((s) => s.select);
@@ -170,20 +172,43 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
       </AnimatePresence>
 
       {/* ---------------------------- רשימות ---------------------------- */}
-      {!lists.length ? (
-        loaded && (
-          <div className="pt-2">
-            <Notice>
-              עוד אין רשימות משותפות. רשימה חדשה מתחילה ריקה, ואחרי שתזמינו
-              אליה מישהו - כל מה שתוסיפו יופיע גם אצלו.
-            </Notice>
-            <div className="mt-4">
-              <PrimaryButton onClick={() => void addList()} disabled={busy}>
-                רשימה משותפת חדשה
-              </PrimaryButton>
-            </div>
+      {/*
+        שלושה מצבים לפני שיש רשימות, ולכל אחד תצוגה משלו. קודם היה כאן
+        `loaded && (...)`, וכל עוד המאזין לא ענה המסך היה ריק לגמרי -
+        בלי כותרת, בלי כפתור ובלי סיבה. מסך ריק אינו מצב; הוא באג.
+      */}
+      {error ? (
+        <div className="pt-2">
+          <Notice>
+            לא הצלחנו לטעון את הרשימות המשותפות.
+            <span className="mt-2 block text-caption text-faint">{error}</span>
+          </Notice>
+          <div className="mt-4">
+            <PrimaryButton
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void retryShared().finally(() => setBusy(false));
+              }}
+            >
+              לנסות שוב
+            </PrimaryButton>
           </div>
-        )
+        </div>
+      ) : !loaded ? (
+        <p className="py-10 text-center text-label text-muted">טוען רשימות…</p>
+      ) : !lists.length ? (
+        <div className="pt-2">
+          <Notice>
+            עוד אין רשימות משותפות. צרו אחת, ואז הזמינו אליה מישהו לפי כתובת
+            הגוגל שלו - מאותו רגע כל מה שתוסיפו יופיע גם אצלו.
+          </Notice>
+          <div className="mt-4">
+            <PrimaryButton onClick={() => void addList()} disabled={busy}>
+              רשימה משותפת חדשה
+            </PrimaryButton>
+          </div>
+        </div>
       ) : (
         <>
           <div className="mb-3 flex items-center gap-2">
@@ -256,6 +281,32 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 onClick={() => setCategory('none')}
               />
             </div>
+          )}
+
+          {/*
+            רשימה משותפת עם חבר אחד אינה משותפת. ההזמנה ישבה עד כה רק
+            מאחורי גלגל השיניים, וזו בדיוק הפעולה שצריך לעשות עכשיו -
+            ולכן היא מופיעה כשורה, ונעלמת ברגע שיש עם מי לחלוק.
+          */}
+          {list && list.memberUids.length === 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                void haptic('light');
+                setManagerOpen(true);
+              }}
+              className="focus-ring mb-3 flex w-full items-center gap-3 rounded-2xl bg-brand-soft px-4 py-3.5 text-right"
+            >
+              <UserPlus size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-brand-ink" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-label font-semibold text-brand-ink">
+                  הזמינו מישהו ל״{list.name}״
+                </span>
+                <span className="mt-0.5 block text-caption text-brand-ink/70">
+                  לפי כתובת הגוגל שלו. עד אז הרשימה היא שלכם בלבד.
+                </span>
+              </span>
+            </button>
           )}
 
           {/* ---------------------------- הוספה ---------------------------- */}

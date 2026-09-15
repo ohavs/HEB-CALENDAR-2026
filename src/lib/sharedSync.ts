@@ -142,7 +142,14 @@ export async function startShared(): Promise<void> {
 
   try {
     ({ db } = await getFirebase());
-  } catch {
+  } catch (e) {
+    /*
+      זה היה `return` שקט, והמסך נשאר ריק לנצח: `loaded` לא הופך ל-true
+      אלא בתוך המאזין, וכל שאר המסך מותנה בו. כישלון שאינו נראה הוא
+      כישלון שאי אפשר לדווח עליו.
+    */
+    activeUid = null;
+    fail(e);
     return;
   }
   if (activeUid !== user.uid || !db) return;
@@ -196,6 +203,17 @@ export async function startShared(): Promise<void> {
       fail,
     );
   }
+}
+
+/**
+ * ניסיון חוזר אחרי כישלון.
+ *
+ * `startShared` מדלג כשהיא כבר פעילה לאותו משתמש, ולכן ניסיון חוזר
+ * חייב לנקות את השומר - אחרת הכפתור לא היה עושה דבר.
+ */
+export async function retryShared(): Promise<void> {
+  stopShared();
+  await startShared();
 }
 
 /** מחליף את מאזין הפריטים לרשימה שנבחרה, אם היא השתנתה. */
