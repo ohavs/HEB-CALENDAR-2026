@@ -1,19 +1,22 @@
 /**
  * מאיפה מגיעות ההצעות למקום של אירוע.
  *
- * שלוש שכבות, לפי מה שסביר שהמשתמש יבחר:
+ * שתי שכבות, ושתיהן של המשתמש עצמו:
  *   1. המקומות השמורים שלו (בית, עבודה) - הוא כבר טרח להגדיר אותם
  *   2. מקומות שכתב באירועים קודמים - "בית הכנסת", "אצל סבתא"
- *   3. ערים מהרשימה המובנית
  *
- * כל השלוש מקומיות לגמרי: אין קריאת רשת, אין מפתח API, והשאילתה של
- * המשתמש לא יוצאת מהמכשיר. חיפוש כתובות חופשי דורש שירות גיאוקודינג
- * חיצוני, ואיתו גם עלות וגם שליחה של כל תו שהמשתמש מקליד לצד שלישי -
- * ראו את הטבלה ב-README. אם וכשזה יידרש, נקודת החיבור היחידה היא
- * suggestLocations() כאן.
+ * רשימת הערים המובנית **אינה** מקור להצעות. היא נבנתה לזמני שבת, ולכן
+ * הצעה ממנה היא רעש: המשתמש שמחפש "בית" מקבל ערים שמעולם לא הזכיר, והן
+ * דוחקות את מה שהוא באמת כתב. הערים נשארות בשימוש בבורר העיר של זמני
+ * שבת וב-nearestCity() שמתרגם את המיקום הנוכחי לשם - שם הן נכונות.
+ *
+ * הכול מקומי: אין קריאת רשת, אין מפתח API, והשאילתה של המשתמש לא יוצאת
+ * מהמכשיר. חיפוש כתובות חופשי דורש שירות גיאוקודינג חיצוני, ואיתו גם
+ * עלות וגם שליחה של כל תו שהמשתמש מקליד לצד שלישי - ראו את הטבלה
+ * ב-README. אם וכשזה יידרש, נקודת החיבור היחידה היא suggestLocations()
+ * כאן.
  */
-import type { GeoCity, SavedPlace, UserEvent } from '@/types';
-import { CITIES } from './locations';
+import type { SavedPlace, UserEvent } from '@/types';
 import { bestScore, normalize } from './search';
 
 export type LocationSuggestion = {
@@ -23,7 +26,7 @@ export type LocationSuggestion = {
   label: string;
   /** הסבר קצר מתחת לכיתוב */
   hint?: string;
-  kind: 'place' | 'recent' | 'city';
+  kind: 'place' | 'recent';
   /** מזהה מקום שמור, אם זה מקום שמור */
   placeId?: string;
   latitude?: number;
@@ -32,8 +35,6 @@ export type LocationSuggestion = {
 
 /** כמה מקומות אחרונים לזכור */
 const MAX_RECENT = 8;
-/** כמה ערים להציע בלי שאילתה */
-const MAX_CITIES = 8;
 
 function fromPlace(place: SavedPlace): LocationSuggestion {
   return {
@@ -44,17 +45,6 @@ function fromPlace(place: SavedPlace): LocationSuggestion {
     placeId: place.id,
     latitude: place.latitude,
     longitude: place.longitude,
-  };
-}
-
-function fromCity(city: GeoCity): LocationSuggestion {
-  return {
-    key: `city:${city.id}`,
-    label: city.name,
-    hint: city.region,
-    kind: 'city',
-    latitude: city.latitude,
-    longitude: city.longitude,
   };
 }
 
@@ -80,8 +70,11 @@ export function recentLocations(events: UserEvent[], places: SavedPlace[]): Loca
 }
 
 /**
- * ההצעות לתיבת החיפוש. בלי שאילתה מוצגים המקומות השמורים, האחרונים,
- * וכמה ערים; עם שאילתה הכול מסונן ומדורג לפי עוצמת ההתאמה.
+ * ההצעות לתיבת החיפוש. בלי שאילתה מוצגים המקומות השמורים והאחרונים
+ * כפי שהם; עם שאילתה הם מסוננים ומדורגים לפי עוצמת ההתאמה.
+ *
+ * אין מקור שלישי: מה שהמשתמש לא הגדיר ולא כתב - לא יוצע לו. טקסט חופשי
+ * תמיד אפשרי, ו-LocationPicker מציע אותו בעצמו.
  */
 export function suggestLocations(
   query: string,
@@ -89,17 +82,13 @@ export function suggestLocations(
   places: SavedPlace[],
 ): LocationSuggestion[] {
   const term = query.trim();
-  const saved = places.map(fromPlace);
-  const recent = recentLocations(events, places);
+  const all = [...places.map(fromPlace), ...recentLocations(events, places)];
 
-  if (!term) {
-    return [...saved, ...recent, ...CITIES.slice(0, MAX_CITIES).map(fromCity)];
-  }
+  if (!term) return all;
 
-  const all = [...saved, ...recent, ...CITIES.map(fromCity)];
   // מקום שמור מקבל דחיפה: הוא נבחר במפורש על ידי המשתמש, ולכן סביר
-  // יותר מעיר שסתם נמצאת ברשימה
-  const boost: Record<LocationSuggestion['kind'], number> = { place: 12, recent: 6, city: 0 };
+  // יותר ממקום שנכתב פעם אחת באירוע
+  const boost: Record<LocationSuggestion['kind'], number> = { place: 6, recent: 0 };
 
   return all
     .map((s) => ({ s, score: bestScore([s.label, s.hint], term) + boost[s.kind] }))

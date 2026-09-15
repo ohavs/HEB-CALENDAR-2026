@@ -2,16 +2,18 @@
  * בחירת מקום לאירוע.
  *
  * עד כה זו הייתה תיבת טקסט חופשי, בזמן שהאפליקציה כבר יודעת על המקומות
- * השמורים של המשתמש, על 83 ערים, ועל המיקום הנוכחי של המכשיר. הבחירה
- * החופשית נשארה - "אצל סבתא" הוא מקום לגיטימי שאין לו כתובת - אבל היא
- * כבר לא הדרך היחידה.
+ * השמורים של המשתמש ועל מה שכתב באירועים קודמים. הבחירה החופשית נשארה -
+ * "אצל סבתא" הוא מקום לגיטימי שאין לו כתובת - אבל היא כבר לא הדרך היחידה.
+ *
+ * מה שמוצע הוא רק מה ששייך למשתמש. ערים מהרשימה המובנית אינן מוצעות כאן
+ * בכוונה; הן משרתות את זמני השבת, ובבורר מקום הן היו רעש.
  *
  * הכול מקומי: אין קריאת רשת ואין מפתח API, ומה שהמשתמש מקליד לא יוצא
  * מהמכשיר.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Crosshair, History, MapPin, Search, Trash2, X } from 'lucide-react';
+import { Crosshair, History, MapPin, Search, Trash2, X } from 'lucide-react';
 import type { SavedPlace, UserEvent } from '@/types';
 import { suggestLocations, type LocationSuggestion } from '@/lib/eventLocations';
 import { nearestCity } from '@/lib/locations';
@@ -22,7 +24,6 @@ import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 const ICON_FOR = {
   place: MapPin,
   recent: History,
-  city: Building2,
 } as const;
 
 export type LocationChoice = { location?: string; placeId?: string };
@@ -94,7 +95,7 @@ export function LocationPicker({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="מקום שמור, עיר, או כל טקסט"
+          placeholder="מקום שמור, או כל טקסט"
           autoFocus
           className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
         />
@@ -206,8 +207,8 @@ export function LocationPicker({
         ) : (
           !showFreeText && (
             <p className="py-8 text-center text-label text-muted">
-              אין מקומות שמורים עדיין. אפשר להוסיף אותם בהגדרות, או פשוט לכתוב
-              כאן טקסט.
+              אין עדיין מקומות שלכם. אפשר להוסיף מקום שמור בהגדרות, או פשוט
+              לכתוב כאן טקסט.
             </p>
           )
         )}

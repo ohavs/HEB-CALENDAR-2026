@@ -75,10 +75,8 @@ describe('suggestLocations בלי שאילתה', () => {
     expect(out[1].label).toBe('אצל סבתא');
   });
 
-  it('ואז ערים', () => {
-    const out = suggestLocations('', [], []);
-    expect(out.length).toBeGreaterThan(0);
-    expect(out.every((s) => s.kind === 'city')).toBe(true);
+  it('בלי מקומות משלו הרשימה ריקה, ולא מתמלאת בערים', () => {
+    expect(suggestLocations('', [], [])).toHaveLength(0);
   });
 
   it('למקום שמור יש מזהה וקואורדינטות', () => {
@@ -90,35 +88,44 @@ describe('suggestLocations בלי שאילתה', () => {
 
 describe('suggestLocations עם שאילתה', () => {
   it('מסנן לפי מה שהוקלד', () => {
-    const out = suggestLocations('ירושל', [], [HOME]);
-    expect(out.some((s) => s.label === 'ירושלים')).toBe(true);
+    const out = suggestLocations('סבת', [event({ location: 'אצל סבתא' })], [HOME]);
+    expect(out.some((s) => s.label === 'אצל סבתא')).toBe(true);
     expect(out.some((s) => s.label === 'בית')).toBe(false);
   });
 
-  it('מקום שמור גובר על עיר באותה התאמה', () => {
+  it('מקום שמור גובר על מקום מאירוע קודם באותה התאמה', () => {
     const tlv = place('p', 'תל אביב–יפו');
-    const out = suggestLocations('תל אביב', [], [tlv]);
+    const out = suggestLocations('תל אביב', [event({ location: 'תל אביב–יפו' })], [tlv]);
     expect(out[0].kind).toBe('place');
-  });
-
-  it('מקום מאירוע קודם גובר על עיר', () => {
-    const out = suggestLocations('חיפה', [event({ location: 'חיפה' })], []);
-    expect(out[0].kind).toBe('recent');
   });
 
   it('חיפוש עברי מנורמל עובד', () => {
     // גרשיים וניקוד לא אמורים להכשיל
-    expect(suggestLocations('תל אביב יפו', [], []).some((s) => s.label.includes('תל אביב'))).toBe(
-      true,
-    );
+    const out = suggestLocations('בית הכנסת', [event({ location: 'בית־הכנסת' })], []);
+    expect(out.some((s) => s.label === 'בית־הכנסת')).toBe(true);
   });
 
   it('שאילתה בלי התאמות מחזירה רשימה ריקה', () => {
-    expect(suggestLocations('זזזזזז', [], [])).toHaveLength(0);
+    expect(suggestLocations('זזזזזז', [], [HOME])).toHaveLength(0);
+  });
+});
+
+describe('ערים אינן מקור להצעות', () => {
+  // רשימת הערים נבנתה לזמני שבת. הצעה ממנה היא מקום שהמשתמש לא הזכיר
+  // מעולם, והיא דוחקת את מה שהוא כן כתב.
+  it('שם של עיר מוכרת לא מוצע כשהוא לא שלו', () => {
+    expect(suggestLocations('ירושלים', [], [HOME])).toHaveLength(0);
+    expect(suggestLocations('תל אביב', [], [])).toHaveLength(0);
   });
 
-  it('מוצא גם לפי האזור של העיר', () => {
-    expect(suggestLocations('ישראל', [], []).length).toBeGreaterThan(0);
+  it('אבל אותה עיר כן מוצעת אם המשתמש כתב אותה בעצמו', () => {
+    const out = suggestLocations('ירושלים', [event({ location: 'ירושלים' })], []);
+    expect(out.map((s) => s.label)).toEqual(['ירושלים']);
+    expect(out[0].kind).toBe('recent');
+  });
+
+  it('שם של אזור לא מביא ערים', () => {
+    expect(suggestLocations('ישראל', [], [])).toHaveLength(0);
   });
 });
 
