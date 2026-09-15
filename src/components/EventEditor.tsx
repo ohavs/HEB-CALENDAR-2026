@@ -39,6 +39,8 @@ import {
   TimeField,
 } from './ui/fields';
 import { ICON, STROKE } from '@/lib/motion';
+import { haptic } from '@/lib/native';
+import { announce } from '@/lib/announce';
 
 const COLOR_SWATCH: Record<EventColor, string> = {
   violet: 'ev-violet',
@@ -186,23 +188,35 @@ export function EventEditor({
     updateOccurrence(occurrence.baseId, occurrence.sourceKey, exception);
   };
 
+  /*
+    כתיבה ומחיקה הן הדרגה הכבדה בסולם המישוש: אלה הפעולות שמשנות נתונים
+    וסוגרות את הגיליון, והאצבע צריכה לדעת שהן קרו. ההכרזה נשלחת באותה
+    נקודה בדיוק - הגיליון נסגר, המסך משתנה, והמיקוד לא זז לשום מקום
+    שמסביר מה קרה.
+  */
+  const saved = (message: string) => {
+    void haptic('medium');
+    announce(message);
+    onClose();
+  };
+
   const applyScope = (scope: EditScope) => {
     if (scope === 'series') update(occurrence!.baseId, payloadOf());
     else saveOccurrence();
-    onClose();
+    saved(scope === 'series' ? 'כל הסדרה עודכנה' : 'המופע עודכן');
   };
 
   const applyDeleteScope = (scope: EditScope) => {
     if (scope === 'series') remove(occurrence!.baseId);
     else cancelOccurrence(occurrence!.baseId, occurrence!.sourceKey);
-    onClose();
+    saved(scope === 'series' ? 'הסדרה נמחקה' : 'המופע נמחק');
   };
 
   const onSave = () => {
     if (!draft.title.trim()) return;
     if (!editing) {
       add(payloadOf());
-      onClose();
+      saved(`"${draft.title.trim()}" נוסף`);
       return;
     }
     if (isSeriesMember) {
@@ -210,7 +224,7 @@ export function EventEditor({
       return;
     }
     update('baseId' in editing ? editing.baseId : editing.id, payloadOf());
-    onClose();
+    saved('האירוע נשמר');
   };
 
   const onDelete = () => {
@@ -224,7 +238,7 @@ export function EventEditor({
       return;
     }
     remove('baseId' in editing ? editing.baseId : editing.id);
-    onClose();
+    saved('האירוע נמחק');
   };
 
   const eventDate = keyToDate(draft.date);

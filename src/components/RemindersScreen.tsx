@@ -23,6 +23,7 @@ import { useRangeData } from '@/hooks/useMonthData';
 import { beginLongPress, useDragActive, useIsDropTarget } from '@/lib/dragEngine';
 import { DatePickerSheet } from './ui/Picker';
 import { announce } from '@/lib/announce';
+import { haptic } from '@/lib/native';
 import { ICON, STROKE, TAP } from '@/lib/motion';
 
 /** מה הכפתור מציע כברירת מחדל: היום, מחר, או בלי תאריך */
@@ -85,6 +86,7 @@ export function RemindersScreen({
       ...(date ? {} : { undated: true as const }),
     });
     setTitle('');
+    void haptic('medium');
     announce(date ? 'התזכורת נוספה ליום' : 'התזכורת נוספה בלי תאריך');
   };
 
@@ -164,7 +166,10 @@ export function RemindersScreen({
             label={group.label}
             hebrew={group.hebrew}
             items={group.items}
-            onToggle={(item, done) => setDone(item.baseId, item.sourceKey, done)}
+            onToggle={(item, done) => {
+              setDone(item.baseId, item.sourceKey, done);
+              announce(`"${item.title}" ${done ? 'סומן כבוצע' : 'הוחזר לפתוח'}`);
+            }}
             onOpen={(item) => onEditEvent(item.occurrence ?? item.event!)}
           />
         ))}
@@ -291,7 +296,10 @@ function Row({
         role="checkbox"
         aria-checked={item.done}
         aria-label={item.done ? 'ביטול סימון כבוצע' : 'סימון כבוצע'}
-        onClick={() => onToggle(item, !item.done)}
+        onClick={() => {
+          void haptic('light');
+          onToggle(item, !item.done);
+        }}
         whileTap={{ scale: 0.88 }}
         transition={TAP}
         className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${

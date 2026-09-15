@@ -11,6 +11,7 @@
  */
 import { motion } from 'framer-motion';
 import { RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { announce } from '@/lib/announce';
 import type { AgendaCategory } from '@/types';
 import { AGENDA_CATEGORIES } from '@/lib/agendaFilters';
 import { Sheet } from './ui/Sheet';
@@ -105,7 +106,15 @@ export function AgendaFilterSheet({
         {AGENDA_CATEGORIES.map(({ id, label }) => (
           <div key={id} className="flex items-center justify-between gap-3 px-4 py-4">
             <span className="text-body font-medium text-ink">{label}</span>
-            <Toggle label={label} checked={!hidden.includes(id)} onChange={() => onToggle(id)} />
+            <Toggle
+              label={label}
+              checked={!hidden.includes(id)}
+              onChange={() => {
+                // הרשימה שמאחורי הגיליון משתנה, והמיקוד נשאר על המתג
+                announce(`${label} ${hidden.includes(id) ? 'מוצג' : 'מוסתר'}`);
+                onToggle(id);
+              }}
+            />
           </div>
         ))}
       </div>

@@ -366,23 +366,33 @@ export async function shareTextFile(
    ========================================================================== */
 
 /**
- * רטט קצר לפעולה שהצליחה.
+ * סולם המישוש, בשתי דרגות.
  *
- * באנדרואיד זה משוב המישוש של המערכת - קליק קל, לא רטט של טלפון שמצלצל.
+ * באנדרואיד זה משוב המישוש של המערכת - קליק, לא רטט של טלפון שמצלצל.
  * בדפדפן נופלים ל-API הפשוט, שהוא כל מה שיש שם.
+ *
+ * הכלל מתי לקרוא נמצא ב-CLAUDE.md לצד טוקני התנועה, כי זו אותה מערכת:
+ * בחירה שקטה, שינוי מצב `light`, ומה שכותב או מוחק `medium`.
  */
-export async function tick(): Promise<void> {
+export type HapticWeight = 'light' | 'medium';
+
+/** משך הנפילה בדפדפן, במילישניות */
+const FALLBACK_MS: Record<HapticWeight, number> = { light: 10, medium: 20 };
+
+export async function haptic(weight: HapticWeight = 'light'): Promise<void> {
   if (isNative()) {
     try {
       const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-      await Haptics.impact({ style: ImpactStyle.Light });
+      await Haptics.impact({
+        style: weight === 'medium' ? ImpactStyle.Medium : ImpactStyle.Light,
+      });
       return;
     } catch {
       /* אין רכיב רטט - ממשיכים לנפילה */
     }
   }
   try {
-    navigator.vibrate?.(14);
+    navigator.vibrate?.(FALLBACK_MS[weight]);
   } catch {
     /* לא נתמך */
   }

@@ -27,12 +27,18 @@ function cellLabel(day: DayInfo, holidays: HolidayItem[], eventCount: number): s
   return parts.join(', ');
 }
 
-/** צבע הכיתוב של מועד לפי סוגו. */
+/**
+ * צבע הכיתוב של מועד לפי סוגו.
+ *
+ * במצב כהה המשקל יורד: מספר היום מצויר ב-`text-ink` שהוא כמעט לבן, ושם
+ * מועד מודגש ב-`brand-ink` בהיר התחרה בו על תשומת הלב. במצב בהיר אין
+ * בעיה כזו, כי המספר כהה משמעותית מהשם.
+ */
 function holidayTone(kind: HolidayKind): string {
   switch (kind) {
     case 'yomtov':
     case 'majorfast':
-      return 'font-semibold text-brand-ink';
+      return 'font-semibold dark:font-medium text-brand-ink';
     case 'cholhamoed':
     case 'minor':
       return 'text-brand-ink/85';
@@ -127,7 +133,7 @@ function DayCellInner({
       onClick={() => onSelect(day)}
       className={`focus-ring-inset relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center transition-colors ${
         dim ? 'opacity-45' : ''
-      } ${day.isShabbat && !dim ? 'bg-brand/[0.045]' : ''}`}
+      } ${day.isShabbat && !dim ? 'bg-brand/[0.045] dark:bg-brand/[0.12]' : ''}`}
       aria-label={cellLabel(day, shownHolidays, occurrences.length)}
       aria-selected={selected}
       aria-current={day.isToday ? 'date' : undefined}

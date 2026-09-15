@@ -8,7 +8,7 @@
  * - מיקום המצביע מוחזק ב-motion values, כך שהצל הנגרר זז ב-60fps בלי רינדור.
  */
 import { motionValue } from 'framer-motion';
-import { tick } from './native';
+import { haptic } from './native';
 import { create } from 'zustand';
 import type { DateKey } from '@/types';
 import type { Occurrence } from './recurrence';
@@ -90,7 +90,7 @@ type Session = {
 let session: Session | null = null;
 
 function buzz() {
-  void tick();
+  void haptic('medium');
 }
 
 function dayKeyAtPoint(x: number, y: number): DateKey | null {

@@ -4,6 +4,7 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { isGroupCollapsed, setGroupCollapsed } from '@/lib/settingsCollapse';
+import { haptic } from '@/lib/native';
 
 /* ---------------------------------- מתג ---------------------------------- */
 
@@ -25,7 +26,10 @@ export function Toggle({
       aria-checked={checked}
       aria-label={label}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        void haptic('light');
+        onChange(!checked);
+      }}
       className={`relative h-[34px] w-[58px] shrink-0 rounded-full transition-colors duration-200 ${
         checked ? 'bg-brand' : 'bg-hairline'
       } ${disabled ? 'opacity-40' : ''}`}
@@ -96,6 +100,7 @@ export function SettingsGroup({
   const panelId = useId();
 
   const toggle = () => {
+    void haptic('light');
     const next = !collapsed;
     setCollapsed(next);
     if (id) setGroupCollapsed(id, next);
@@ -226,7 +231,10 @@ export function Segmented<T extends string>({
             key={opt.value}
             data-seg
             type="button"
-            onClick={() => onChange(opt.value)}
+            onClick={() => {
+              void haptic('light');
+              onChange(opt.value);
+            }}
             className={`relative flex-1 whitespace-nowrap rounded-xl px-3.5 py-2.5 font-medium transition-colors ${
               active ? 'text-white' : 'text-muted'
             }`}

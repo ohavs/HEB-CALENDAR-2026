@@ -1,6 +1,7 @@
 /** סרגל לשוניות - שורה תחתונה בטלפון, גלולה צפה וממורכזת במסך רחב. */
 import { motion } from 'framer-motion';
 import { CalendarDays, ListChecks, Settings, Sunset } from 'lucide-react';
+import { announce } from '@/lib/announce';
 import { ICON, SNAP } from '@/lib/motion';
 
 export type TabId = 'calendar' | 'reminders' | 'shabbat' | 'settings';
@@ -33,7 +34,11 @@ export function TabBar({
             <button
               key={id}
               type="button"
-              onClick={() => onChange(id)}
+              onClick={() => {
+                onChange(id);
+                // המסך מתחלף כולו והמיקוד נשאר על הלשונית
+                announce(label);
+              }}
               className="relative flex flex-1 flex-col items-center gap-1 pb-2.5 pt-3 lg:flex-none lg:flex-row lg:gap-2.5 lg:rounded-2xl lg:px-6 lg:py-3"
               aria-current={isActive ? 'page' : undefined}
             >

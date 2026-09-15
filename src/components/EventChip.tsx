@@ -10,6 +10,7 @@ import { Check, MapPin, Repeat } from 'lucide-react';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
+import { haptic } from '@/lib/native';
 import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
 
 /**
@@ -139,7 +140,10 @@ export function EventCard({
           role="checkbox"
           aria-checked={occurrence.done}
           aria-label={occurrence.done ? 'ביטול סימון כבוצע' : 'סימון כבוצע'}
-          onClick={() => onToggleDone(!occurrence.done)}
+          onClick={() => {
+            void haptic('light');
+            onToggleDone(!occurrence.done);
+          }}
           whileTap={{ scale: 0.88 }}
           transition={TAP}
           className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
