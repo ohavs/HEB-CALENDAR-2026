@@ -20,11 +20,13 @@ import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
-import type { DayInfo } from '@/types';
+import type { DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
-import { dayTitleLabel, relativeDayLabel } from '@/lib/dates';
+import { dateKey, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
 import { EventCard } from './EventChip';
 import { useEventsStore } from '@/store/events';
+import { useSettings } from '@/store/settings';
+import { TemplateStrip } from './TemplateStrip';
 import { useElementSize } from '@/hooks/useElementSize';
 import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
 
@@ -60,6 +62,8 @@ type ContentProps = {
   onEditEvent: (occurrence: Occurrence) => void;
   /** הזזה במקלדת (Alt+חיצים) - החלופה לגרירה */
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
+  /** שיבוץ תבנית ליום הפתוח */
+  onPlaceTemplate: (template: EventTemplate, date: DateKey) => void;
 };
 
 /* ==========================================================================
@@ -73,8 +77,10 @@ function DayPanelContent({
   onAddEvent,
   onEditEvent,
   onMoveEvent,
+  onPlaceTemplate,
 }: ContentProps) {
   const setDone = useEventsStore((s) => s.setOccurrenceDone);
+  const settings = useSettings();
   if (!day) return null;
 
   const candles = day.times.find((t) => t.kind === 'candles');
@@ -82,6 +88,17 @@ function DayPanelContent({
 
   return (
     <div className="space-y-3">
+      {/*
+        רצועת התבניות ראשונה, ומופרדת בקו: מי שפתח יום כדי לשבץ בו משהו
+        לא צריך לגלול מתחת לאירועים שכבר בו. הלשונית "תבניות" בתזכורות
+        היא המקום לשבץ לכמה ימים; כאן זה יום אחד, מהיר.
+      */}
+      <TemplateStrip
+        templates={settings.templates}
+        date={dateKey(day.date)}
+        onPlace={onPlaceTemplate}
+      />
+
       {/* כניסה לתצוגת היום המורחבת */}
       <button
         type="button"
@@ -231,6 +248,7 @@ export function EventsPanel({
   onAddEvent,
   onEditEvent,
   onMoveEvent,
+  onPlaceTemplate,
   bottomInset,
 }: ContentProps & {
   detent: PanelDetent;
@@ -348,6 +366,7 @@ export function EventsPanel({
           onAddEvent={onAddEvent}
           onEditEvent={onEditEvent}
           onMoveEvent={onMoveEvent}
+          onPlaceTemplate={onPlaceTemplate}
         />
       </motion.div>
     </motion.div>

@@ -10,11 +10,14 @@
  */
 const KEY = 'heb-cal:reminders-view';
 
-export type RemindersView = 'mine' | 'shared';
+export type RemindersView = 'mine' | 'shared' | 'templates';
+
+const VIEWS: RemindersView[] = ['mine', 'shared', 'templates'];
 
 export function readRemindersView(): RemindersView {
   try {
-    return localStorage.getItem(KEY) === 'shared' ? 'shared' : 'mine';
+    const raw = localStorage.getItem(KEY);
+    return (VIEWS as string[]).includes(raw ?? '') ? (raw as RemindersView) : 'mine';
   } catch {
     return 'mine';
   }

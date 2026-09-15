@@ -18,7 +18,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
-import type { DateKey, UserEvent } from '@/types';
+import type { DateKey, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
 import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
@@ -38,6 +38,7 @@ import { haptic } from '@/lib/native';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { Segmented } from './ui/controls';
 import { SharedReminders } from './SharedReminders';
+import { TemplatesView } from './TemplatesView';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
 
 /** מה הכפתור מציע כברירת מחדל: היום, מחר, או בלי תאריך */
@@ -47,6 +48,7 @@ export function RemindersScreen({
   onEditEvent,
   composeOnMount,
   viewOverride,
+  onPlaceTemplate,
   bottomInset,
 }: {
   onEditEvent: (occurrence: Occurrence | UserEvent) => void;
@@ -54,6 +56,8 @@ export function RemindersScreen({
   composeOnMount?: boolean;
   /** לשונית שנכפתה מבחוץ, למשל מוידג׳ט הרשימה המשותפת */
   viewOverride?: RemindersView | null;
+  /** שיבוץ תבנית לימים שנבחרו. יושב ב-App, כדי שהודעת הביטול תהיה אחת */
+  onPlaceTemplate: (template: EventTemplate, dates: DateKey[]) => void;
   bottomInset: number;
 }) {
   const events = useEvents();
@@ -147,17 +151,26 @@ export function RemindersScreen({
           onChange={(next) => {
             setView(next);
             writeRemindersView(next);
-            announce(next === 'mine' ? 'התזכורות שלי' : 'תזכורות משותפות');
+            announce(
+              next === 'mine'
+                ? 'התזכורות שלי'
+                : next === 'shared'
+                  ? 'תזכורות משותפות'
+                  : 'תבניות',
+            );
           }}
           options={[
             { value: 'mine', label: 'שלי' },
             { value: 'shared', label: 'משותף' },
+            { value: 'templates', label: 'תבניות' },
           ]}
         />
       </div>
 
       {view === 'shared' ? (
         <SharedReminders bottomInset={bottomInset} />
+      ) : view === 'templates' ? (
+        <TemplatesView bottomInset={bottomInset} onPlace={onPlaceTemplate} />
       ) : (
         <>
 

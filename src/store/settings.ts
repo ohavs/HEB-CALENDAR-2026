@@ -39,6 +39,7 @@ export function defaultSettings(): Settings {
     defaultEventColor: 'violet',
     customLocation: null,
     places: [],
+    templates: [],
     placeAlertsEnabled: false,
   };
 }

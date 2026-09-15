@@ -12,7 +12,7 @@
  */
 import { useCallback, useMemo } from 'react';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
-import type { CalendarView, DateKey, DayInfo } from '@/types';
+import type { CalendarView, DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import {
   addDays,
@@ -90,6 +90,7 @@ export function CalendarScreen({
   onOpenYear,
   onPickView,
   photoURL,
+  onPlaceTemplate,
   bottomInset,
 }: {
   month: Date;
@@ -105,6 +106,8 @@ export function CalendarScreen({
   onEditEvent: (occurrence: Occurrence) => void;
   /** הזזה במקלדת (Alt+חיצים) - החלופה לגרירה */
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
+  /** שיבוץ תבנית ליום, מהרצועה שבחלונית */
+  onPlaceTemplate: (template: EventTemplate, date: DateKey) => void;
   onProfile: () => void;
   onSearch: () => void;
   onOpenYear: () => void;
@@ -320,6 +323,7 @@ export function CalendarScreen({
               onAddEvent={() => onAddEvent(selectedKey)}
               onEditEvent={onEditEvent}
               onMoveEvent={onMoveEvent}
+              onPlaceTemplate={onPlaceTemplate}
             />
           )}
         </div>
@@ -335,6 +339,7 @@ export function CalendarScreen({
           onAddEvent={() => onAddEvent(selectedKey)}
           onEditEvent={onEditEvent}
           onMoveEvent={onMoveEvent}
+          onPlaceTemplate={onPlaceTemplate}
           bottomInset={bottomInset}
         />
       )}

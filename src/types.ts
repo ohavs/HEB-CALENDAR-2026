@@ -204,6 +204,26 @@ export type SavedPlace = {
   createdAt: number;
 };
 
+/**
+ * תבנית אירוע - אירוע שמור בלי תאריך, שאפשר לשבץ שוב ושוב.
+ *
+ * אותם שדות של `UserEvent` פרט לתאריך, לחזרה ולחריגים: תבנית אינה יושבת
+ * על הלוח, ולכן אין לה מה לחזור ואין לה מופעים. ראו `src/lib/templates.ts`.
+ */
+export type EventTemplate = {
+  id: string;
+  title: string;
+  color: EventColor;
+  allDay: boolean;
+  startTime: string | null;
+  endTime: string | null;
+  location?: string;
+  placeId?: string;
+  notes?: string;
+  reminderMinutes: number | null;
+  createdAt: number;
+};
+
 export type GeoCity = {
   id: string;
   /** שם בעברית */
@@ -277,6 +297,8 @@ export type Settings = {
   places: SavedPlace[];
   /** האם לעקוב אחרי המיקום כדי לזהות הגעה ויציאה */
   placeAlertsEnabled: boolean;
+  /** תבניות אירוע, לשיבוץ חוזר על ימים */
+  templates: EventTemplate[];
 };
 
 /** תת-קבוצה מההגדרות שמשמשת את מנוע הלוח העברי. */

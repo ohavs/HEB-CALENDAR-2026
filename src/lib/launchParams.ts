@@ -51,7 +51,7 @@ export function parseLaunch(search: string): LaunchIntent {
 
   // ?view=shared - וידג׳ט הרשימה המשותפת מוביל ללשונית שלו, לא לשלי
   const view = params.get('view');
-  if (view === 'shared' || view === 'mine') out.view = view;
+  if (view === 'shared' || view === 'mine' || view === 'templates') out.view = view;
 
   // ?go=today או ?date=YYYY-MM-DD
   if (params.get('go') === 'today') out.date = startOfDay(new Date());

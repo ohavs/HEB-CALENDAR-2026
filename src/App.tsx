@@ -1,7 +1,7 @@
 /** שורש האפליקציה - מחבר את המסכים, החלוניות, הסנכרון והתזכורות. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import type { CalendarView, DateKey, UserEvent } from '@/types';
+import type { CalendarView, DateKey, EventTemplate, UserEvent } from '@/types';
 import { eventsOnDay, type Occurrence } from '@/lib/recurrence';
 import {
   addDays,
@@ -13,6 +13,8 @@ import {
   GREG_MONTHS_HE,
 } from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
+import { TEMPLATE_DRAG_PREFIX } from '@/components/TemplateStrip';
+import { templateToEvent } from '@/lib/templates';
 import {
   askServiceWorkerToFlush,
   notifyNow,
@@ -338,6 +340,33 @@ export default function App() {
   }, []);
 
   /* ------------------------- גרירת אירועים בלוח ------------------------- */
+  const placeTemplateOn = useCallback((template: EventTemplate, dates: DateKey[]) => {
+    if (!dates.length) return;
+    const add = useEventsStore.getState().add;
+    const created = dates.map((date) => add(templateToEvent(template, date)).id);
+
+    const what = `"${template.title}"`;
+    const many = dates.length > 1;
+    announce(`${what} שובץ ל-${dates.length} ימים`);
+    /*
+      ביטול אחד לכל השיבוץ, ולא אחד לכל יום: מבחינת המשתמש זו הייתה
+      פעולה אחת, ושלוש הודעות ביטול על בחירה אחת הן עונש ולא עזרה.
+    */
+    toast(many ? `${what} שובץ ל-${dates.length} ימים` : `${what} שובץ`, {
+      label: 'ביטול',
+      run: () => {
+        const remove = useEventsStore.getState().remove;
+        for (const id of created) remove(id);
+      },
+    });
+  }, []);
+
+  /** גרירה מפילה על יום אחד. אותו מסלול, רשימה באורך אחד. */
+  const placeTemplate = useCallback(
+    (template: EventTemplate, to: DateKey) => placeTemplateOn(template, [to]),
+    [placeTemplateOn],
+  );
+
   useEffect(() => {
     setDragCallbacks({
       onDrop: (baseId, to, occurrence) => {
@@ -346,6 +375,21 @@ export default function App() {
           גרירה אליו מנתקת מהיום, וגרירה ממנו משייכת. שניהם פעולה אחת על
           האירוע, ולא הזזה של מופע.
         */
+        /*
+          תבנית שנגררה אינה אירוע קיים אלא מקור ליצירה, ולכן היא לא
+          "מוזזת" - היא משבצת אירוע חדש. הקידומת היא מה שמפריד, וכך מנוע
+          הגרירה עצמו אינו צריך לדעת שתבניות קיימות.
+        */
+        if (baseId.startsWith(TEMPLATE_DRAG_PREFIX)) {
+          const id = baseId.slice(TEMPLATE_DRAG_PREFIX.length);
+          const template = useSettingsStore
+            .getState()
+            .settings.templates.find((t) => t.id === id);
+          if (!template || (to as string) === 'undated') return;
+          placeTemplate(template, to);
+          return;
+        }
+
         const setReminderDate = useEventsStore.getState().setReminderDate;
         if ((to as string) === 'undated') {
           setReminderDate(baseId, null);
@@ -378,8 +422,15 @@ export default function App() {
         }));
       },
     });
-  }, [move]);
+  }, [move, placeTemplate]);
 
+  /**
+   * שיבוץ תבנית ליום.
+   *
+   * אותה פעולה בדיוק להקשה ולגרירה - מקור אחד, כדי ששתי הדרכים לא
+   * יתפצלו ביום שמישהו ישנה אחת מהן. האירוע שנוצר מנותק מהתבנית: מחיקת
+   * התבנית לא תיגע בחופשות שכבר שובצו.
+   */
   /** תשובה לשאלת ההיקף אחרי גרירה של מופע בסדרה חוזרת. */
   const applyDropScope = useCallback(
     (scope: EditScope) => {
@@ -482,6 +533,7 @@ export default function App() {
                 }}
                 onPickView={() => setViewPickerOpen(true)}
                 photoURL={authUser?.photoURL ?? null}
+                onPlaceTemplate={placeTemplate}
                 bottomInset={bottomInset}
               />
             )}
@@ -495,6 +547,7 @@ export default function App() {
                 onEditEvent={editAnything}
                 composeOnMount={composeReminder}
                 viewOverride={remindersView}
+                onPlaceTemplate={placeTemplateOn}
                 bottomInset={bottomInset}
               />
             )}
