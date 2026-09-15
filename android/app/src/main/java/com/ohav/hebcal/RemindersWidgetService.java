@@ -1,5 +1,6 @@
 package com.ohav.hebcal;
 
+import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
@@ -22,7 +23,13 @@ public class RemindersWidgetService extends RemoteViewsService {
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        return new Factory(getApplicationContext());
+        return new Factory(
+            getApplicationContext(),
+            intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            )
+        );
     }
 
     private static final class Row {
@@ -47,10 +54,19 @@ public class RemindersWidgetService extends RemoteViewsService {
     private static final class Factory implements RemoteViewsFactory {
 
         private final Context context;
+        private final int widgetId;
         private final List<Row> rows = new ArrayList<>();
+        /**
+         * הרוחב בפועל, כדי שהשורה תדע ממה לוותר.
+         *
+         * נקרא כאן ולא בכל שורה: onDataSetChanged רצה פעם אחת לכל רענון,
+         * והספק מודיע לה גם אחרי שינוי גודל.
+         */
+        private int width = 250;
 
-        Factory(Context context) {
+        Factory(Context context, int widgetId) {
             this.context = context;
+            this.widgetId = widgetId;
         }
 
         @Override
@@ -59,6 +75,11 @@ public class RemindersWidgetService extends RemoteViewsService {
         @Override
         public void onDataSetChanged() {
             rows.clear();
+            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                width = AppWidgetManager.getInstance(context)
+                    .getAppWidgetOptions(widgetId)
+                    .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+            }
             JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_REMINDERS);
             if (data == null) return;
             JSONArray groups = data.optJSONArray("groups");
@@ -113,11 +134,13 @@ public class RemindersWidgetService extends RemoteViewsService {
                 );
                 views.setTextViewText(R.id.header_label, row.primary);
                 views.setTextViewText(R.id.header_hebrew, row.secondary);
+                boolean roomForHebrew =
+                    width >= RemindersWidgetProvider.MIN_WIDTH_FOR_COUNT
+                        && row.secondary != null
+                        && !row.secondary.isEmpty();
                 views.setViewVisibility(
                     R.id.header_hebrew,
-                    row.secondary == null || row.secondary.isEmpty()
-                        ? android.view.View.GONE
-                        : android.view.View.VISIBLE
+                    roomForHebrew ? android.view.View.VISIBLE : android.view.View.GONE
                 );
                 return views;
             }
@@ -128,11 +151,13 @@ public class RemindersWidgetService extends RemoteViewsService {
             );
             views.setTextViewText(R.id.item_title, row.primary);
             views.setTextViewText(R.id.item_time, row.secondary);
+            boolean roomForTime =
+                width >= RemindersWidgetProvider.MIN_WIDTH_FOR_TITLE
+                    && row.secondary != null
+                    && !row.secondary.isEmpty();
             views.setViewVisibility(
                 R.id.item_time,
-                row.secondary == null || row.secondary.isEmpty()
-                    ? android.view.View.GONE
-                    : android.view.View.VISIBLE
+                roomForTime ? android.view.View.VISIBLE : android.view.View.GONE
             );
             views.setInt(
                 R.id.item_check,

@@ -247,6 +247,18 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         return openAppAt(context, query, query.hashCode());
     }
 
+    /**
+     * פותח את האפליקציה על הלשונית של הוידג׳ט שנלחץ.
+     *
+     * וידג׳ט מוביל למקום שהוא מייצג: זמני שבת ללשונית השבת, תזכורות
+     * ללשונית התזכורות. קודם כל השלושה נכנסו ללוח, כי כולם השתמשו
+     * ב-openApp - והמשתמש נחת במסך שלא ביקש.
+     */
+    static PendingIntent openTab(Context context, String tab) {
+        String query = "tab=" + tab;
+        return openAppAt(context, query, query.hashCode());
+    }
+
     /** פותח את האפליקציה על שאילתה נתונה. requestCode מפריד בין הכוונות. */
     static PendingIntent openAppAt(Context context, String query, int requestCode) {
         Intent intent = new Intent(context, MainActivity.class);

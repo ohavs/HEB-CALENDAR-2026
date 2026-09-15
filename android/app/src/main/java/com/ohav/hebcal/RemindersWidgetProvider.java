@@ -21,9 +21,37 @@ import org.json.JSONObject;
  */
 public class RemindersWidgetProvider extends AppWidgetProvider {
 
+    /*
+      שני ספי רוחב, כדי שאפשר יהיה לכווץ את הוידג׳ט לשתי עמודות.
+
+      מתחת ל-200dp יורד המונה, ומתחת ל-150dp יורדת גם המילה "תזכורות"
+      ונשאר כפתור ההוספה לבדו. הרשימה עצמה מוותרת על השעה - ראו
+      RemindersWidgetService, שקורא את אותם ספים.
+    */
+    static final int MIN_WIDTH_FOR_COUNT = 200;
+    static final int MIN_WIDTH_FOR_TITLE = 150;
+
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         renderAll(context, manager, ids);
+    }
+
+    /**
+     * שינוי גודל מחייב ציור מחדש.
+     *
+     * בלי זה הוידג׳ט נשאר עם ההחלטות של הרוחב הקודם, ולכן כיווץ הציג
+     * כותרת חתוכה. גם הרשימה מקבלת הודעה, כי גם השורות שלה תלויות
+     * ברוחב.
+     */
+    @Override
+    public void onAppWidgetOptionsChanged(
+        Context context,
+        AppWidgetManager manager,
+        int id,
+        android.os.Bundle options
+    ) {
+        render(context, manager, id);
+        manager.notifyAppWidgetViewDataChanged(id, R.id.reminders_list);
     }
 
     static void renderAll(Context context, AppWidgetManager manager, int[] ids) {
@@ -60,8 +88,23 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
 
         views.setPendingIntentTemplate(R.id.reminders_list, toggleTemplate(context));
         views.setOnClickPendingIntent(R.id.rem_add, addIntent(context));
-        views.setOnClickPendingIntent(R.id.rem_title, CalendarWidgetProvider.openApp(context, null));
+        // לחיצה על הוידג׳ט מובילה למסך שהוא מייצג, לא ללוח
+        views.setOnClickPendingIntent(
+            R.id.rem_root,
+            CalendarWidgetProvider.openTab(context, "reminders")
+        );
         views.setViewVisibility(R.id.rem_add, View.VISIBLE);
+
+        int width = manager.getAppWidgetOptions(id)
+            .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+        views.setViewVisibility(
+            R.id.rem_count,
+            width >= MIN_WIDTH_FOR_COUNT ? View.VISIBLE : View.GONE
+        );
+        views.setViewVisibility(
+            R.id.rem_title,
+            width >= MIN_WIDTH_FOR_TITLE ? View.VISIBLE : View.GONE
+        );
 
         manager.updateAppWidget(id, views);
     }

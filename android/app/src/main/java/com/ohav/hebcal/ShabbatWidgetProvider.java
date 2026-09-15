@@ -79,7 +79,7 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.sh_candles, "--:--");
             views.setTextViewText(R.id.sh_havdalah, "--:--");
             views.setViewVisibility(R.id.sh_more, View.GONE);
-            views.setOnClickPendingIntent(R.id.sh_root, CalendarWidgetProvider.openApp(context, null));
+            views.setOnClickPendingIntent(R.id.sh_root, CalendarWidgetProvider.openTab(context, "shabbat"));
             manager.updateAppWidget(id, views);
             return;
         }
@@ -90,10 +90,7 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.sh_candles, orDash(next.optString("candles")));
         views.setTextViewText(R.id.sh_havdalah, orDash(next.optString("havdalah")));
         views.setTextViewText(R.id.sh_city, data.optString("city"));
-        views.setOnClickPendingIntent(
-            R.id.sh_root,
-            CalendarWidgetProvider.openApp(context, next.optString("k", null))
-        );
+        views.setOnClickPendingIntent(R.id.sh_root, CalendarWidgetProvider.openTab(context, "shabbat"));
 
         Bundle options = manager.getAppWidgetOptions(id);
         int minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120);
@@ -128,7 +125,7 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             row.setTextViewText(R.id.row_havdalah, orDash(entry.optString("havdalah")));
             row.setOnClickPendingIntent(
                 R.id.row_root,
-                CalendarWidgetProvider.openApp(context, entry.optString("k", null))
+                CalendarWidgetProvider.openTab(context, "shabbat")
             );
             views.addView(R.id.sh_more, row);
         }
