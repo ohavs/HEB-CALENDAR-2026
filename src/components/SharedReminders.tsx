@@ -311,14 +311,14 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
           {/* ---------------------------- הוספה ---------------------------- */}
           <div className="rounded-3xl bg-surface p-2.5 shadow-raised">
-            <div className="flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
+            <div className="field-shell flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && void submit()}
                 placeholder={list ? `להוסיף ל״${list.name}״` : 'מה צריך לזכור?'}
-                className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint focus-visible:outline-none"
+                className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint"
               />
               <AnimatePresence initial={false}>
                 {title.trim() && (

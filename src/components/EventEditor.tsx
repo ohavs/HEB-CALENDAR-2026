@@ -321,7 +321,7 @@ export function EventEditor({
           קופסה אמיתית עם `focus-within`, כמו בכל שדה אחר, והגודל
           והמשקל הם שאומרים "כאן מתחילים".
         */}
-        <div className="rounded-2xl bg-well px-4 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
+        <div className="field-shell rounded-2xl bg-well px-4">
           <input
             type="text"
             value={draft.title}
@@ -329,7 +329,7 @@ export function EventEditor({
             placeholder="שם האירוע"
             autoComplete="off"
             aria-label="כותרת האירוע"
-            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint focus-visible:outline-none"
+            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
           />
         </div>
 

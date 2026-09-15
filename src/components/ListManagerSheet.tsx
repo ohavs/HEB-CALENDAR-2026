@@ -156,7 +156,7 @@ export function ListManagerSheet({
               onChange={(e) => setCategory(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addCategory()}
               placeholder="קטגוריה חדשה"
-              className="field-reset min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
+              className="field-reset field-shell min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
             />
             <motion.button
               type="button"
@@ -201,7 +201,7 @@ export function ListManagerSheet({
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendInvite()}
               placeholder="אימייל להזמנה"
-              className="field-reset min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
+              className="field-reset field-shell min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
             />
             <motion.button
               type="button"

@@ -370,6 +370,28 @@
     outline-offset: 2px;
   }
 
+  /*
+   * מעטפת שדה: הקופסה המעוגלת שסביב הקלט.
+   *
+   * היא לוקחת על עצמה את סימון המיקוד, ומכבה את זה של השדה שבתוכה.
+   * בלי הכיבוי מצטיירות *שתי* טבעות זו בתוך זו - ושל השדה היא מלבנית,
+   * כי היא עוטפת את תיבת הטקסט ולא את הקופסה. זה מה שנראה כמו מלבן חד
+   * בתוך שדה מעוגל, וזו הייתה תקלה חוזרת: כל שדה חדש ירש אותה.
+   *
+   * לכן זה כלל אחד ולא שכפול של מחלקות Tailwind בכל אתר קריאה.
+   */
+  .field-shell {
+    transition: box-shadow 150ms ease;
+  }
+  .field-shell:focus-within {
+    box-shadow: 0 0 0 2px rgb(var(--c-brand) / 0.35);
+  }
+  /* גם כשהשדה עצמו הוא הקופסה, ולא יושב בתוך אחת */
+  .field-shell .field-reset:focus-visible,
+  .field-shell.field-reset:focus-visible {
+    outline: none;
+  }
+
   /* טבעת מיקוד לרכיב שמצייר את הקופסה בעצמו (שורת הגדרה, תא בלוח) */
   .focus-ring:focus-visible {
     outline: 2px solid rgb(var(--c-brand) / 0.6);

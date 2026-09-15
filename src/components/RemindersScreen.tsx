@@ -190,7 +190,7 @@ export function RemindersScreen({
           בתוך כרטיס עם פינות הוא נחתך לשני פסים אנכיים בקצוות, ונראה
           כמו מסגרת שבורה.
         */}
-        <div className="flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
+        <div className="field-shell flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5">
           <input
             id="reminder-input"
             type="text"
@@ -198,7 +198,7 @@ export function RemindersScreen({
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             placeholder="מה צריך לזכור?"
-            className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint focus-visible:outline-none"
+            className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint"
           />
           <AnimatePresence initial={false}>
             {composing && (

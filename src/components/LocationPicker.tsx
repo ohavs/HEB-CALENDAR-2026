@@ -88,7 +88,7 @@ export function LocationPicker({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="מקום">
-      <div className="mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           id="location-query"

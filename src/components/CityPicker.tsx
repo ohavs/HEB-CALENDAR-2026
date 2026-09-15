@@ -96,7 +96,7 @@ export function CityPicker({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="עיר לחישוב הזמנים">
-      <div className="mb-3.5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-3.5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           type="search"

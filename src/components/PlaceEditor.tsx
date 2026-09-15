@@ -50,7 +50,7 @@ function CityStartSheet({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="בחירת עיר">
-      <div className="mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           id="place-city-query"
@@ -281,7 +281,7 @@ export function PlaceEditor({
             המסלול להגדיר מקום בלי לעמוד בו: פותחים מפות, לוחצים לחיצה
             ארוכה על הנקודה, ומעתיקים. כל מה שיוצא משם מתפענח כאן.
           */}
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3">
+          <div className="field-shell mt-3.5 flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3">
             <ClipboardPaste size={ICON.sm} strokeWidth={STROKE} className="shrink-0 text-faint" />
             <input
               id="place-paste"

@@ -121,7 +121,7 @@ export function SearchSheet({
         `type="text"` ולא `search`: כפתור הניקוי המובנה של הדפדפן נראה
         אחרת בכל מכשיר, ויש לנו כבר כזה משלנו לידו.
       */}
-      <div className="mb-5 flex items-center gap-3 rounded-2xl bg-well ps-4 pe-2 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
+      <div className="field-shell mb-5 flex items-center gap-3 rounded-2xl bg-well ps-4 pe-2">
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           id="search-query"
@@ -133,7 +133,7 @@ export function SearchSheet({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="אירוע, חג או מועד"
           autoFocus
-          className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint focus-visible:outline-none"
+          className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint"
         />
         {query && (
           <motion.button

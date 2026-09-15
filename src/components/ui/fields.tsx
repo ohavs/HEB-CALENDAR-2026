@@ -36,7 +36,7 @@ export function Field({
 }) {
   return (
     <label
-      className={`block rounded-2xl bg-well px-4 py-3.5 transition-shadow focus-within:ring-2 focus-within:ring-brand/35 ${className}`}
+      className={`field-shell block rounded-2xl bg-well px-4 py-3.5 ${className}`}
     >
       {label && (
         <span className="mb-1.5 flex items-center gap-2 text-caption font-medium text-muted">
