@@ -31,7 +31,7 @@ import { syncPushToken } from '@/lib/pushTokens';
 import { onPushOpened } from '@/lib/native';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
-import { initNative, isNative, paintNativeChrome } from '@/lib/native';
+import { haptic, initNative, isNative, paintNativeChrome } from '@/lib/native';
 import {
   checkForUpdate,
   dismissUpdate,
@@ -45,6 +45,7 @@ import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
 import { CalendarScreen } from '@/components/CalendarScreen';
+import { VIEW_LABEL } from '@/components/CalendarHeader';
 import type { PanelDetent } from '@/components/EventsPanel';
 import { RemindersScreen } from '@/components/RemindersScreen';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
@@ -64,9 +65,11 @@ import { consumeLaunch, parseExternalUrl } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConfirmDeleteSheet } from '@/components/ConfirmDeleteSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
-import { OptionPickerSheet } from '@/components/ui/Picker';
 
 const REMINDER_DEBOUNCE_MS = 700;
+
+/** סדר המחזור של כפתור התצוגה. קבוע, כדי שאפשר יהיה ללמוד אותו באצבע. */
+const VIEW_ORDER: CalendarView[] = ['month', 'week', 'agenda'];
 
 type EditorState = {
   open: boolean;
@@ -101,7 +104,6 @@ export default function App() {
   });
   const [cityOpen, setCityOpen] = useState(false);
   const [conflictsOpen, setConflictsOpen] = useState(false);
-  const [viewPickerOpen, setViewPickerOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
@@ -499,6 +501,23 @@ export default function App() {
     [move, moveOccurrence, pendingDrop],
   );
 
+  /*
+    הכפתור מחליף תצוגה במקום לפתוח רשימה.
+
+    שלוש אפשרויות בלבד, והאייקון כבר מראה באיזו נמצאים - גיליון בחירה
+    היה שתי הקשות ומסך שנפתח ונסגר בשביל מה שהקשה אחת עושה. הסדר קבוע
+    ומחזורי, ולכן אפשר ללמוד אותו באצבע בלי להסתכל.
+  */
+  const cycleView = useCallback(() => {
+    const { settings: current, set } = useSettingsStore.getState();
+    const at = VIEW_ORDER.indexOf(current.view);
+    const next = VIEW_ORDER[(at + 1) % VIEW_ORDER.length];
+    void haptic('light');
+    set('view', next);
+    // המסך מתחלף והמיקוד נשאר על הכפתור
+    announce(`תצוגת ${VIEW_LABEL[next]}`);
+  }, []);
+
   /* ------------------------------- חלוניות ------------------------------- */
   const openEditor = useCallback((date: DateKey, startTime?: string) => {
     setEditor({ open: true, date, editing: null, startTime });
@@ -573,7 +592,7 @@ export default function App() {
                   setYearValue(monthState.month.getFullYear());
                   setYearOpen(true);
                 }}
-                onPickView={() => setViewPickerOpen(true)}
+                onPickView={cycleView}
                 photoURL={authUser?.photoURL ?? null}
                 onPlaceTemplate={placeTemplate}
                 bottomInset={bottomInset}
@@ -639,19 +658,6 @@ export default function App() {
       />
 
       <ConflictSheet open={conflictsOpen} onClose={() => setConflictsOpen(false)} />
-
-      <OptionPickerSheet<CalendarView>
-        open={viewPickerOpen}
-        onClose={() => setViewPickerOpen(false)}
-        title="תצוגת הלוח"
-        value={settings.view}
-        onChange={(view) => useSettingsStore.getState().set('view', view)}
-        options={[
-          { value: 'month', label: 'חודש' },
-          { value: 'week', label: 'שבוע' },
-          { value: 'agenda', label: 'סדר יום' },
-        ]}
-      />
 
       <ScopeSheet
         open={pendingDrop !== null}

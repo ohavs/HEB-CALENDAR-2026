@@ -64,6 +64,14 @@ type ContentProps = {
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
   /** שיבוץ תבנית ליום הפתוח */
   onPlaceTemplate: (template: EventTemplate, date: DateKey) => void;
+  /**
+   * האם להציג את רצועת התבניות.
+   *
+   * בתצוגת שבוע היא יורדת: שם כל משבצת שעה כבר לחיצה ליצירת אירוע,
+   * והחלונית קצרה ממילא. רצועה נוספת בראשה דוחקת את האירועים של היום
+   * עצמו אל מחוץ למסך.
+   */
+  showTemplates?: boolean;
 };
 
 /* ==========================================================================
@@ -78,6 +86,7 @@ function DayPanelContent({
   onEditEvent,
   onMoveEvent,
   onPlaceTemplate,
+  showTemplates = true,
 }: ContentProps) {
   const setDone = useEventsStore((s) => s.setOccurrenceDone);
   const settings = useSettings();
@@ -93,11 +102,13 @@ function DayPanelContent({
         לא צריך לגלול מתחת לאירועים שכבר בו. הלשונית "תבניות" בתזכורות
         היא המקום לשבץ לכמה ימים; כאן זה יום אחד, מהיר.
       */}
-      <TemplateStrip
-        templates={settings.templates}
-        date={dateKey(day.date)}
-        onPlace={onPlaceTemplate}
-      />
+      {showTemplates && (
+        <TemplateStrip
+          templates={settings.templates}
+          date={dateKey(day.date)}
+          onPlace={onPlaceTemplate}
+        />
+      )}
 
       {/* כניסה לתצוגת היום המורחבת */}
       <button
@@ -249,6 +260,7 @@ export function EventsPanel({
   onEditEvent,
   onMoveEvent,
   onPlaceTemplate,
+  showTemplates,
   bottomInset,
 }: ContentProps & {
   detent: PanelDetent;
@@ -367,6 +379,7 @@ export function EventsPanel({
           onEditEvent={onEditEvent}
           onMoveEvent={onMoveEvent}
           onPlaceTemplate={onPlaceTemplate}
+          showTemplates={showTemplates}
         />
       </motion.div>
     </motion.div>

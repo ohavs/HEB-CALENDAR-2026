@@ -312,19 +312,26 @@ export function EventEditor({
     >
       <div className="space-y-2.5 pb-2">
         {/*
-          הכותרת יוצאת ממערכת הכרטיסים. היא השדה היחיד שחובה למלא,
-          וכשהיא נראתה כמו "מקום" - אותו רקע, אותו רדיוס, אותו משקל -
-          שום דבר במסך לא אמר במה להתחיל.
+          הכותרת היא השדה היחיד שחובה למלא, ולכן היא בולטת - אבל דרך
+          הטיפוגרפיה ולא דרך צורה חריגה.
+
+          קודם היא הייתה קו תחתון בלבד. הקו נראה כמו שובר בפריסה, וגרוע
+          מזה: ל-`field-reset` יש טבעת מיקוד מלבנית משלה, ולשדה בלי
+          קופסה היא צפה סביב הטקסט כמלבן חד באמצע מסך מעוגל. עכשיו יש
+          קופסה אמיתית עם `focus-within`, כמו בכל שדה אחר, והגודל
+          והמשקל הם שאומרים "כאן מתחילים".
         */}
-        <input
-          type="text"
-          value={draft.title}
-          onChange={(e) => patch({ title: e.target.value })}
-          placeholder="שם האירוע"
-          autoComplete="off"
-          aria-label="כותרת האירוע"
-          className="field-reset w-full border-b border-hairline bg-transparent px-1 pb-3 pt-1 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
-        />
+        <div className="rounded-2xl bg-well px-4 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) => patch({ title: e.target.value })}
+            placeholder="שם האירוע"
+            autoComplete="off"
+            aria-label="כותרת האירוע"
+            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint focus-visible:outline-none"
+          />
+        </div>
 
         {/* צבע - שורה אחת של ריבועים, לא כרטיס בגובה 100px */}
         <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">

@@ -190,9 +190,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag=android-latest
-          subject=$(git log -1 --pretty=%s)
-          notes=$(printf '%s\n\nגרסה 1.0.%s · נבנתה מ-%s' \
-            "$subject" "${{ github.run_number }}" "${GITHUB_SHA::7}")
+          # גוף השחרור הוא מה שהאפליקציה מציגה בהודעת העדכון, ולכן הוא
+          # רק "מה השתנה". מספר הגרסה כבר מופיע שם בכותרת המשנה, וטביעת
+          # הקומיט אינה אומרת דבר למי שמתקין.
+          notes=$(git log -1 --pretty=%s)
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" --notes "$notes" --target "$GITHUB_SHA"
           else

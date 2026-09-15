@@ -246,6 +246,7 @@ export function CalendarScreen({
             onSelectDay={onSelectDay}
             onEditEvent={onEditEvent}
             onAddAt={(key, hour) => onAddEvent(key, `${String(hour).padStart(2, '0')}:00`)}
+            onPage={page}
           />
         </div>
       );
@@ -329,6 +330,7 @@ export function CalendarScreen({
               onEditEvent={onEditEvent}
               onMoveEvent={onMoveEvent}
               onPlaceTemplate={onPlaceTemplate}
+              showTemplates={view === 'month'}
             />
           )}
         </div>
@@ -345,6 +347,7 @@ export function CalendarScreen({
           onEditEvent={onEditEvent}
           onMoveEvent={onMoveEvent}
           onPlaceTemplate={onPlaceTemplate}
+          showTemplates={view === 'month'}
           bottomInset={bottomInset}
         />
       )}
