@@ -665,23 +665,39 @@ export function SettingsScreen({
             icon={<RefreshCw size={ICON.md} strokeWidth={2.1} />}
             onClick={updateState.kind === 'checking' ? undefined : () => void checkUpdateNow()}
           >
+            {/*
+              רק מילה אחת כאן, ו-nowrap עליה.
+
+              הודעת שגיאה מלאה ישבה בחריץ הזה ודחסה את "גרסת האפליקציה"
+              לשלוש שורות - הכותרת, הגרסה וההודעה נאבקו על אותו רוחב.
+              מה שארוך יורד לשורה משלו מתחת, ברוחב מלא.
+            */}
             <span
-              className={`text-caption font-medium ${
+              className={`shrink-0 whitespace-nowrap text-caption font-medium ${
                 updateState.kind === 'error' ? 'text-[rgb(194_60_90)]' : 'text-muted'
               }`}
             >
               {updateState.kind === 'checking'
                 ? 'בודק…'
                 : updateState.kind === 'error'
-                  ? updateState.message
+                  ? 'נכשל'
                   : updateState.kind === 'latest'
-                    ? // מציגים גם מה יש בשרת: כך רואים במבט אם ההשוואה עצמה שגויה
-                      updateState.build
-                      ? `מעודכן · בשרת 1.0.${updateState.build}`
-                      : 'מעודכן'
+                    ? 'מעודכן'
                     : 'בדיקת עדכון'}
             </span>
           </SettingRow>
+        )}
+
+        {/* הפירוט: למה נכשל, או מה יש בשרת - כך רואים במבט אם ההשוואה שגויה */}
+        {isNative() && updateState.kind === 'error' && (
+          <p className="px-5 pb-4 text-caption leading-relaxed text-[rgb(194_60_90)] lg:px-6">
+            {updateState.message}
+          </p>
+        )}
+        {isNative() && updateState.kind === 'latest' && updateState.build != null && (
+          <p className="px-5 pb-4 text-caption leading-relaxed text-muted lg:px-6">
+            בשרת: 1.0.{updateState.build}
+          </p>
         )}
         <div className="px-5 py-4 lg:px-6">
           <p className="text-caption leading-relaxed text-muted">
