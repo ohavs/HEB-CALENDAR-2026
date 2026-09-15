@@ -123,6 +123,20 @@ jobs:
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
+          # הקובץ מגיע מסוד, ולכן איש אינו רואה אותו. קובץ של פרויקט או
+          # חבילה אחרים נבלע בשקט: הבנייה עוברת, האפליקציה עולה, ורק
+          # ההתראות לא מגיעות - ואין שום רמז למה. עדיף להיכשל כאן.
+          if ! grep -q '"project_id"[[:space:]]*:[[:space:]]*"heb-calendar-2026"' android/app/google-services.json; then
+            echo "::error title=Wrong google-services.json::הקובץ אינו של הפרויקט heb-calendar-2026"
+            exit 1
+          fi
+          if ! grep -q '"package_name"[[:space:]]*:[[:space:]]*"com.ohav.hebcal"' android/app/google-services.json; then
+            echo "::error title=Wrong package in google-services.json::הקובץ אינו מכיל את החבילה com.ohav.hebcal - יש להוסיף אפליקציית אנדרואיד בקונסולה"
+            exit 1
+          fi
+          echo "google-services.json תקין - התראות push יעבדו בגרסה הזו"
+          echo "התראות push: מוגדרות ✅" >> "$GITHUB_STEP_SUMMARY"
+
       # הקובץ נכתב מחוץ לעץ העבודה, כדי שלא ייארז בטעות ולא ייכנס ל-git
       - name: Restore signing key
         id: signing
