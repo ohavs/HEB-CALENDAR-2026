@@ -37,9 +37,9 @@ import { getMessaging } from 'firebase-admin/messaging';
   לא ייפרסו יחד, והכשל מגיע רק בסוף הפריסה.
 
   זה משתנה סביבה ולא קבוע בקוד, כדי שהחלפת מיקום תהיה שינוי בהגדרות
-  ולא בקוד. ברירת המחדל מתאימה למסד ב-eur3.
+  ולא בקוד. ברירת המחדל היא europe-west3, כי שם יושב המסד.
 */
-setGlobalOptions({ region: process.env.FUNCTION_REGION || 'europe-west1' });
+setGlobalOptions({ region: process.env.FUNCTION_REGION || 'europe-west3' });
 
 initializeApp();
 

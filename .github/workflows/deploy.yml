@@ -116,14 +116,18 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           # חייב להתאים למיקום של מסד הנתונים - ראו functions/index.js.
-          # ברירת המחדל מתאימה למסד ב-eur3; מסד במיקום אחר מחייב לשנות
-          # כאן בלבד, לא בקוד.
-          FUNCTION_REGION: ${{ vars.FUNCTION_REGION || 'europe-west1' }}
+          # המסד יושב ב-europe-west3, ולכן גם הפונקציה.
+          FUNCTION_REGION: ${{ vars.FUNCTION_REGION || 'europe-west3' }}
+        # --force: החלפת אזור משאירה את הפונקציה הישנה יתומה בפרויקט,
+        # וה-CLI מסרב למחוק אותה במצב לא-אינטראקטיבי ונעצר. יש כאן
+        # פונקציה אחת בלבד, ולכן "מה שאינו בקוד - יימחק" הוא בדיוק
+        # ההתנהגות הרצויה.
         run: >-
           npx --yes firebase-tools@13 deploy
           --only functions
           --project "$FIREBASE_PROJECT_ID"
           --non-interactive
+          --force
 
       - name: Show the deployed URL
         run: |
