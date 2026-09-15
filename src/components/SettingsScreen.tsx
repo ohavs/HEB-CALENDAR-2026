@@ -347,6 +347,26 @@ export function SettingsScreen({
           />
         </SettingRow>
 
+        {/*
+          הכפתור בכותרת מחליף תצוגה בהקשה, ולכן כל תצוגה דלוקה היא עוד
+          עצירה בדרך. מי שלא משתמש באחת מהן מכבה אותה וחוסך הקשה בכל
+          החלפה. חודש אינו ניתן לכיבוי, ולכן אין לו מתג.
+        */}
+        <SettingRow title="תצוגת שבוע" hint="ציר שעות לשבעה ימים">
+          <Toggle
+            label="תצוגת שבוע"
+            checked={settings.showWeekView}
+            onChange={(v) => setValue('showWeekView', v)}
+          />
+        </SettingRow>
+        <SettingRow title="תצוגת סדר יום" hint="רשימה רציפה, בלי ימים ריקים">
+          <Toggle
+            label="תצוגת סדר יום"
+            checked={settings.showAgendaView}
+            onChange={(v) => setValue('showAgendaView', v)}
+          />
+        </SettingRow>
+
         <SettingRow
           title="צפיפות הלוח"
           hint="קומפקטי מראה נקודות צבע במקום כיתובים, ומפנה מקום בתא"

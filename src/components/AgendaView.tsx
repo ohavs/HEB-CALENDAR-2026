@@ -7,13 +7,21 @@
  * הרשימה נטענת בחלונות של שלושה חודשים ומתארכת כשמגיעים לסופה, במקום
  * לחשב שנה שלמה מראש.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarPlus, ChevronDown, RotateCcw, Search } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useRangeData } from '@/hooks/useMonthData';
-import { addDays, dateKey, dayTitleLabel, relativeDayLabel, startOfDay } from '@/lib/dates';
+import {
+  addDays,
+  dateKey,
+  dayTitleLabel,
+  relativeDayLabel,
+  startOfDay,
+  GREG_MONTHS_HE,
+} from '@/lib/dates';
+import { hebrewMonthSpanLabel } from '@/lib/hebrew';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
 import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
@@ -27,6 +35,34 @@ const WINDOW_DAYS = 92;
 const MAX_DAYS = 730;
 
 type AgendaEntry = { day: DayInfo; occurrences: Occurrence[] };
+
+/**
+ * שובר חודש.
+ *
+ * הרשימה רציפה ואין בה ימים ריקים, ולכן ה-30 בספטמבר וה-1 באוקטובר
+ * נראים כמו שני ימים רגילים זה אחרי זה - מספר היום קופץ אחורה ושום
+ * דבר לא אומר למה. הכותרת היא הדבר היחיד שאומר באיזה חודש אנחנו,
+ * והיא גם נקודת עגינה לעין בגלילה ארוכה.
+ */
+function MonthDivider({ date, hebrew }: { date: Date; hebrew: string | null }) {
+  return (
+    <div className="flex items-baseline gap-2.5 pb-3 pt-4 first:pt-0">
+      <h2 className="shrink-0 text-label font-bold text-ink">
+        {GREG_MONTHS_HE[date.getMonth()]} {date.getFullYear()}
+      </h2>
+      {hebrew && <span className="shrink-0 text-caption text-muted">{hebrew}</span>}
+      <span aria-hidden="true" className="h-px min-w-4 flex-1 bg-hairline" />
+    </div>
+  );
+}
+
+/** האם השובר צריך להופיע לפני היום הזה */
+function startsMonth(entry: AgendaEntry, previous: AgendaEntry | undefined): boolean {
+  if (!previous) return true;
+  const a = previous.day.date;
+  const b = entry.day.date;
+  return a.getMonth() !== b.getMonth() || a.getFullYear() !== b.getFullYear();
+}
 
 function DayGroup({
   entry,
@@ -255,14 +291,27 @@ export function AgendaView({
             )}
           </div>
         ) : (
-          entries.map((entry) => (
-            <DayGroup
-              key={entry.day.key}
-              entry={entry}
-              onOpenDay={onOpenDay}
-              onEditEvent={onEditEvent}
-              onMoveEvent={onMoveEvent}
-            />
+          entries.map((entry, i) => (
+            <Fragment key={entry.day.key}>
+              {startsMonth(entry, entries[i - 1]) && (
+                <MonthDivider
+                  date={entry.day.date}
+                  hebrew={
+                    settings.showHebrewMonths
+                      ? hebrewMonthSpanLabel(
+                          new Date(entry.day.date.getFullYear(), entry.day.date.getMonth(), 1),
+                        )
+                      : null
+                  }
+                />
+              )}
+              <DayGroup
+                entry={entry}
+                onOpenDay={onOpenDay}
+                onEditEvent={onEditEvent}
+                onMoveEvent={onMoveEvent}
+              />
+            </Fragment>
           ))
         )}
 

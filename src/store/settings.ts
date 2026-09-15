@@ -13,6 +13,8 @@ export function defaultSettings(): Settings {
     theme: 'system',
     view: 'month',
     density: 'comfortable',
+    showWeekView: true,
+    showAgendaView: true,
     agendaHidden: [],
     showHebrewDates: true,
     showHebrewMonths: true,

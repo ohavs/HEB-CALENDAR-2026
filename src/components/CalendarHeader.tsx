@@ -19,6 +19,7 @@ export function CalendarHeader({
   hebrewMonthLabel,
   view,
   onPickView,
+  canSwitchViews = true,
   photoURL,
   onProfile,
   onAdd,
@@ -31,6 +32,8 @@ export function CalendarHeader({
   hebrewMonthLabel?: string;
   view: CalendarView;
   onPickView: () => void;
+  /** כשנשארה תצוגה אחת בלבד אין מה להחליף, והכפתור יורד */
+  canSwitchViews?: boolean;
   photoURL: string | null;
   onProfile: () => void;
   onAdd: () => void;
@@ -99,15 +102,17 @@ export function CalendarHeader({
             <CalendarDays size={ICON.xl} strokeWidth={2.1} />
           </motion.button>
 
-          <motion.button
-            type="button"
-            onClick={onPickView}
-            whileTap={{ scale: 0.92 }}
-            aria-label={`תצוגה: ${VIEW_LABEL[view]}`}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
-          >
-            <ViewIcon size={ICON.xl} strokeWidth={2.1} />
-          </motion.button>
+          {canSwitchViews && (
+            <motion.button
+              type="button"
+              onClick={onPickView}
+              whileTap={{ scale: 0.92 }}
+              aria-label={`תצוגה: ${VIEW_LABEL[view]}`}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
+            >
+              <ViewIcon size={ICON.xl} strokeWidth={2.1} />
+            </motion.button>
+          )}
 
           <motion.button
             type="button"

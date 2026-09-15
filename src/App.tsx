@@ -1,7 +1,7 @@
 /** שורש האפליקציה - מחבר את המסכים, החלוניות, הסנכרון והתזכורות. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import type { CalendarView, DateKey, EventTemplate, UserEvent } from '@/types';
+import type { DateKey, EventTemplate, UserEvent } from '@/types';
 import { eventsOnDay, type Occurrence } from '@/lib/recurrence';
 import {
   addDays,
@@ -13,6 +13,7 @@ import {
   GREG_MONTHS_HE,
 } from '@/lib/dates';
 import { setDragCallbacks } from '@/lib/dragEngine';
+import { availableViews, nextView } from '@/lib/calendarViews';
 import { TEMPLATE_DRAG_PREFIX } from '@/components/TemplateStrip';
 import { templateToEvent } from '@/lib/templates';
 import {
@@ -67,9 +68,6 @@ import { ConfirmDeleteSheet } from '@/components/ConfirmDeleteSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
 
 const REMINDER_DEBOUNCE_MS = 700;
-
-/** סדר המחזור של כפתור התצוגה. קבוע, כדי שאפשר יהיה ללמוד אותו באצבע. */
-const VIEW_ORDER: CalendarView[] = ['month', 'week', 'agenda'];
 
 type EditorState = {
   open: boolean;
@@ -510,8 +508,8 @@ export default function App() {
   */
   const cycleView = useCallback(() => {
     const { settings: current, set } = useSettingsStore.getState();
-    const at = VIEW_ORDER.indexOf(current.view);
-    const next = VIEW_ORDER[(at + 1) % VIEW_ORDER.length];
+    const next = nextView(current.view, availableViews(current));
+    if (next === current.view) return;
     void haptic('light');
     set('view', next);
     // המסך מתחלף והמיקוד נשאר על הכפתור

@@ -27,6 +27,7 @@ import { hebrewMonthSpanLabel } from '@/lib/hebrew';
 import { useMonthData, useRangeData } from '@/hooks/useMonthData';
 import { useSettings } from '@/store/settings';
 import { useDragActive } from '@/lib/dragEngine';
+import { availableViews, canSwitchViews, resolveView } from '@/lib/calendarViews';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { CalendarHeader } from './CalendarHeader';
 import { MonthGrid, WeekdayHeader } from './MonthGrid';
@@ -120,7 +121,13 @@ export function CalendarScreen({
   bottomInset: number;
 }) {
   const settings = useSettings();
-  const view: CalendarView = settings.view;
+  /*
+    התצוגה שמצוירת אינה בהכרח זו ששמורה: אפשר לכבות שבוע או סדר יום
+    בהגדרות בזמן שנמצאים בהם. ההגדרה השמורה נשארת - מי שיחזיר אותה
+    יחזור אליה - והמסך בינתיים נופל לחודש.
+  */
+  const views = useMemo(() => availableViews(settings), [settings]);
+  const view: CalendarView = resolveView(settings.view, views);
   const data = useMonthData(month);
   const dragActive = useDragActive();
   const isDesktop = useIsDesktop();
@@ -309,6 +316,7 @@ export function CalendarScreen({
               }
               view={view}
               onPickView={onPickView}
+              canSwitchViews={canSwitchViews(views)}
               photoURL={photoURL}
               onProfile={onProfile}
               onAdd={() => onAddEvent(selectedKey)}
