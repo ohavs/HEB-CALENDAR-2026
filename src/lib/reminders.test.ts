@@ -6,7 +6,7 @@
  * מחזירה תזכורות "בלי תאריך" לתוך רשת החודש.
  */
 import { describe, expect, it } from 'vitest';
-import { buildReminderGroups, openCount, undatedReminders } from './reminders';
+import { buildReminderGroups, pendingCount, undatedReminders } from './reminders';
 import { expandEvents } from './recurrence';
 import { buildDays } from './hebrew';
 import { addDays, dateKey } from './dates';
@@ -101,13 +101,30 @@ describe('סימני הפריט', () => {
   });
 });
 
-describe('openCount', () => {
-  it('סופר רק את מה שלא בוצע, בכל הקבוצות', () => {
+describe('pendingCount', () => {
+  it('מפריד בין מה שאין לו תאריך למה שפתוח היום', () => {
     const out = groups(
       event({ date: TODAY }),
       event({ date: TODAY, exceptions: { [TODAY]: { done: true } } }),
       event({ date: TODAY, undated: true }),
     );
-    expect(openCount(out)).toBe(2);
+    expect(pendingCount(out, TODAY)).toEqual({ undated: 1, today: 1 });
+  });
+
+  /*
+    זה הממצא שבגללו הפונקציה הוחלפה: שיעור שבועי אחד תרם למונה הישן
+    כ-17 "פתוחים" לאורך האופק, ויום הולדת שנתי נספר כמשימה.
+  */
+  it('אירוע חוזר נספר פעם אחת ולא לאורך כל האופק', () => {
+    const out = groups(event({ date: TODAY, repeat: 'weekly' }));
+    expect(pendingCount(out, TODAY)).toEqual({ undated: 0, today: 1 });
+    // ובכל זאת הוא מופיע בכל שבוע ברשימה עצמה
+    expect(out.filter((g) => g.items.length).length).toBeGreaterThan(3);
+  });
+
+  it('יום עתידי אינו נספר', () => {
+    const tomorrow = dateKey(addDays(NOW, 1));
+    const out = groups(event({ date: tomorrow }));
+    expect(pendingCount(out, TODAY)).toEqual({ undated: 0, today: 0 });
   });
 });

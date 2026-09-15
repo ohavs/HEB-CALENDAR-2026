@@ -15,12 +15,12 @@ import { motion } from 'framer-motion';
 import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
 import type { DateKey, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
-import { buildReminderGroups, openCount, type ReminderItem } from '@/lib/reminders';
+import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
 import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { useRangeData } from '@/hooks/useMonthData';
-import { beginLongPress, useIsDropTarget } from '@/lib/dragEngine';
+import { beginLongPress, useDragActive, useIsDropTarget } from '@/lib/dragEngine';
 import { DatePickerSheet } from './ui/Picker';
 import { announce } from '@/lib/announce';
 import { ICON, STROKE, TAP } from '@/lib/motion';
@@ -49,7 +49,7 @@ export function RemindersScreen({
     () => buildReminderGroups(events, range.occurrences, range.days, now),
     [events, range, now],
   );
-  const open = openCount(groups);
+  const pending = pendingCount(groups, dateKey(now));
 
   const [title, setTitle] = useState('');
   const [slot, setSlot] = useState<Slot>('none');
@@ -95,9 +95,7 @@ export function RemindersScreen({
     >
       <header className="safe-t pb-4 pt-5 lg:pt-8">
         <h1 className="text-heading font-semibold leading-tight text-ink">תזכורות</h1>
-        <p className="mt-1 text-caption text-muted">
-          {open === 0 ? 'הכול סגור' : open === 1 ? 'אחת פתוחה' : `${open} פתוחות`}
-        </p>
+        <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
       </header>
 
       {/* ------------------------------ הוספה ------------------------------ */}
@@ -192,6 +190,14 @@ export function RemindersScreen({
   );
 }
 
+/** מה שממתין, בשורה אחת. */
+function pendingLabel({ undated, today }: { undated: number; today: number }): string {
+  const parts: string[] = [];
+  if (undated) parts.push(undated === 1 ? 'אחת בלי תאריך' : `${undated} בלי תאריך`);
+  if (today) parts.push(today === 1 ? 'אחת להיום' : `${today} להיום`);
+  return parts.length ? parts.join(' · ') : 'אין מה לסמן היום';
+}
+
 /** "20 בספטמבר" - קצר, לצ׳יפ */
 function relativeShort(key: DateKey): string {
   const date = keyToDate(key);
@@ -219,6 +225,7 @@ function Group({
 }) {
   // אותו מנגנון של תא בלוח: המנוע מזהה יעד לפי התכונה הזו
   const isTarget = useIsDropTarget(groupKey as DateKey);
+  const dragging = useDragActive();
 
   return (
     <section
@@ -238,10 +245,17 @@ function Group({
             <Row key={item.key} item={item} onToggle={onToggle} onOpen={onOpen} />
           ))}
         </div>
-      ) : (
+      ) : dragging ? (
         <p className="rounded-2xl border border-dashed border-hairline px-4 py-6 text-center text-caption text-faint">
           גררו לכאן תזכורת
         </p>
+      ) : (
+        /*
+          יום ריק הוא שורה, לא מסגרת בגובה 120px. ההזמנה לגרור מופיעה רק
+          כשיש מה לגרור - אחרת היא תופסת רבע מסך כדי להסביר מחווה שאיש
+          לא התחיל.
+        */
+        <p className="px-2 pb-1 text-caption text-faint">אין תזכורות</p>
       )}
     </section>
   );

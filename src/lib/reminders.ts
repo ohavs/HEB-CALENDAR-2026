@@ -130,7 +130,7 @@ export function buildReminderGroups(
     if (!items.length && key !== todayKey) continue;
     groups.push({
       key,
-      label: relativeDayLabel(date, now),
+      label: relativeDayLabel(date, now, true),
       hebrew: days.get(key)?.hebrewFull ?? '',
       droppable: true,
       items,
@@ -140,11 +140,27 @@ export function buildReminderGroups(
   return groups;
 }
 
-/** כמה פריטים פתוחים בסך הכול, לכותרת המסך. */
-export function openCount(groups: ReminderGroup[]): number {
-  let open = 0;
+/**
+ * כמה פריטים מבקשים תשומת לב עכשיו: בלי תאריך, ומה שנשאר פתוח היום.
+ *
+ * הספירה הקודמת רצה על כל האופק - 120 יום - ולכן שיעור שבועי אחד תרם
+ * לה שבעה־עשר "פתוחים" ויום הולדת שנתי נספר כמשימה. המספר היה נכון
+ * טכנית וחסר משמעות: הוא תיאר כמה אירועים יש ביומן, לא כמה דברים
+ * ממתינים, והפך מסך רגיל למסך מאיים.
+ */
+export function pendingCount(
+  groups: ReminderGroup[],
+  todayKey: DateKey,
+): { undated: number; today: number } {
+  let undated = 0;
+  let today = 0;
   for (const group of groups) {
-    for (const item of group.items) if (!item.done) open += 1;
+    if (group.key !== 'undated' && group.key !== todayKey) continue;
+    for (const item of group.items) {
+      if (item.done) continue;
+      if (group.key === 'undated') undated += 1;
+      else today += 1;
+    }
   }
-  return open;
+  return { undated, today };
 }

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Moon, Sunset } from 'lucide-react';
 import { upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
-import { dayTitleLabel, startOfDay } from '@/lib/dates';
+import { dayTitleLabel, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
 import { ICON, STROKE } from '@/lib/motion';
@@ -129,7 +129,7 @@ export function ShabbatScreen({
       )}
 
       <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
-        השבועות הבאים
+        המועדים הבאים
       </h3>
 
       <div className="mb-4 divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
@@ -146,16 +146,36 @@ export function ShabbatScreen({
               <p className="mt-1 truncate text-caption text-muted">
                 {dayTitleLabel(entry.startDate)}
                 {entry.endKey !== entry.startKey
-                  ? ` – ${dayTitleLabel(entry.endDate).replace('יום ', '')}`
+                  ? ` – ${weekdayDateLabel(entry.endDate)}`
                   : ''}
               </p>
             </div>
+            {/*
+              אותם שני אייקונים של הכרטיס העליון. בלעדיהם שני הזמנים
+              מוצגים זה מעל זה בלי תווית, והקורא צריך לנחש מי מהם כניסה.
+            */}
             <div className="shrink-0 text-left">
-              <p className="tnum text-title font-semibold leading-tight text-ink">
-                {entry.candles?.time ?? '—'}
+              <p className="flex items-center justify-end gap-1.5">
+                <span className="tnum text-title font-semibold leading-tight text-ink">
+                  {entry.candles?.time ?? '—'}
+                </span>
+                <Sunset
+                  size={ICON.xs}
+                  strokeWidth={STROKE}
+                  className="text-[rgb(var(--c-shabbat))]"
+                  aria-label="הדלקת נרות"
+                />
               </p>
-              <p className="tnum mt-0.5 text-caption leading-tight text-muted">
-                {entry.havdalah?.time ?? '—'}
+              <p className="mt-0.5 flex items-center justify-end gap-1.5">
+                <span className="tnum text-caption leading-tight text-muted">
+                  {entry.havdalah?.time ?? '—'}
+                </span>
+                <Moon
+                  size={ICON.xs}
+                  strokeWidth={STROKE}
+                  className="text-brand"
+                  aria-label="יציאה והבדלה"
+                />
               </p>
             </div>
           </motion.div>

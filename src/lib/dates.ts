@@ -100,8 +100,25 @@ export function dayTitleLabel(d: Date): string {
   return `יום ${WEEKDAYS_HE[d.getDay()]}, ${d.getDate()} ב${GREG_MONTHS_HE[d.getMonth()]}`;
 }
 
-/** "היום" / "מחר" / "אתמול" או תאריך. */
-export function relativeDayLabel(d: Date, now = new Date()): string {
+/**
+ * "חמישי, 17 בספטמבר" - אותו דבר בלי המילה "יום".
+ *
+ * בכותרת מסך "יום חמישי" נקרא נכון, אבל ברשימה שבה הכותרות הקודמות הן
+ * "היום", "מחר" ו"מחרתיים" המילה הזו מאריכה את השורה הרביעית פי שלושה
+ * ושוברת את הקצב.
+ */
+export function weekdayDateLabel(d: Date): string {
+  return `${WEEKDAYS_HE[d.getDay()]}, ${d.getDate()} ב${GREG_MONTHS_HE[d.getMonth()]}`;
+}
+
+/**
+ * "היום" / "מחר" / "אתמול" או תאריך.
+ *
+ * `short` משמיט את המילה "יום" מהתאריך. ברשימה שכותרותיה הראשונות הן
+ * "היום", "מחר" ו"מחרתיים", "יום חמישי, 17 בספטמבר" ארוך פי שלושה
+ * מקודמו ושובר את הקצב; בכותרת מסך בודדת דווקא "יום חמישי" נקרא נכון.
+ */
+export function relativeDayLabel(d: Date, now = new Date(), short = false): string {
   const diff = Math.round(
     (startOfDay(d).getTime() - startOfDay(now).getTime()) / 86_400_000,
   );
@@ -109,7 +126,7 @@ export function relativeDayLabel(d: Date, now = new Date()): string {
   if (diff === 1) return 'מחר';
   if (diff === -1) return 'אתמול';
   if (diff === 2) return 'מחרתיים';
-  return dayTitleLabel(d);
+  return short ? weekdayDateLabel(d) : dayTitleLabel(d);
 }
 
 /** HH:mm בשעון המקום של אזור הזמן הנתון (מטפל אוטומטית בשעון קיץ/חורף). */

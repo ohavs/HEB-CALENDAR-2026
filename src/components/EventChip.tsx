@@ -177,16 +177,9 @@ export function EventCard({
         ) : occurrence.allDay ? (
           <span className="text-caption font-semibold leading-tight">כל היום</span>
         ) : (
-          <>
-            <span className="tnum text-label font-bold leading-none">
-              {occurrence.startTime}
-            </span>
-            {duration && (
-              <span className="mt-1 text-micro font-medium leading-none opacity-85">
-                {duration}
-              </span>
-            )}
-          </>
+          <span className="tnum text-label font-bold leading-none">
+            {occurrence.startTime}
+          </span>
         )}
       </span>
 
