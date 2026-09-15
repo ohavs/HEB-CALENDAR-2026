@@ -145,7 +145,10 @@ export function SettingsScreen({
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const [testSent, setTestSent] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
-  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'latest'>('idle');
+  /** מה הכפתור מספר: ממתין, בודק, מעודכן, או למה הבדיקה נכשלה */
+  const [updateState, setUpdateState] = useState<
+    { kind: 'idle' } | { kind: 'checking' } | { kind: 'latest'; build: number | null } | { kind: 'error'; message: string }
+  >({ kind: 'idle' });
   const [placeEditor, setPlaceEditor] = useState<{ open: boolean; editing: SavedPlace | null }>({
     open: false,
     editing: null,
@@ -170,11 +173,18 @@ export function SettingsScreen({
 
   /** בדיקה יזומה. העדכון עצמו מוצג בגיליון שמנוהל ב-App. */
   const checkUpdateNow = async () => {
-    setUpdateState('checking');
-    const found = await checkForUpdate(true);
-    setUpdateState(found ? 'idle' : 'latest');
-    if (found) onUpdateFound(found);
-    else setTimeout(() => setUpdateState('idle'), 2500);
+    setUpdateState({ kind: 'checking' });
+    const result = await checkForUpdate(true);
+    if (result.kind === 'update') {
+      setUpdateState({ kind: 'idle' });
+      onUpdateFound(result.update);
+      return;
+    }
+    setUpdateState(
+      result.kind === 'latest' ? { kind: 'latest', build: result.serverBuild } : result,
+    );
+    // שגיאה נשארת על המסך יותר זמן: יש בה מה לקרוא
+    setTimeout(() => setUpdateState({ kind: 'idle' }), result.kind === 'error' ? 6000 : 2500);
   };
 
   useEffect(() => {
@@ -632,10 +642,23 @@ export function SettingsScreen({
             title="גרסת האפליקציה"
             hint={version ?? '—'}
             icon={<RefreshCw size={ICON.md} strokeWidth={2.1} />}
-            onClick={updateState === 'checking' ? undefined : () => void checkUpdateNow()}
+            onClick={updateState.kind === 'checking' ? undefined : () => void checkUpdateNow()}
           >
-            <span className="text-caption font-medium text-muted">
-              {updateState === 'checking' ? 'בודק…' : updateState === 'latest' ? 'מעודכן' : 'בדיקת עדכון'}
+            <span
+              className={`text-caption font-medium ${
+                updateState.kind === 'error' ? 'text-[rgb(194_60_90)]' : 'text-muted'
+              }`}
+            >
+              {updateState.kind === 'checking'
+                ? 'בודק…'
+                : updateState.kind === 'error'
+                  ? updateState.message
+                  : updateState.kind === 'latest'
+                    ? // מציגים גם מה יש בשרת: כך רואים במבט אם ההשוואה עצמה שגויה
+                      updateState.build
+                      ? `מעודכן · בשרת 1.0.${updateState.build}`
+                      : 'מעודכן'
+                    : 'בדיקת עדכון'}
             </span>
           </SettingRow>
         )}

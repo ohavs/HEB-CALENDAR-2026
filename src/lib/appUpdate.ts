@@ -196,36 +196,60 @@ async function installedVersion(): Promise<{ code: number; name: string } | null
 }
 
 /**
+ * תוצאת בדיקה.
+ *
+ * ההבחנה בין `latest` ל-`error` אינה קוסמטית: קודם שניהם היו `null`,
+ * והמסך אמר "מעודכן" גם כשהרשת נפלה, כשה-API החזיר 403 מגבלת קצב,
+ * וכשהתשובה לא נפרסה. משתמש שממתין לעדכון קיבל אישור שקרי שאין כזה,
+ * ולא הייתה שום דרך להבדיל.
+ *
+ * `serverBuild` הוא מה שיש בשרת בפועל, גם כשאין מה לעדכן - זה מה
+ * שמאפשר לראות במסך אחד אם ההשוואה עצמה שגויה.
+ */
+export type CheckOutcome =
+  | { kind: 'update'; update: UpdateInfo }
+  | { kind: 'latest'; serverBuild: number | null }
+  | { kind: 'error'; message: string };
+
+/**
  * בודק אם יש גרסה חדשה.
  *
  * @param force מדלג על מרווח הבדיקה - לכפתור "בדיקת עדכון" בהגדרות
  */
-export async function checkForUpdate(force = false): Promise<UpdateInfo | null> {
-  if (!isNative()) return null;
+export async function checkForUpdate(force = false): Promise<CheckOutcome> {
+  if (!isNative()) return { kind: 'latest', serverBuild: null };
   const now = Date.now();
-  if (!force && !dueForCheck(now)) return null;
+  if (!force && !dueForCheck(now)) return { kind: 'latest', serverBuild: null };
 
   const installed = await installedVersion();
-  if (!installed || !Number.isFinite(installed.code)) return null;
+  if (!installed || !Number.isFinite(installed.code)) {
+    return { kind: 'error', message: 'לא ניתן לקרוא את גרסת האפליקציה' };
+  }
 
   try {
     const res = await fetch(RELEASE_API, {
       cache: 'no-store',
       headers: { Accept: 'application/vnd.github+json' },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return {
+        kind: 'error',
+        message:
+          res.status === 403 || res.status === 429
+            ? 'יותר מדי בדיקות. לנסות שוב בעוד כמה דקות'
+            : `השרת החזיר ${res.status}`,
+      };
+    }
     markChecked(now);
     const release = parseRelease((await res.json()) as ReleasePayload);
-    const update = decideUpdate(
-      release,
-      installed.code,
-      BUILD_NUMBER || installed.code,
-      NATIVE_REV,
-    );
-    return update && { ...update, currentVersionName: `1.0.${BUILD_NUMBER || installed.code}` };
-  } catch {
-    // אין רשת, או שהשחרור לא זמין. בדיקת עדכון שנכשלה אינה אירוע.
-    return null;
+    const running = BUILD_NUMBER || installed.code;
+    const update = decideUpdate(release, installed.code, running, NATIVE_REV);
+    if (update) {
+      return { kind: 'update', update: { ...update, currentVersionName: `1.0.${running}` } };
+    }
+    return { kind: 'latest', serverBuild: release.bundle?.build ?? release.apk?.versionCode ?? null };
+  } catch (e) {
+    return { kind: 'error', message: (e as Error)?.message?.trim() || 'הבדיקה נכשלה' };
   }
 }
 

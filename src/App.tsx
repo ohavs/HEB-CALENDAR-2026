@@ -159,8 +159,10 @@ export default function App() {
   useEffect(() => {
     if (!isNative()) return;
     const look = () =>
-      void checkForUpdate().then((found) => {
-        if (found && !isDismissed(found.versionCode)) setUpdate(found);
+      void checkForUpdate().then((result) => {
+        // בדיקה אוטומטית שנכשלה אינה אירוע - היא תרוץ שוב בפעם הבאה
+        if (result.kind !== 'update') return;
+        if (!isDismissed(result.update.versionCode)) setUpdate(result.update);
       });
     // לא ברגע העלייה: קודם שהאפליקציה תיפתח ותצייר
     const timer = setTimeout(look, 4000);

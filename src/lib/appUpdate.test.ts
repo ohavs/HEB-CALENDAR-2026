@@ -100,3 +100,44 @@ describe('סגירת ההודעה', () => {
     expect(isDismissed(13)).toBe(false);
   });
 });
+
+/*
+  המצב שדווח מהשדה: מותקן 1.0.26, ובשחרור יושבים הנכסים של בנייה 28 עם
+  אותה טביעה נייטיבית. זו הבדיקה שמפרידה בין "הלוגיקה שגויה" לבין "הבדיקה
+  לא הגיעה לשרת" - ובלעדיה שניהם נראו זהה מהמסך.
+*/
+describe('1.0.26 מול שחרור 28', () => {
+  const release = parseRelease({
+    body: 'גרסה 1.0.28',
+    assets: [
+      { name: 'bundle-28-22f5ae8.zip', browser_download_url: 'https://x/bundle-28-22f5ae8.zip' },
+      { name: 'heb-calendar-1.0.28.apk', browser_download_url: 'https://x/heb-calendar-1.0.28.apk' },
+    ],
+  });
+
+  it('קורא את הנכסים של הבנייה האחרונה', () => {
+    expect(release.bundle).toEqual({
+      build: 28,
+      nativeRev: '22f5ae8',
+      url: 'https://x/bundle-28-22f5ae8.zip',
+    });
+    expect(release.apk?.versionCode).toBe(28);
+  });
+
+  it('מציע עדכון חי כשהטביעה זהה', () => {
+    const out = decideUpdate(release, 26, 26, '22f5ae8');
+    expect(out?.kind).toBe('web');
+    expect(out?.versionName).toBe('1.0.28');
+  });
+
+  it('מציע התקנה כשהטביעה השתנתה', () => {
+    const out = decideUpdate(release, 26, 26, 'af64b31');
+    expect(out?.kind).toBe('native');
+    expect(out?.versionName).toBe('1.0.28');
+  });
+
+  // בלי הטביעה אין על מה להשוות, ואז APK הוא המסלול הבטוח
+  it('בלי טביעה נופל להתקנה', () => {
+    expect(decideUpdate(release, 26, 26, '')?.kind).toBe('native');
+  });
+});
