@@ -56,6 +56,11 @@ type EventsStore = {
   /** מעביר אירוע ליום אחר (גרירה בלוח) */
   move: (id: string, to: DateKey) => void;
   remove: (id: string) => void;
+  /**
+   * מבטל מחיקה. סימון המחיקה הוא דגל ולא הסרה, ולכן "ביטול" הוא
+   * היפוך הדגל עם חותמת זמן חדשה - וכך הוא מנצח גם בענן.
+   */
+  restore: (id: string) => void;
 
   /* ---------- מופע יחיד בסדרה חוזרת ---------- */
   /** משנה מופע אחד בלבד, בלי לגעת בשאר הסדרה */
@@ -226,6 +231,15 @@ export const useEventsStore = create<EventsStore>()(
             },
             revision: s.revision + 1,
           };
+        }),
+
+      restore: (id) =>
+        setState((s) => {
+          const existing = s.byId[id];
+          if (!existing?.deleted) return s;
+          const next = { ...existing, updatedAt: Date.now() };
+          delete next.deleted;
+          return { byId: { ...s.byId, [id]: next }, revision: s.revision + 1 };
         }),
 
       conflicts: [],

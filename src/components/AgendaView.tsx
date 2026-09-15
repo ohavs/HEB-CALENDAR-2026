@@ -207,21 +207,22 @@ export function AgendaView({
           החיפוש ירד מכותרת הלוח כדי שהשורה שם תישאר שורה אחת, והוא נחת
           כאן: סדר היום הוא רשימה, וחיפוש ברשימה הוא המקום שמצפים לו.
         */}
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <AgendaFilterButton hidden={hidden} onOpen={() => setFiltersOpen(true)} />
-          </div>
-          <motion.button
-            type="button"
-            onClick={onSearch}
-            whileTap={{ scale: 0.92 }}
-            transition={TAP}
-            aria-label="חיפוש"
-            className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-raised"
-          >
-            <Search size={ICON.md} strokeWidth={STROKE} />
-          </motion.button>
-        </div>
+        <AgendaFilterButton
+          hidden={hidden}
+          onOpen={() => setFiltersOpen(true)}
+          action={
+            <motion.button
+              type="button"
+              onClick={onSearch}
+              whileTap={{ scale: 0.92 }}
+              transition={TAP}
+              aria-label="חיפוש"
+              className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-surface text-muted shadow-raised"
+            >
+              <Search size={ICON.md} strokeWidth={STROKE} />
+            </motion.button>
+          }
+        />
 
         {entries.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-hairline px-5 py-14 text-center">

@@ -110,26 +110,41 @@ export function SearchSheet({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="חיפוש">
-      <div className="mb-5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      {/*
+        הטבעת יושבת על המעטפת המעוגלת ולא על השדה.
+
+        ל-`field-reset` יש טבעת מיקוד משלה, והיא מלבנית - כך שבשדה
+        שנפתח ממוקד (autoFocus) הדבר הראשון שרואים הוא מלבן חד בתוך
+        קופסה מעוגלת. `focus-visible:outline-none` מכבה אותה, ו-
+        `focus-within` מחזיר את אותו סימון על הצורה הנכונה.
+
+        `type="text"` ולא `search`: כפתור הניקוי המובנה של הדפדפן נראה
+        אחרת בכל מכשיר, ויש לנו כבר כזה משלנו לידו.
+      */}
+      <div className="mb-5 flex items-center gap-3 rounded-2xl bg-well ps-4 pe-2 transition-shadow focus-within:ring-2 focus-within:ring-brand/35">
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           id="search-query"
-          type="search"
+          type="text"
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="אירוע, חג או מועד"
           autoFocus
-          className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
+          className="field-reset min-w-0 flex-1 bg-transparent py-3.5 text-body text-ink placeholder:text-faint focus-visible:outline-none"
         />
         {query && (
-          <button
+          <motion.button
             type="button"
             onClick={() => setQuery('')}
+            whileTap={TAP_SCALE}
             aria-label="ניקוי החיפוש"
-            className="focus-ring -me-1 shrink-0 rounded-full p-1 text-faint"
+            className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hairline/70 text-muted"
           >
             <X size={ICON.sm} strokeWidth={STROKE} />
-          </button>
+          </motion.button>
         )}
       </div>
 

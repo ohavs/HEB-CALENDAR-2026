@@ -62,6 +62,7 @@ import { announce, setAnnouncer } from '@/lib/announce';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { consumeLaunch, parseExternalUrl } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
+import { ConfirmDeleteSheet } from '@/components/ConfirmDeleteSheet';
 import { ConflictSheet } from '@/components/ConflictSheet';
 import { OptionPickerSheet } from '@/components/ui/Picker';
 
@@ -71,6 +72,8 @@ type EditorState = {
   open: boolean;
   date: DateKey;
   editing: Occurrence | UserEvent | null;
+  /** שעת פתיחה לאירוע חדש, כשההקשה כבר אמרה אותה (תא בתצוגת שבוע) */
+  startTime?: string;
 };
 
 export default function App() {
@@ -104,6 +107,8 @@ export default function App() {
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
     null,
   );
+  /** אירוע שנגרר אל הפח וממתין לאישור המחיקה */
+  const [pendingTrash, setPendingTrash] = useState<Occurrence | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [yearOpen, setYearOpen] = useState(false);
   const [yearValue, setYearValue] = useState(today.getFullYear());
@@ -421,8 +426,45 @@ export default function App() {
           direction: edge === 'next' ? 1 : -1,
         }));
       },
+      /*
+        המנוע רק מדווח שהשחרור היה על הפח. האישור הוא החלטה של המסך,
+        ולא של הגרירה - תבנית שנגררה, למשל, אינה אירוע שאפשר למחוק.
+      */
+      onTrash: (occurrence) => {
+        if (occurrence.baseId.startsWith(TEMPLATE_DRAG_PREFIX)) return;
+        setPendingTrash(occurrence);
+      },
     });
   }, [move, placeTemplate]);
+
+  /** מחיקה אחרי שאושרה. `scope` רלוונטי רק לסדרה חוזרת. */
+  const applyTrash = useCallback(
+    (scope: EditScope) => {
+      if (!pendingTrash) return;
+      const occurrence = pendingTrash;
+      const { remove, restore, cancelOccurrence, restoreOccurrence } =
+        useEventsStore.getState();
+      setPendingTrash(null);
+
+      if (scope === 'occurrence' && occurrence.repeat !== 'none') {
+        cancelOccurrence(occurrence.baseId, occurrence.sourceKey);
+        announce(`"${occurrence.title}" נמחק`);
+        toast(`"${occurrence.title}" נמחק`, {
+          label: 'ביטול',
+          run: () => restoreOccurrence(occurrence.baseId, occurrence.sourceKey),
+        });
+        return;
+      }
+
+      remove(occurrence.baseId);
+      announce(`"${occurrence.title}" נמחק`);
+      toast(`"${occurrence.title}" נמחק`, {
+        label: 'ביטול',
+        run: () => restore(occurrence.baseId),
+      });
+    },
+    [pendingTrash],
+  );
 
   /**
    * שיבוץ תבנית ליום.
@@ -458,8 +500,8 @@ export default function App() {
   );
 
   /* ------------------------------- חלוניות ------------------------------- */
-  const openEditor = useCallback((date: DateKey) => {
-    setEditor({ open: true, date, editing: null });
+  const openEditor = useCallback((date: DateKey, startTime?: string) => {
+    setEditor({ open: true, date, editing: null, startTime });
   }, []);
 
   /** פותח את העורך על מופע או על תזכורת בלי תאריך. */
@@ -636,7 +678,38 @@ export default function App() {
         open={editor.open}
         onClose={() => setEditor((e) => ({ ...e, open: false }))}
         date={editor.date}
+        startTime={editor.startTime}
         editing={editor.editing}
+      />
+
+      {/*
+        גרירה אל הפח. מופע בסדרה חוזרת נשאל "מה למחוק" - אותה שאלה
+        שהעורך שואל - וכל השאר נשאל פעם אחת, כן או לא.
+      */}
+      <ScopeSheet
+        open={Boolean(pendingTrash && pendingTrash.repeat !== 'none')}
+        onClose={() => setPendingTrash(null)}
+        onChoose={applyTrash}
+        title="מה למחוק?"
+        occurrenceLabel="המופע הזה בלבד"
+        occurrenceHint="שאר המופעים יישארו במקומם"
+        seriesLabel="את כל הסדרה"
+        seriesHint="כל המופעים יימחקו"
+        destructive
+      />
+
+      <ConfirmDeleteSheet
+        open={Boolean(pendingTrash && pendingTrash.repeat === 'none')}
+        onClose={() => setPendingTrash(null)}
+        onConfirm={() => applyTrash('series')}
+        title={pendingTrash?.title ?? ''}
+        hint={
+          pendingTrash?.undated
+            ? 'תזכורת בלי תאריך'
+            : pendingTrash
+              ? dayTitleLabel(keyToDate(pendingTrash.date))
+              : ''
+        }
       />
 
       <CityPicker open={cityOpen} onClose={() => setCityOpen(false)} cityId={settings.cityId} />

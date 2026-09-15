@@ -44,6 +44,8 @@ const EDGE_HOLD_MS = 620;
 const SCROLL_ZONE = 100;
 /** מהירות הגלילה האוטומטית, פיקסלים לפריים */
 const SCROLL_SPEED = 11;
+/** כמה להרחיב את אזור הפגיעה של יעד המחיקה מעבר לעיגול הנראה */
+const TRASH_PADDING = 18;
 
 export type DragEdge = 'prev' | 'next' | null;
 
@@ -56,6 +58,8 @@ type DragStore = {
   fromKey: DateKey | null;
   /** היום שמעליו המצביע נמצא כרגע */
   overKey: DateKey | null;
+  /** האם המצביע נמצא כרגע מעל יעד המחיקה */
+  overTrash: boolean;
   /** האם מוצג רמז ללחיצה ארוכה (לפני שהגרירה מתחילה) */
   pressing: string | null;
 };
@@ -65,6 +69,7 @@ export const useDragStore = create<DragStore>(() => ({
   occurrence: null,
   fromKey: null,
   overKey: null,
+  overTrash: false,
   pressing: null,
 }));
 
@@ -77,6 +82,8 @@ export const useIsDraggingOccurrence = (occurrenceId: string): boolean =>
 
 export const useDragActive = (): boolean => useDragStore((s) => s.active);
 
+export const useIsOverTrash = (): boolean => useDragStore((s) => s.active && s.overTrash);
+
 /* ==========================================================================
    מנוע הגרירה
    ========================================================================== */
@@ -86,6 +93,8 @@ type Callbacks = {
   onDrop: (baseId: string, to: DateKey, occurrence: Occurrence) => void;
   /** בקשה לדפדף חודש בזמן גרירה בקצה המסך */
   onEdge: (edge: Exclude<DragEdge, null>) => void;
+  /** שוחרר על יעד המחיקה. האישור עצמו שייך למסך, לא למנוע. */
+  onTrash: (occurrence: Occurrence) => void;
 };
 
 let callbacks: Callbacks | null = null;
@@ -112,6 +121,26 @@ function buzz() {
   void haptic('medium');
 }
 
+/**
+ * האם המצביע מעל יעד המחיקה.
+ *
+ * מדידה של מלבן ולא `elementFromPoint`: היעד צף מעל הכול ואינו מקבל
+ * אירועי מצביע (אחרת הוא היה בולע את הגרירה עצמה), ולכן הוא אינו
+ * מוחזר כלל מנקודה. השוליים מרחיבים את אזור הפגיעה מעבר למה שנראה,
+ * כי האצבע מכסה את מה שהיא מכוונת אליו.
+ */
+function overTrashAt(x: number, y: number): boolean {
+  const el = document.querySelector<HTMLElement>('[data-drag-trash]');
+  if (!el) return false;
+  const box = el.getBoundingClientRect();
+  return (
+    x >= box.left - TRASH_PADDING &&
+    x <= box.right + TRASH_PADDING &&
+    y >= box.top - TRASH_PADDING &&
+    y <= box.bottom + TRASH_PADDING
+  );
+}
+
 function dayKeyAtPoint(x: number, y: number): DateKey | null {
   const el = document.elementFromPoint(x, y);
   const cell = el?.closest<HTMLElement>('[data-day-key]');
@@ -129,8 +158,15 @@ function clearEdgeTimer() {
 function handleEdges(x: number) {
   if (!session) return;
   const width = window.innerWidth;
-  // בעברית הימים מתקדמים מימין לשמאל, ולכן הקצה השמאלי הוא "קדימה בזמן"
-  const edge: DragEdge = x < EDGE_WIDTH ? 'next' : x > width - EDGE_WIDTH ? 'prev' : null;
+  /*
+    אותו כיוון כמו ההחלקה בין חודשים: גוררים לאן שרוצים להגיע.
+
+    קודם כאן ישבה הסמנטיקה ההפוכה - "הימים מתקדמים שמאלה, ולכן הקצה
+    השמאלי הוא העתיד". היא נכונה לפריסה, אבל לא למה שהיד עושה: מי
+    שגורר אירוע אל הקצה הימני מצפה לחודש שבכותרת נמצא מימין, כלומר
+    לחודש הבא, ולא לזה שלפניו.
+  */
+  const edge: DragEdge = x < EDGE_WIDTH ? 'prev' : x > width - EDGE_WIDTH ? 'next' : null;
   if (edge === session.edge) return;
   clearEdgeTimer();
   session.edge = edge;
@@ -196,24 +232,44 @@ function moveTo(x: number, y: number) {
   if (!session?.started) return;
   ghostX.set(x);
   ghostY.set(y);
-  const over = dayKeyAtPoint(x, y);
+
+  /*
+    המחיקה גוברת על היום שמתחת. היעד יושב מעל התוכן, ובלי הקדימות הזו
+    הכיתוב היה אומר "העברה ל-14 בספטמבר" בזמן שהאצבע כבר על הפח.
+  */
+  const trash = overTrashAt(x, y);
+  if (trash !== useDragStore.getState().overTrash) {
+    buzz();
+    useDragStore.setState({ overTrash: trash });
+  }
+
+  const over = trash ? null : dayKeyAtPoint(x, y);
   if (over !== useDragStore.getState().overKey) {
     if (over) buzz();
     useDragStore.setState({ overKey: over });
   }
   handleEdges(x);
-  updateAutoScroll(y);
+  // גלילה אוטומטית בזמן שמכוונים לפח רק תסיט את מה שמתחתיו
+  if (trash) stopAutoScroll();
+  else updateAutoScroll(y);
 }
 
 /** סיום הגרירה - נקרא גם מ-pointerup וגם מ-touchend, ובטוח לקריאה כפולה. */
 function finish() {
   if (!session) return;
   const { occurrence, started } = session;
-  const { overKey, fromKey } = useDragStore.getState();
+  const { overKey, fromKey, overTrash } = useDragStore.getState();
 
   teardown();
+  if (!started) return;
 
-  if (started && overKey && overKey !== fromKey) {
+  if (overTrash) {
+    buzz();
+    callbacks?.onTrash(occurrence);
+    return;
+  }
+
+  if (overKey && overKey !== fromKey) {
     buzz();
     callbacks?.onDrop(occurrence.baseId, overKey, occurrence);
   }
@@ -296,6 +352,7 @@ function teardown() {
     occurrence: null,
     fromKey: null,
     overKey: null,
+    overTrash: false,
     pressing: null,
   });
 }
@@ -365,6 +422,7 @@ export function beginLongPress(
       occurrence,
       fromKey: from,
       overKey: from,
+      overTrash: false,
       pressing: null,
     });
   }, LONG_PRESS_MS);

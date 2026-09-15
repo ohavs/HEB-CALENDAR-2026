@@ -9,6 +9,7 @@
  * ולכן זה מובן בלי ללמוד כלום. הפקד עצמו נושא את הסיכום, כך שאפשר לדעת
  * מה מסונן בלי לפתוח אותו.
  */
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { announce } from '@/lib/announce';
@@ -29,19 +30,29 @@ function summary(hidden: AgendaCategory[]): string {
 export function AgendaFilterButton({
   hidden,
   onOpen,
+  action,
 }: {
   hidden: AgendaCategory[];
   onOpen: () => void;
+  /**
+   * פקד נוסף באותה שורה (היום: החיפוש).
+   *
+   * הוא נכנס *לתוך* המעטפת הדביקה ולא יושב לצידה, כי למעטפת יש שוליים
+   * שליליים בגודל המרזב - היא נמתחת עד קצה המסך כדי שהטשטוש יכסה את
+   * כל הרוחב. שכן שיושב לצידה ברשת flex מקבל את הרוחב הזה כשכבה מעליו,
+   * ונחתך בשקט.
+   */
+  action?: ReactNode;
 }) {
   const filtering = hidden.length > 0;
 
   return (
-    <div className="sticky top-0 z-20 -mx-[var(--gutter)] bg-canvas/95 px-[var(--gutter)] pb-3 pt-1 backdrop-blur">
+    <div className="sticky top-0 z-20 -mx-[var(--gutter)] flex items-center gap-2 bg-canvas/95 px-[var(--gutter)] pb-3 pt-1 backdrop-blur">
       <motion.button
         type="button"
         whileTap={TAP_SCALE}
         onClick={onOpen}
-        className={`focus-ring flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-right transition-colors ${
+        className={`focus-ring flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-3 text-right transition-colors ${
           filtering ? 'bg-brand-soft' : 'bg-well'
         }`}
       >
@@ -65,6 +76,7 @@ export function AgendaFilterButton({
           סינון
         </span>
       </motion.button>
+      {action}
     </div>
   );
 }

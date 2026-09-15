@@ -10,7 +10,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { DayInfo, Settings } from '@/types';
+import type { DateKey, DayInfo, Settings } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import type { RangeData } from '@/hooks/useMonthData';
 import { dateKey, timeToMinutes, WEEKDAYS_SHORT_HE } from '@/lib/dates';
@@ -93,12 +93,14 @@ function DayColumn({
   occurrences,
   nowMinutes,
   onEditEvent,
+  onAddAt,
 }: {
   day: DayInfo;
   occurrences: Occurrence[];
   /** דקות מתחילת היום, או null אם זה לא היום */
   nowMinutes: number | null;
   onEditEvent: (occurrence: Occurrence) => void;
+  onAddAt: (key: DateKey, hour: number) => void;
 }) {
   const isDropTarget = useIsDropTarget(day.key);
   const timed = occurrences.filter((o) => !o.allDay && o.startTime);
@@ -112,13 +114,25 @@ function DayColumn({
       } ${isDropTarget ? 'bg-brand-soft' : ''}`}
       style={{ height: HOUR_HEIGHT * 24 }}
     >
-      {/* קווי השעות */}
+      {/*
+        כל משבצת שעה היא כפתור.
+
+        הציר כבר אומר "יום ושעה", ולכן הקשה עליו היא הדרך הקצרה ביותר
+        לומר מתי - במקום לפתוח טופס ריק ולבחור מחדש את מה שהאצבע כבר
+        הראתה. הכפתורים יושבים מתחת לאירועים בערימה (`z`), כך שהקשה על
+        אירוע עדיין פותחת אותו ולא יוצרת חדש.
+
+        גם הקו העליון של השעה יושב עליהם: `border-t` על הכפתור עצמו,
+        כדי שלא יידרשו 24 אלמנטים נוספים רק בשביל קווים.
+      */}
       {HOURS.map((h) => (
-        <span
+        <button
           key={h}
-          aria-hidden="true"
-          className="absolute inset-x-0 border-t border-hairline/60"
-          style={{ top: h * HOUR_HEIGHT }}
+          type="button"
+          onClick={() => onAddAt(day.key, h)}
+          aria-label={`אירוע חדש ב-${String(h).padStart(2, '0')}:00, ${day.hebrewFull}`}
+          className="focus-ring-inset absolute inset-x-0 border-t border-hairline/60"
+          style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }}
         />
       ))}
 
@@ -146,6 +160,7 @@ function DayColumn({
               height: `${height}%`,
               insetInlineStart: `${lane.lane * width}%`,
               width: `calc(${width}% - 2px)`,
+              zIndex: 5,
             }}
             onClick={() => onEditEvent(occ)}
           />
@@ -192,12 +207,15 @@ export function WeekView({
   selectedKey,
   onSelectDay,
   onEditEvent,
+  onAddAt,
 }: {
   data: RangeData;
   settings: Settings;
   selectedKey: string;
   onSelectDay: (day: DayInfo) => void;
   onEditEvent: (occurrence: Occurrence) => void;
+  /** הקשה על משבצת שעה: אירוע חדש ביום ובשעה האלה */
+  onAddAt: (key: DateKey, hour: number) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -335,6 +353,7 @@ export function WeekView({
                 occurrences={data.occurrences.get(key) ?? []}
                 nowMinutes={key === today ? nowMinutes : null}
                 onEditEvent={onEditEvent}
+                onAddAt={onAddAt}
               />
             );
           })}

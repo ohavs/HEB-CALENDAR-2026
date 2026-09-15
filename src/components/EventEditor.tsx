@@ -75,12 +75,19 @@ function ToggleRow({
   );
 }
 
-function emptyDraft(date: DateKey, color: EventColor): EventDraft {
+/** ברירת המחדל, כשאיש לא אמר שעה */
+const DEFAULT_START = '09:00';
+/** משך האירוע החדש, בדקות */
+const DEFAULT_LENGTH = 60;
+
+function emptyDraft(date: DateKey, color: EventColor, startTime?: string): EventDraft {
+  const start = startTime ?? DEFAULT_START;
   return {
     title: '',
     date,
-    startTime: '09:00',
-    endTime: '10:00',
+    startTime: start,
+    // 23:00 + שעה אינו 24:00 - נעצרים בסוף היממה ולא גולשים ליום הבא
+    endTime: minutesToTime(Math.min(23 * 60 + 59, timeToMinutes(start) + DEFAULT_LENGTH)),
     allDay: false,
     location: '',
     notes: '',
@@ -94,12 +101,21 @@ export function EventEditor({
   open,
   onClose,
   date,
+  startTime,
   editing,
 }: {
   open: boolean;
   onClose: () => void;
   /** היום שבו נוצר האירוע החדש */
   date: DateKey;
+  /**
+   * שעת פתיחה לאירוע חדש.
+   *
+   * הקשה על תא בתצוגת שבוע כבר אמרה גם את היום וגם את השעה, ולפתוח
+   * אחריה טופס שכתוב בו 09:00 זה לבקש מהמשתמש להקליד מה שהוא בדיוק
+   * הראה באצבע. השדה נשאר לעריכה כרגיל.
+   */
+  startTime?: string;
   /** אירוע קיים לעריכה, או null ליצירה */
   editing: Occurrence | UserEvent | null;
 }) {
@@ -107,7 +123,7 @@ export function EventEditor({
   const places = settings.places;
   const { add, update, remove, updateOccurrence, cancelOccurrence } = useEventsStore();
   const [draft, setDraft] = useState<EventDraft>(() =>
-    emptyDraft(date, settings.defaultEventColor),
+    emptyDraft(date, settings.defaultEventColor, startTime),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** איזו שאלת היקף פתוחה, כשעורכים מופע בתוך סדרה חוזרת */
@@ -145,9 +161,9 @@ export function EventEditor({
         endDate: editing.endDate,
       });
     } else {
-      setDraft(emptyDraft(date, settings.defaultEventColor));
+      setDraft(emptyDraft(date, settings.defaultEventColor, startTime));
     }
-  }, [open, editing, date, settings.defaultEventColor]);
+  }, [open, editing, date, startTime, settings.defaultEventColor]);
 
   const patch = (values: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...values }));
 
@@ -394,7 +410,7 @@ export function EventEditor({
           <div className="flex-1">
             <TimeField
               label="התחלה"
-              value={draft.startTime ?? '09:00'}
+              value={draft.startTime ?? DEFAULT_START}
               onChange={onStartChange}
               variant="row"
             />

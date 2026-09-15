@@ -106,7 +106,7 @@ export function CalendarScreen({
   panelDetent: PanelDetent;
   onPanelDetentChange: (next: PanelDetent) => void;
   onOpenDayView: (date: Date) => void;
-  onAddEvent: (date: DateKey) => void;
+  onAddEvent: (date: DateKey, startTime?: string) => void;
   onEditEvent: (occurrence: Occurrence) => void;
   /** הזזה במקלדת (Alt+חיצים) - החלופה לגרירה */
   onMoveEvent: (occurrence: Occurrence, days: number) => void;
@@ -245,6 +245,7 @@ export function CalendarScreen({
             selectedKey={selectedKey}
             onSelectDay={onSelectDay}
             onEditEvent={onEditEvent}
+            onAddAt={(key, hour) => onAddEvent(key, `${String(hour).padStart(2, '0')}:00`)}
           />
         </div>
       );
