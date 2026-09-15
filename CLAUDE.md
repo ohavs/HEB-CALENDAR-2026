@@ -7,7 +7,7 @@
 
 ```bash
 npm run dev         # שרת פיתוח
-npm test            # 431 בדיקות (vitest run)
+npm test            # כל הבדיקות (vitest run)
 npm run test:watch
 npm run lint        # eslint
 npm run typecheck   # tsc -b --noEmit
