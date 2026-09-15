@@ -11,7 +11,7 @@ import {
   useReducedMotion,
   type PanInfo,
 } from 'framer-motion';
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
@@ -55,6 +55,21 @@ export function Sheet({
   const controls = useDragControls();
   const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
   const reduceMotion = useReducedMotion();
+  /** האם הגלילה בתחתית - כשכן, אין מה לרמוז עליו */
+  const [atEnd, setAtEnd] = useState(true);
+
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setAtEnd(el.scrollHeight - el.scrollTop - el.clientHeight < 8);
+  }, [scrollRef]);
+
+  // מדידה ראשונה אחרי שהתוכן נכנס: טופס שלא נגללו בו עדיין צריך את הרמז
+  useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(onScroll, 60);
+    return () => clearTimeout(id);
+  }, [open, children, onScroll]);
 
   // נעילת גלילת הרקע כל עוד החלונית פתוחה
   useEffect(() => {
@@ -162,11 +177,25 @@ export function Sheet({
               </div>
             )}
 
-            <div
-              ref={scrollRef}
-              className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-3"
-            >
-              {children}
+            {/*
+              העמעום מעל הפוטר אומר שיש עוד תוכן מתחת. בלעדיו הכרטיס
+              האחרון נחתך באמצע מאחורי הפוטר בלי שום הדרגה, ונראה כמו
+              סוף הטופס.
+            */}
+            <div className="relative min-h-0 flex-1">
+              <div
+                ref={scrollRef}
+                onScroll={onScroll}
+                className="no-scrollbar h-full overflow-y-auto overscroll-contain px-6 pb-3"
+              >
+                {children}
+              </div>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-surface to-transparent transition-opacity duration-200 ${
+                  atEnd ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
             </div>
 
             {footer && (

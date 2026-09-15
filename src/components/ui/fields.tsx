@@ -60,13 +60,44 @@ export function PickerField({
   icon,
   hint,
   onOpen,
+  variant = 'card',
 }: {
   label: string;
   display: string;
   icon?: ReactNode;
   hint?: ReactNode;
   onOpen: () => void;
+  /**
+   * 'card' - תווית מעל, ערך מתחת. קריא, ועולה כ-68px.
+   * 'row'  - תווית וערך באותה שורה, כ-50px. לטופס עם הרבה שדות,
+   *          שבו הגובה של הכרטיס המוערם דוחף את רובם אל מחוץ למסך.
+   */
+  variant?: 'card' | 'row';
 }) {
+  if (variant === 'row') {
+    return (
+      <motion.button
+        type="button"
+        onClick={onOpen}
+        whileTap={{ scale: 0.99 }}
+        transition={TAP}
+        className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-3 text-right transition-colors active:bg-hairline"
+      >
+        {icon && <span className="shrink-0 text-muted">{icon}</span>}
+        <span className="shrink-0 text-label font-medium text-ink">{label}</span>
+        <span className="min-w-0 flex-1 text-end">
+          <span className="block truncate text-label font-semibold text-ink">{display}</span>
+          {hint && (
+            <span className="mt-0.5 block truncate text-caption leading-none text-faint">
+              {hint}
+            </span>
+          )}
+        </span>
+        <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-faint" />
+      </motion.button>
+    );
+  }
+
   return (
     <motion.button
       type="button"
@@ -164,6 +195,7 @@ export function SelectField<T extends string | number>({
   onChange,
   icon,
   hint,
+  variant,
 }: {
   label: string;
   value: T;
@@ -171,6 +203,7 @@ export function SelectField<T extends string | number>({
   onChange: (next: T) => void;
   icon?: ReactNode;
   hint?: ReactNode;
+  variant?: 'card' | 'row';
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
@@ -181,6 +214,7 @@ export function SelectField<T extends string | number>({
         display={current?.label ?? '—'}
         icon={icon}
         hint={hint}
+        variant={variant}
         onOpen={() => setOpen(true)}
       />
       <OptionPickerSheet
@@ -211,6 +245,7 @@ export function DateField({
   icon,
   hint,
   min,
+  variant,
 }: {
   label: string;
   /** YYYY-MM-DD */
@@ -220,6 +255,7 @@ export function DateField({
   hint?: ReactNode;
   /** התאריך המוקדם ביותר שאפשר לבחור */
   min?: string;
+  variant?: 'card' | 'row';
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -229,6 +265,7 @@ export function DateField({
         display={formatDateHe(value)}
         icon={icon}
         hint={hint}
+        variant={variant}
         onOpen={() => setOpen(true)}
       />
       <DatePickerSheet
@@ -251,6 +288,7 @@ export function TimeField({
   onChange,
   icon,
   minuteStep = 5,
+  variant,
 }: {
   label: string;
   /** HH:mm */
@@ -258,6 +296,7 @@ export function TimeField({
   onChange: (next: string) => void;
   icon?: ReactNode;
   minuteStep?: number;
+  variant?: 'card' | 'row';
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -266,6 +305,7 @@ export function TimeField({
         label={label}
         display={value}
         icon={icon}
+        variant={variant}
         onOpen={() => setOpen(true)}
       />
       <TimePickerSheet

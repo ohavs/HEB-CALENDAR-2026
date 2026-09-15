@@ -262,6 +262,11 @@ export function PrimaryButton({
     danger: 'bg-[rgb(240_118_149)] text-white',
     quiet: 'bg-well text-ink',
   } as const;
+  /*
+    מושבת הוא מצב אחר, לא אותו כפתור חיוור. שקיפות לבדה השאירה כפתור
+    מלא בצבע המותג שנראה כמעט לחיץ; כאן המילוי יורד לגמרי ונשאר מתאר,
+    וזה קריא גם למי שלא מבחין בהפרש של 50% שקיפות.
+  */
   return (
     <motion.button
       type={type}
@@ -269,8 +274,8 @@ export function PrimaryButton({
       disabled={disabled}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       transition={TAP}
-      className={`w-full rounded-2xl py-4 text-label font-semibold transition-opacity ${tones[tone]} ${
-        disabled ? 'opacity-50' : ''
+      className={`w-full rounded-2xl py-4 text-label font-semibold transition-colors ${
+        disabled ? 'border border-hairline bg-transparent text-faint' : tones[tone]
       }`}
     >
       {children}

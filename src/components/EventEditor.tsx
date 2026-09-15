@@ -3,7 +3,7 @@
  * כל שדה שבוחרים בו ערך (תאריך, שעות, חזרה, תזכורת) פותח בורר משלנו
  * ולא פקד מובנה של הדפדפן, כדי לשמור על מראה אחיד בכל מכשיר.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bell,
@@ -36,7 +36,6 @@ import {
   PickerField,
   SelectField,
   TextArea,
-  TextField,
   TimeField,
 } from './ui/fields';
 import { ICON, STROKE } from '@/lib/motion';
@@ -49,6 +48,30 @@ const COLOR_SWATCH: Record<EventColor, string> = {
   sky: 'ev-sky',
   slate: 'ev-slate',
 };
+
+/**
+ * שורת מתג. קודם כל בוליאני ישב בכרטיס בגובה 60px, ושני מתגים לקחו
+ * חמישית מהמסך בשביל שתי מילים.
+ */
+function ToggleRow({
+  icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: ReactNode;
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2">
+      <span className="shrink-0 text-muted">{icon}</span>
+      <span className="flex-1 text-label font-medium text-ink">{label}</span>
+      <Toggle label={label} checked={checked} onChange={onChange} />
+    </div>
+  );
+}
 
 function emptyDraft(date: DateKey, color: EventColor): EventDraft {
   return {
@@ -248,23 +271,35 @@ export function EventEditor({
       }
       footer={
         <PrimaryButton onClick={onSave} disabled={!draft.title.trim()}>
-          {editing ? 'שמירת שינויים' : 'יצירת אירוע'}
+          {/* כפתור מושבת שאומר למה עדיף על כפתור מושבת ששותק */}
+          {!draft.title.trim()
+            ? 'צריך שם לאירוע'
+            : editing
+              ? 'שמירת שינויים'
+              : 'יצירת אירוע'}
         </PrimaryButton>
       }
     >
-      <div className="space-y-3 pb-2">
-        <TextField
-          label="כותרת"
+      <div className="space-y-2.5 pb-2">
+        {/*
+          הכותרת יוצאת ממערכת הכרטיסים. היא השדה היחיד שחובה למלא,
+          וכשהיא נראתה כמו "מקום" - אותו רקע, אותו רדיוס, אותו משקל -
+          שום דבר במסך לא אמר במה להתחיל.
+        */}
+        <input
+          type="text"
           value={draft.title}
-          onChange={(title) => patch({ title })}
-          placeholder="לדוגמה: ארוחת שבת אצל סבתא"
-          size="lg"
+          onChange={(e) => patch({ title: e.target.value })}
+          placeholder="שם האירוע"
+          autoComplete="off"
+          aria-label="כותרת האירוע"
+          className="field-reset w-full border-b border-hairline bg-transparent px-1 pb-3 pt-1 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
         />
 
-        {/* צבע - ריבועים מעוגלים, לא גלולות */}
-        <div className="rounded-2xl bg-well px-4 py-3.5">
-          <span className="mb-3 block text-caption font-medium text-muted">צבע</span>
-          <div className="flex flex-wrap gap-2.5">
+        {/* צבע - שורה אחת של ריבועים, לא כרטיס בגובה 100px */}
+        <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">
+          <span className="shrink-0 text-label font-medium text-ink">צבע</span>
+          <div className="flex flex-1 justify-end gap-2">
             {EVENT_COLORS.map((c) => {
               const active = draft.color === c.id;
               return (
@@ -272,14 +307,14 @@ export function EventEditor({
                   key={c.id}
                   type="button"
                   onClick={() => patch({ color: c.id })}
-                  whileTap={{ scale: 0.92 }}
+                  whileTap={{ scale: 0.9 }}
                   aria-label={c.label}
                   aria-pressed={active}
-                  className={`ev ${COLOR_SWATCH[c.id]} flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${
+                  className={`ev ${COLOR_SWATCH[c.id]} flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
                     active ? 'ring-2 ring-brand ring-offset-2 ring-offset-well' : ''
                   }`}
                 >
-                  <span className="ev-dot block h-4 w-4 rounded-lg" />
+                  <span className="ev-dot block h-3 w-3 rounded-md" />
                 </motion.button>
               );
             })}
@@ -293,59 +328,56 @@ export function EventEditor({
             // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
             patch({ date: d, endDate: draft.endDate && draft.endDate < d ? d : draft.endDate })
           }
-          icon={<CalendarDays size={ICON.sm} strokeWidth={STROKE} />}
+          icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
           hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
+          variant="row"
         />
 
         {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
-        <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
-          <span className="flex items-center gap-2.5 text-body font-medium text-ink">
-            <CalendarRange size={ICON.lg} strokeWidth={STROKE} className="text-muted" />
-            נמשך כמה ימים
-          </span>
-          <Toggle
-            label="נמשך כמה ימים"
-            checked={multiDay}
-            onChange={(on) =>
-              patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined })
-            }
-          />
-        </div>
+        <ToggleRow
+          icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
+          label="נמשך כמה ימים"
+          checked={multiDay}
+          onChange={(on) =>
+            patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined })
+          }
+        />
 
         {multiDay && (
           <DateField
             label="עד תאריך"
             value={draft.endDate ?? draft.date}
             onChange={(endDate) => patch({ endDate })}
-            icon={<CalendarRange size={ICON.sm} strokeWidth={STROKE} />}
+            icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
             hint={spanHint}
             min={draft.date}
+            variant="row"
           />
         )}
 
-        {/* כל היום */}
-        <div className="flex items-center justify-between rounded-2xl bg-well px-4 py-3.5">
-          <span className="flex items-center gap-2.5 text-body font-medium text-ink">
-            <Clock size={ICON.lg} strokeWidth={STROKE} className="text-muted" />
-            כל היום
-          </span>
-          <Toggle label="כל היום" checked={draft.allDay} onChange={(allDay) => patch({ allDay })} />
-        </div>
+        <ToggleRow
+          icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
+          label="כל היום"
+          checked={draft.allDay}
+          onChange={(allDay) => patch({ allDay })}
+        />
 
         {!draft.allDay && (
-          <div className="flex gap-3">
+          <div className="flex gap-2.5">
             <div className="flex-1">
               <TimeField
-                label="שעת התחלה"
+                label="התחלה"
                 value={draft.startTime ?? '09:00'}
                 onChange={onStartChange}
+                variant="row"
               />
             </div>
             <div className="flex-1">
               <TimeField
-                label="שעת סיום"
+                label="סיום"
                 value={draft.endTime ?? '10:00'}
                 onChange={(endTime: string) => patch({ endTime })}
+                variant="row"
               />
             </div>
           </div>
@@ -354,9 +386,10 @@ export function EventEditor({
         <PickerField
           label="מקום"
           display={draft.location || 'לא הוגדר'}
-          icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
+          icon={<MapPin size={ICON.md} strokeWidth={STROKE} />}
           hint={savedPlace ? 'מקום שמור' : undefined}
           onOpen={() => setLocationOpen(true)}
+          variant="row"
         />
 
         {/*
@@ -390,19 +423,21 @@ export function EventEditor({
           label="חזרה"
           value={draft.repeat}
           onChange={(repeat) => patch({ repeat })}
-          icon={<Repeat size={ICON.sm} strokeWidth={STROKE} />}
+          icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
           options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
             value: r,
             label: REPEAT_LABELS[r],
           }))}
+          variant="row"
         />
 
         <SelectField<string>
           label="תזכורת"
           value={String(draft.reminderMinutes)}
           onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-          icon={<Bell size={ICON.sm} strokeWidth={STROKE} />}
+          icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
           options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+          variant="row"
         />
 
         <TextArea
@@ -410,6 +445,7 @@ export function EventEditor({
           value={draft.notes ?? ''}
           onChange={(notes) => patch({ notes })}
           placeholder="פרטים נוספים"
+          rows={2}
         />
       </div>
 
