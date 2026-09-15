@@ -139,17 +139,22 @@ export function CalendarScreen({
   };
 
   /**
-   * לחיצה על יום: בחירה; לחיצה חוזרת על היום הנבחר פותחת תצוגת יום.
+   * לחיצה על יום פותחת את מה שיש בו.
    *
-   * יום שיש בו אירועים מרים גם את החלונית לעצירת הביניים, אם היא
-   * מקופלת. בלי זה "מה יש לי ביום הזה" עלה פעולה שנייה - גרירה, או
-   * הקשה נוספת שיוצאת מהלוח כולו. חלונית שכבר פתוחה נשארת כפי שהיא:
-   * דילוג בין ימים לא אמור להזיז אותה.
+   * קודם הלחיצה הראשונה רק הזיזה את עיגול הבחירה, והתוכן הגיע בלחיצה
+   * שנייה. אבל להזיז עיגול אינה מטרה בפני עצמה: מי שנוגע ביום רוצה
+   * לראות אותו. לכן כל לחיצה מרימה את החלונית לעצירת הביניים, גם ביום
+   * ריק - שם היא מראה את המועד, את הזמנים, ואת הכפתור להוספה.
+   *
+   * לחיצה חוזרת על אותו יום מקפלת בחזרה: אותה אצבע פותחת וסוגרת.
+   * תצוגת היום המורחבת נשארת בשורה שבראש החלונית עצמה.
+   *
+   * חלונית שכבר פתוחה במלואה לא יורדת בדילוג בין ימים.
    */
   const onSelectDay = useCallback(
     (day: DayInfo) => {
       if (day.key === selectedKey) {
-        onOpenDayView(day.date);
+        onPanelDetentChange(panelDetent === 'peek' ? 'half' : 'peek');
         return;
       }
       onSelectDate(day.date);
@@ -157,20 +162,9 @@ export function CalendarScreen({
         const delta = day.date > month ? 1 : -1;
         onMonthChange(new Date(day.date.getFullYear(), day.date.getMonth(), 1), delta);
       }
-      if (panelDetent === 'peek' && (data.occurrences.get(day.key)?.length ?? 0) > 0) {
-        onPanelDetentChange('half');
-      }
+      if (panelDetent === 'peek') onPanelDetentChange('half');
     },
-    [
-      selectedKey,
-      onOpenDayView,
-      onSelectDate,
-      month,
-      onMonthChange,
-      panelDetent,
-      onPanelDetentChange,
-      data.occurrences,
-    ],
+    [selectedKey, onSelectDate, month, onMonthChange, panelDetent, onPanelDetentChange],
   );
 
   /** ניווט מקלדת: בוחר תאריך, ומחליף חודש אם צריך. */
