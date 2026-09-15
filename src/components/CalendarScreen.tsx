@@ -148,16 +148,20 @@ export function CalendarScreen({
   );
 
   /*
-    הגרירה הולכת אחרי הפריסה: העתיד משמאל, ולכן כדי להביא אותו למרכז
-    דוחפים את החודש הנוכחי ימינה. גרירה שמאלה חושפת את מה שמימין - את
-    העבר.
+    האצבע נעה לכיוון החודש שרוצים, לא הפוכה לו.
 
-    קודם זה היה הפוך, והתוצאה הייתה שהאצבע דחפה לכיוון אחד והחודש הגיע
-    מהצד השני.
+    הפריסה מציבה את העבר מימין ואת העתיד משמאל (ראו pageVariants), ולכן
+    גרירה ימינה מביאה את החודש הקודם וגרירה שמאלה את הבא - אותה סמנטיקה
+    של החצים בכותרת ושל DayView.
+
+    זה *אינו* מודל "גוררים את הסרט": שם היה צריך למשוך שמאלה כדי להביא
+    את מה שמימין. הבחירה כאן היא בכוונה במודל הפשוט יותר - גוררים לאן
+    שרוצים להגיע - כי החלונית ממילא נצמדת חזרה ולא עוקבת אחרי האצבע עד
+    החודש הבא.
   */
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(1);
-    else if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) page(-1);
+    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(-1);
+    else if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) page(1);
   };
 
   /**

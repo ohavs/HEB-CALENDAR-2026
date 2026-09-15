@@ -76,19 +76,15 @@ export function TemplatePlaceSheet({
       subtitle={template?.title}
     >
       <div className="pb-2">
-        {/* ב-RTL הזמן זורם שמאלה: "הקודם" מימין, "הבא" משמאל */}
+        {/*
+          ב-RTL הילד הראשון יושב מימין, ולכן הסדר בקוד הוא הפוך למה
+          שנראה על המסך. כאן זה היה שגוי: "הבא" נכתב ראשון ולכן הופיע
+          מימין, עם חץ שמאלה - חץ שמצביע לכיוון אחד וכפתור שמוביל לשני.
+
+          הכלל של האפליקציה: "הקודם" מימין עם חץ ימינה, "הבא" משמאל עם
+          חץ שמאלה - בדיוק כמו החצים ב-DayView.
+        */}
         <div className="mb-3 flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="החודש הבא"
-            onClick={() => step(1)}
-            className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-well text-muted"
-          >
-            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
-          </button>
-          <span className="flex-1 text-center text-label font-semibold text-ink">
-            {monthLabel(month)}
-          </span>
           <button
             type="button"
             aria-label="החודש הקודם"
@@ -96,6 +92,17 @@ export function TemplatePlaceSheet({
             className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-well text-muted"
           >
             <ChevronRight size={ICON.md} strokeWidth={STROKE} />
+          </button>
+          <span className="flex-1 text-center text-label font-semibold text-ink">
+            {monthLabel(month)}
+          </span>
+          <button
+            type="button"
+            aria-label="החודש הבא"
+            onClick={() => step(1)}
+            className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-well text-muted"
+          >
+            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
           </button>
         </div>
 
