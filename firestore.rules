@@ -28,11 +28,14 @@ service cloud.firestore {
             || (d.endDate is string && d.endDate.size() == 10))
         && (!('exceptions' in d) || d.exceptions == null
             || (d.exceptions is map && d.exceptions.keys().size() <= 400))
+        // תזכורת שאינה משויכת ליום. הרשימה למטה היא whitelist, ולכן
+        // שדה שלא נמנה בה נדחה - וזה מה שחסם את הדגל הזה מלהגיע לענן.
+        && (!('undated' in d) || d.undated is bool)
         && d.keys().hasOnly([
              'title', 'date', 'endDate', 'startTime', 'endTime', 'allDay',
              'location', 'placeId', 'placeTrigger', 'notes', 'color',
-             'reminderMinutes', 'repeat', 'exceptions', 'createdAt',
-             'updatedAt', 'deleted'
+             'reminderMinutes', 'repeat', 'exceptions', 'undated',
+             'createdAt', 'updatedAt', 'deleted'
            ]);
     }
 

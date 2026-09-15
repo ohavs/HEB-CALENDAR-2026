@@ -56,16 +56,31 @@ export function isValidTemplate(template: EventTemplate): boolean {
 /** מנקה לפני שמירה: חותך רווחים, אוכף אורך, ומאפס שעות בתבנית של כל היום. */
 export function normalizeTemplate(template: EventTemplate): EventTemplate {
   const allDay = template.allDay;
-  return {
+  const location = template.location?.trim();
+  const notes = template.notes?.trim();
+  const next: EventTemplate = {
     ...template,
     title: template.title.trim().slice(0, MAX_TEMPLATE_TITLE),
-    location: template.location?.trim() || undefined,
-    notes: template.notes?.trim() || undefined,
     // שעות בתבנית של כל היום היו נשמרות ולא מוצגות, וחוזרות להפתיע
     // ברגע שמישהו מכבה את "כל היום"
     startTime: allDay ? null : (template.startTime ?? '09:00'),
     endTime: allDay ? null : (template.endTime ?? '10:00'),
   };
+
+  /*
+    שדה ריק *נמחק*, ולא נשמר כ-undefined.
+
+    זה נראה כמו אותו דבר - `JSON.stringify` מוריד את שניהם - אבל
+    Firestore דוחה מסמך שיש בו ערך undefined, והתבניות נוסעות בתוך
+    מסמך ההגדרות. התוצאה הייתה "הסנכרון לענן נכשל" אצל כל מי שיצר
+    תבנית בלי מקום או בלי הערות, כלומר כמעט כל תבנית.
+  */
+  if (location) next.location = location;
+  else delete next.location;
+  if (notes) next.notes = notes;
+  else delete next.notes;
+
+  return next;
 }
 
 /**

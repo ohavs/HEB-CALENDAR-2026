@@ -98,21 +98,22 @@ function DayCellInner({
   */
   const budget = Math.max(1, capacity - (time ? 1 : 0));
 
-  // מועד ראשון תמיד מוצג; השאר מתחלקים עם האירועים לפי המקום שנשאר
-  const holidaySlots = Math.max(
-    Math.min(holidays.length, 1),
-    Math.min(holidays.length, budget - Math.min(occurrences.length, 1)),
-  );
-  const shownHolidays = holidays.slice(0, holidaySlots);
-
   /*
-    מה שנשאר מתחלק לאירועים. אירוע מקבל שתי שורות רק כשיש עודף גם
-    אחרי שמובטחת שורה לכל אירוע שעוד ממתין, אחרת הראשון היה בולע את
-    המקום של השני. פס רב־יומי נשאר בשורה אחת כדי שגובהו יהיה זהה
-    בכל הימים שהוא חוצה.
+    מה שהמשתמש הכניס בעצמו קודם למועדים.
+
+    קודם היה הפוך: מועד אחד היה מובטח תמיד, והאירועים קיבלו את מה
+    שנשאר. בחודש עמוס במועדים - תשרי, למשל - זה דחק החוצה בדיוק את מה
+    שהמשתמש בא לראות. מועד הוא מידע שחוזר כל שנה ואפשר למצוא אותו
+    בלשונית "שבת וחגים"; פגישה ב-15:00 קיימת רק כאן.
+
+    מה שנדחק אינו נעלם: המונה בפינה סופר אותו, וחלונית היום מראה הכול.
+
+    אירוע מקבל שתי שורות רק כשיש עודף גם אחרי שמובטחת שורה לכל אירוע
+    שעוד ממתין, אחרת הראשון היה בולע את המקום של השני. פס רב־יומי נשאר
+    בשורה אחת כדי שגובהו יהיה זהה בכל הימים שהוא חוצה.
   */
   const shownEvents: { occ: Occurrence; lines: 1 | 2 }[] = [];
-  let left = Math.max(0, budget - shownHolidays.length);
+  let left = budget;
   occurrences.forEach((occ, i) => {
     if (left <= 0) return;
     const waiting = occurrences.length - i - 1;
@@ -120,6 +121,9 @@ function DayCellInner({
     shownEvents.push({ occ, lines });
     left -= lines;
   });
+
+  // המועדים לוקחים את מה שנשאר
+  const shownHolidays = holidays.slice(0, Math.max(0, left));
 
   const hidden =
     holidays.length - shownHolidays.length + (occurrences.length - shownEvents.length);
@@ -214,17 +218,6 @@ function DayCellInner({
           </>
         ) : (
           <>
-            {shownHolidays.map((h, i) => (
-              <span
-                key={h.id}
-                className={`text-tiny leading-[1.2] ${holidayTone(h.kind)} ${
-                  i === 0 ? 'line-clamp-2' : 'truncate'
-                }`}
-              >
-                {h.shortTitle}
-              </span>
-            ))}
-
             {shownEvents.map(({ occ, lines }) => (
               <MiniEventChip
                 key={occ.occurrenceId}
@@ -234,6 +227,17 @@ function DayCellInner({
                 // אחרת השורה השנייה של החופשה היא פס צבע בלי שם
                 labelled={occ.spanIndex === 0 || day.date.getDay() === 0}
               />
+            ))}
+
+            {shownHolidays.map((h, i) => (
+              <span
+                key={h.id}
+                className={`text-tiny leading-[1.2] ${holidayTone(h.kind)} ${
+                  i === 0 && shownEvents.length === 0 ? 'line-clamp-2' : 'truncate'
+                }`}
+              >
+                {h.shortTitle}
+              </span>
             ))}
           </>
         )}

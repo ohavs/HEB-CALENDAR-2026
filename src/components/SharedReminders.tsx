@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Plus, Settings2, UserPlus, Users } from 'lucide-react';
+import { Check, Plus, Settings2, Trash2, UserPlus, Users } from 'lucide-react';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
 import { buildReminderGroups, type ReminderItem } from '@/lib/reminders';
@@ -23,6 +23,7 @@ import {
   declineInvite,
   retryShared,
   saveItem,
+  removeItem,
   setItemDone,
 } from '@/lib/sharedSync';
 import {
@@ -37,6 +38,7 @@ import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { ENTER, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { ListManagerSheet } from './ListManagerSheet';
+import { ConfirmDeleteSheet } from './ConfirmDeleteSheet';
 import { PrimaryButton } from './ui/controls';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
@@ -56,6 +58,12 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
   const [title, setTitle] = useState('');
   const [managerOpen, setManagerOpen] = useState(false);
+  /*
+    פריט שממתין לאישור מחיקה. כאן אין "ביטול" אחרי הפעולה כמו בתזכורות
+    האישיות: הפריט חי בענן ונמחק אצל כל החברים באותו רגע, ולכן השאלה
+    נשאלת לפני.
+  */
+  const [pendingDelete, setPendingDelete] = useState<ReminderItem | null>(null);
   const [busy, setBusy] = useState(false);
 
   const now = useMemo(() => new Date(), []);
@@ -369,6 +377,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                                   allItems.find((i) => i.id === item.baseId)?.createdBy ?? '',
                                 )
                           }
+                          onDelete={setPendingDelete}
                         />
                       ))}
                     </div>
@@ -388,6 +397,21 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
       {list && (
         <ListManagerSheet open={managerOpen} onClose={() => setManagerOpen(false)} list={list} />
       )}
+
+      <ConfirmDeleteSheet
+        open={Boolean(pendingDelete && list)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          const item = pendingDelete;
+          setPendingDelete(null);
+          if (!item || !list) return;
+          void removeItem(list.id, item.baseId);
+          announce(`"${item.title}" נמחק`);
+        }}
+        title={pendingDelete?.title ?? ''}
+        hint="הפריט יימחק אצל כל חברי הרשימה"
+        note="אי אפשר לבטל"
+      />
     </div>
   );
 }
@@ -442,11 +466,13 @@ function SharedRow({
   listId,
   source,
   who,
+  onDelete,
 }: {
   item: ReminderItem;
   listId: string;
   source: SharedItem | undefined;
   who: string | null;
+  onDelete: (item: ReminderItem) => void;
 }) {
   return (
     <div
@@ -490,6 +516,24 @@ function SharedRow({
       </span>
 
       {item.time && <span className="tnum shrink-0 text-caption font-semibold">{item.time}</span>}
+
+      {/*
+        גם כאן הצ׳קבוקס היה הפעולה היחידה, ופריט שנוסף בטעות נשאר
+        ברשימה של כולם. `removeItem` היה קיים ולא נקרא מאף מקום.
+      */}
+      <motion.button
+        type="button"
+        onClick={() => {
+          void haptic('medium');
+          onDelete(item);
+        }}
+        whileTap={{ scale: 0.88 }}
+        transition={TAP}
+        aria-label={`מחיקת ${item.title}`}
+        className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
+      >
+        <Trash2 size={ICON.sm} strokeWidth={STROKE} />
+      </motion.button>
     </div>
   );
 }

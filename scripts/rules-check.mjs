@@ -134,6 +134,15 @@ await check('meta מנופח נדחה', () =>
     Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`k${i}`, i])))));
 await check('אירוע תקין עדיין נכתב', () =>
   assertSucceeds(setDoc(doc(a, 'users/uidA/events/x4'), ev)));
+/*
+  `hasOnly` הוא whitelist, ולכן שדה שלא נמנה בו נדחה. הדגל הזה לא היה
+  ברשימה - וגם לא נכתב בקוד - ולכן תזכורת בלי תאריך איבדה אותו ברגע
+  שהיא עברה דרך הענן, וצצה בלוח ביום שנשמר לה רק כדי שתדע לאן לחזור.
+*/
+await check('תזכורת בלי תאריך נכתבת עם הדגל', () =>
+  assertSucceeds(setDoc(doc(a, 'users/uidA/events/x5'), { ...ev, undated: true })));
+await check('הדגל חייב להיות בוליאני', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/events/x6'), { ...ev, undated: 'yes' })));
 
 console.log('\nטוקני push');
 const TOKEN = { token: 'fcm-token', platform: 'android', updatedAt: 1 };

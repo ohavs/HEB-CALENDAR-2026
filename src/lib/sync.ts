@@ -7,6 +7,7 @@
  * במכשיר אחד תתפשט לשאר.
  */
 import type { Settings, UserEvent } from '@/types';
+import { stripUndefined } from './firestoreSafe';
 import { getFirebase, isFirebaseConfigured } from './firebase';
 import { useAuthStore } from '@/store/auth';
 import { useEventsStore } from '@/store/events';
@@ -114,6 +115,12 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
       data.exceptions && typeof data.exceptions === 'object'
         ? (data.exceptions as UserEvent['exceptions'])
         : undefined,
+    /*
+      הדגל הזה לא נסע לענן ולא חזר ממנו, ולכן תזכורת בלי תאריך הפכה
+      לאירוע רגיל ברגע שהיא הגיעה למכשיר שני - היא צצה בלוח, ביום
+      שנשמר לה רק כדי שתדע לאן לחזור.
+    */
+    undated: data.undated === true ? true : undefined,
     createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
     updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
     deleted: data.deleted === true,
@@ -137,6 +144,7 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
     reminderMinutes: ev.reminderMinutes,
     repeat: ev.repeat,
     exceptions: ev.exceptions ?? null,
+    undated: ev.undated === true,
     createdAt: ev.createdAt,
     updatedAt: ev.updatedAt,
     deleted: ev.deleted === true,
@@ -227,7 +235,11 @@ async function startSession(uid: string) {
 
       const s = useSettingsStore.getState();
       if (s.updatedAt > syncedSettingsAt) {
-        await setDoc(settingsDoc, { settings: s.settings, updatedAt: s.updatedAt });
+        // שכבת הגנה: שדה רשות חדש בהגדרות לא יפיל את כל הדחיפה
+        await setDoc(
+          settingsDoc,
+          stripUndefined({ settings: s.settings, updatedAt: s.updatedAt }),
+        );
         syncedSettingsAt = s.updatedAt;
       }
       setState('ok');

@@ -17,7 +17,7 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat } from 'lucide-react';
+import { Bell, CalendarPlus, Check, MapPin, Plus, Repeat, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
@@ -47,12 +47,15 @@ type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
 
 export function RemindersScreen({
   onEditEvent,
+  onDeleteEvent,
   composeOnMount,
   viewOverride,
   onPlaceTemplate,
   bottomInset,
 }: {
   onEditEvent: (occurrence: Occurrence | UserEvent) => void;
+  /** מחיקה עם אישור. אותו מסלול שמשרת את הגרירה אל הפח. */
+  onDeleteEvent: (occurrence: Occurrence) => void;
   /** נפתח מהוידג׳ט - שדה ההקלדה ממוקד מיד */
   composeOnMount?: boolean;
   /** לשונית שנכפתה מבחוץ, למשל מוידג׳ט הרשימה המשותפת */
@@ -290,6 +293,10 @@ export function RemindersScreen({
               announce(`"${item.title}" ${done ? 'סומן כבוצע' : 'הוחזר לפתוח'}`);
             }}
               onOpen={(item) => onEditEvent(item.occurrence ?? item.event!)}
+              onDelete={(item) => {
+                const occ = item.occurrence ?? pseudoOccurrence(item);
+                if (occ) onDeleteEvent(occ);
+              }}
             />
           ))}
 
@@ -373,6 +380,7 @@ function Group({
   items,
   onToggle,
   onOpen,
+  onDelete,
 }: {
   groupKey: DateKey | 'undated';
   label: string;
@@ -380,6 +388,7 @@ function Group({
   items: ReminderItem[];
   onToggle: (item: ReminderItem, done: boolean) => void;
   onOpen: (item: ReminderItem) => void;
+  onDelete: (item: ReminderItem) => void;
 }) {
   // אותו מנגנון של תא בלוח: המנוע מזהה יעד לפי התכונה הזו
   const isTarget = useIsDropTarget(groupKey as DateKey);
@@ -416,7 +425,7 @@ function Group({
           {items.map((item, i) => (
             <Fragment key={item.key}>
               {i === at && preview && <PreviewRow title={preview.title} />}
-              <Row item={item} onToggle={onToggle} onOpen={onOpen} />
+              <Row item={item} onToggle={onToggle} onOpen={onOpen} onDelete={onDelete} />
             </Fragment>
           ))}
           {preview && at >= items.length && <PreviewRow title={preview.title} />}
@@ -451,10 +460,12 @@ function Row({
   item,
   onToggle,
   onOpen,
+  onDelete,
 }: {
   item: ReminderItem;
   onToggle: (item: ReminderItem, done: boolean) => void;
   onOpen: (item: ReminderItem) => void;
+  onDelete: (item: ReminderItem) => void;
 }) {
   /*
     מנוע הגרירה עובד על מופע. לפריט בלי תאריך אין כזה, ולכן מרכיבים לו
@@ -518,6 +529,31 @@ function Row({
         </span>
 
         {item.time && <span className="tnum shrink-0 text-caption font-semibold">{item.time}</span>}
+      </motion.button>
+
+      {/*
+        מחיקה מהשורה עצמה.
+
+        קודם היא הייתה קיימת רק בשני מקומות שצריך לגלות: פתיחת העורך,
+        וגרירה אל הפח. הצ׳קבוקס היה הפעולה היחידה שנראית, ולכן המסך
+        אמר "אפשר רק לסמן שבוצע". סימון ומחיקה אינם אותו דבר - פריט
+        שבוצע הוא רשומה, פריט שנמחק הוא טעות.
+
+        אותו מסלול אישור בדיוק כמו הגרירה אל הפח, מאותו מקור: מופע
+        בסדרה חוזרת נשאל "מה למחוק", וכל השאר נשאל פעם אחת.
+      */}
+      <motion.button
+        type="button"
+        onClick={() => {
+          void haptic('medium');
+          onDelete(item);
+        }}
+        whileTap={{ scale: 0.88 }}
+        transition={TAP}
+        aria-label={`מחיקת ${item.title}`}
+        className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
+      >
+        <Trash2 size={ICON.sm} strokeWidth={STROKE} />
       </motion.button>
     </div>
   );

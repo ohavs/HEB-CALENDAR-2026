@@ -604,6 +604,7 @@ export default function App() {
             {tab === 'reminders' && (
               <RemindersScreen
                 onEditEvent={editAnything}
+                onDeleteEvent={setPendingTrash}
                 composeOnMount={composeReminder}
                 viewOverride={remindersView}
                 onPlaceTemplate={placeTemplateOn}

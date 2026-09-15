@@ -20,6 +20,7 @@ export function ConfirmDeleteSheet({
   onConfirm,
   title,
   hint,
+  note = 'אפשר יהיה לבטל מיד אחרי',
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,6 +28,12 @@ export function ConfirmDeleteSheet({
   /** שם האירוע שעומד להימחק */
   title: string;
   hint: string;
+  /**
+   * מה קורה אחרי. ברירת המחדל מבטיחה ביטול, וזה נכון לתזכורת אישית -
+   * היא נמחקת מקומית ויש לה `restore`. פריט ברשימה משותפת נמחק בענן
+   * אצל כל החברים, ואין לו ביטול; הבטחה כוזבת שם גרועה מאין הבטחה.
+   */
+  note?: string;
 }) {
   return (
     <Sheet open={open} onClose={onClose} title="למחוק?" subtitle={hint}>
@@ -37,7 +44,7 @@ export function ConfirmDeleteSheet({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-body font-semibold text-ink">{title}</span>
-            <span className="mt-1 block text-caption text-muted">אפשר יהיה לבטל מיד אחרי</span>
+            <span className="mt-1 block text-caption text-muted">{note}</span>
           </span>
         </div>
 
