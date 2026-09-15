@@ -94,14 +94,24 @@ export function SettingsGroup({
   title,
   children,
   footer,
+  defaultCollapsed = false,
 }: {
   id?: string;
   title?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /**
+   * קבוצה שנפתחת מקופלת עד שנוגעים בה.
+   *
+   * למה שתהיה כזו: סקציה שהיא רשות ועוד אין בה כלום מציגה בחירה כאילו
+   * היא שלב בהקמה. מקופלת היא עדיין שם, למי שמחפש אותה.
+   */
+  defaultCollapsed?: boolean;
 }) {
   const collapsible = Boolean(id && title);
-  const [collapsed, setCollapsed] = useState(() => (id ? isGroupCollapsed(id) : false));
+  const [collapsed, setCollapsed] = useState(() =>
+    id ? isGroupCollapsed(id, defaultCollapsed) : false,
+  );
   const panelId = useId();
   const open = !collapsible || !collapsed;
 

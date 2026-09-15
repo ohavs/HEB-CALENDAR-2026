@@ -32,14 +32,36 @@ function load(): Set<string> {
   return cache;
 }
 
-export function isGroupCollapsed(id: string): boolean {
-  return load().has(id);
+/**
+ * קבוצה שברירת המחדל שלה מקופלת צריכה גם זיכרון הפוך.
+ *
+ * הרשימה שומרת רק את המקופלות, ולכן "פתחתי אותה" אינו מיוצג בה כלל -
+ * והקבוצה הייתה נסגרת מחדש בכל פתיחה של המסך, מול משתמש שכבר אמר
+ * שהוא רוצה אותה פתוחה. הקידומת הזו היא הזיכרון ההפוך.
+ */
+const OPENED = 'open:';
+
+/**
+ * `whenUnset` הוא מה שמחזירים לקבוצה שהמשתמש עוד לא נגע בה. ברוב
+ * הקבוצות זה `false` - פתוחה - וקבוצה שברירת המחדל שלה מקופלת מעבירה
+ * `true`.
+ */
+export function isGroupCollapsed(id: string, whenUnset = false): boolean {
+  const set = load();
+  if (set.has(id)) return true;
+  if (set.has(OPENED + id)) return false;
+  return whenUnset;
 }
 
 export function setGroupCollapsed(id: string, collapsed: boolean): void {
   const set = load();
-  if (collapsed) set.add(id);
-  else set.delete(id);
+  if (collapsed) {
+    set.add(id);
+    set.delete(OPENED + id);
+  } else {
+    set.delete(id);
+    set.add(OPENED + id);
+  }
   try {
     localStorage.setItem(KEY, JSON.stringify([...set]));
   } catch {
