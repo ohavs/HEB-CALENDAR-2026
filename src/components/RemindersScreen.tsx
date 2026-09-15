@@ -20,7 +20,12 @@ import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { useRangeData } from '@/hooks/useMonthData';
-import { beginLongPress, useDragActive, useIsDropTarget } from '@/lib/dragEngine';
+import {
+  beginLongPress,
+  useDragActive,
+  useIsDraggingOccurrence,
+  useIsDropTarget,
+} from '@/lib/dragEngine';
 import { DatePickerSheet } from './ui/Picker';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
@@ -271,25 +276,40 @@ function Group({
   const dragging = useDragActive();
 
   return (
-    <section
-      data-day-key={groupKey}
-      className={`rounded-3xl transition-colors ${
-        isTarget ? 'bg-brand-soft ring-2 ring-brand' : ''
-      }`}
-    >
+    /*
+      אזור ההשלכה הוא רשימת הפריטים בלבד, והכותרת נשארת מעליו.
+      קודם המסגרת עטפה את שתיהן, והתאריך נראה כאילו הוא נדחס לתוך
+      המלבן יחד עם התזכורת שנגררת.
+
+      ה-data-day-key נשאר על ה-section כולו, כך ששחרור מעל הכותרת עדיין
+      נתפס: שטח הפגיעה רחב מהסימון הוויזואלי, וזה בדיוק מה שרוצים.
+    */
+    <section data-day-key={groupKey}>
       <header className="flex items-baseline gap-2.5 px-2 pb-2">
         <h2 className="text-label font-semibold text-ink">{label}</h2>
         {hebrew && <span className="truncate text-caption text-faint">{hebrew}</span>}
       </header>
 
       {items.length ? (
-        <div className="space-y-2">
+        <div
+          // שוליים שליליים כנגד הריפוד: המסגרת מקיפה את השורות מבחוץ
+          // בלי להזיז אותן כשהיא מופיעה
+          className={`-mx-1.5 space-y-2 rounded-2xl p-1.5 transition-colors ${
+            isTarget ? 'bg-brand-soft ring-2 ring-brand' : ''
+          }`}
+        >
           {items.map((item) => (
             <Row key={item.key} item={item} onToggle={onToggle} onOpen={onOpen} />
           ))}
         </div>
       ) : dragging ? (
-        <p className="rounded-2xl border border-dashed border-hairline px-4 py-6 text-center text-caption text-faint">
+        <p
+          className={`-mx-1.5 rounded-2xl border border-dashed px-4 py-6 text-center text-caption transition-colors ${
+            isTarget
+              ? 'border-brand bg-brand-soft text-brand-ink'
+              : 'border-hairline text-faint'
+          }`}
+        >
           גררו לכאן תזכורת
         </p>
       ) : (
@@ -322,12 +342,18 @@ function Row({
     מופע מדומה: זה מה שמאפשר לגרור אותו אל הלוח באותו מסלול בדיוק.
   */
   const occurrence: Occurrence | null = item.occurrence ?? pseudoOccurrence(item);
+  /*
+    השורה נשארת במקומה כרפאים חיוורים כל עוד היא נגררת. בלעדיה נראו שתי
+    תזכורות בו־זמנית - המקור בעוצמה מלאה והצל מעליו - וזה נקרא כאילו
+    אחת נדחסת לתוך השנייה.
+  */
+  const dragging = useIsDraggingOccurrence(occurrence?.occurrenceId ?? '');
 
   return (
     <div
-      className={`ev ev-${item.color} flex w-full items-center gap-2 rounded-2xl p-3 ${
+      className={`ev ev-${item.color} flex w-full items-center gap-2 rounded-2xl p-3 transition-opacity ${
         item.done ? 'opacity-55' : ''
-      }`}
+      } ${dragging ? 'opacity-25' : ''}`}
     >
       <motion.button
         type="button"

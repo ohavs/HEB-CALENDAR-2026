@@ -25,9 +25,9 @@ export function DragLayer() {
         <motion.div
           className="pointer-events-none fixed left-0 top-0 z-[60]"
           style={{ x, y }}
-          initial={{ opacity: 0, scale: 0.86 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.86, rotate: 0 }}
+          animate={{ opacity: 1, scale: 1.05, rotate: -2.5 }}
+          exit={{ opacity: 0, scale: 0.9, rotate: 0 }}
           transition={SNAP}
         >
           {overKey && overKey !== fromKey && (
@@ -42,8 +42,13 @@ export function DragLayer() {
               </span>
             </div>
           )}
+          {/*
+            טבעת בצבע הקנבס חותכת את הכרטיס מכל מה שמתחתיו, וההטיה הקלה
+            אומרת "מורם". בלעדיהן הצל נראה כמו עוד שורה ברשימה שנדחסה
+            בין שתיים אחרות.
+          */}
           <div
-            className={`ev ev-${occurrence.color} w-[140px] rounded-xl px-3 py-2.5 shadow-floating`}
+            className={`ev ev-${occurrence.color} w-[150px] rounded-xl px-3 py-2.5 shadow-floating ring-[3px] ring-canvas`}
           >
             <span className="block truncate text-caption font-semibold leading-tight">
               {occurrence.title}
