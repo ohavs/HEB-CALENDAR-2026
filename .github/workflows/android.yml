@@ -14,6 +14,9 @@
 #   ANDROID_KEYSTORE_PASSWORD    הסיסמה של אותו מפתח
 #   VITE_GOOGLE_WEB_CLIENT_ID    מזהה הלקוח של גוגל (web). בלעדיו האפליקציה
 #                                עובדת מקומית, בלי התחברות וסנכרון.
+#   GOOGLE_SERVICES_JSON         תוכן google-services.json מקונסולת Firebase.
+#                                בלעדיו הבנייה עוברת, אבל בלי התראות push
+#                                על הזמנה לרשימה משותפת.
 #
 # כל ריצה מפרסמת שני תוצרים: APK להתקנה, וחבילת web לעדכון חי. האפליקציה
 # בוחרת ביניהם לפי טביעת הקוד הנייטיבי - ראו src/lib/appUpdate.ts.
@@ -105,6 +108,20 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      # FCM מזהה את האפליקציה לפי הקובץ הזה, ובלעדיו התראות push לא
+      # עובדות - הבנייה עדיין מצליחה, כי build.gradle מחיל את התוסף רק
+      # כשהקובץ קיים. הוא אינו סוד (מזהים ציבוריים, כמו קונפיג ה-web),
+      # אבל הוא נשמר כסוד כדי שלא ייכנס למאגר.
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::warning title=No google-services.json::GOOGLE_SERVICES_JSON is not set - push notifications will not work"
+            exit 0
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
       # הקובץ נכתב מחוץ לעץ העבודה, כדי שלא ייארז בטעות ולא ייכנס ל-git
       - name: Restore signing key

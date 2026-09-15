@@ -108,6 +108,19 @@ jobs:
           --project "$FIREBASE_PROJECT_ID"
           --non-interactive
 
+      # שלב נפרד ואחרי האתר, בכוונה: פריסת פונקציות דורשת את תוכנית
+      # Blaze, וכשל שלה לא אמור למנוע מהאתר ומהכללים לעלות. היא נכשלת
+      # ברעש ולא בשקט - פונקציה שלא נפרסה פירושה שאיש לא יקבל התראה על
+      # הזמנה.
+      - name: Deploy the invite notification function
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: >-
+          npx --yes firebase-tools@13 deploy
+          --only functions
+          --project "$FIREBASE_PROJECT_ID"
+          --non-interactive
+
       - name: Show the deployed URL
         run: |
           echo "### האפליקציה פורסמה 🎉" >> "$GITHUB_STEP_SUMMARY"

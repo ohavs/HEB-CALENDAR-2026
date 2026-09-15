@@ -1,0 +1,12 @@
+{
+  "name": "heb-calendar-functions",
+  "private": true,
+  "type": "module",
+  "description": "הפונקציה היחידה במאגר: התראת push על הזמנה לרשימה משותפת",
+  "engines": { "node": "22" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.0"
+  }
+}

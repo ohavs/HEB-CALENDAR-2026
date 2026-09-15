@@ -65,15 +65,98 @@ const CHANNELS = [
   { id: 'shabbat', name: 'זמני שבת ומועדים', description: 'כניסת שבת, יציאתה וערבי חג' },
   { id: 'events', name: 'אירועים', description: 'תזכורות לאירועים שהוספתם' },
   { id: 'places', name: 'מקומות', description: 'התראות בהגעה למקום שמור וביציאה ממנו' },
+  /*
+    הערוץ היחיד שאינו מתזכורת מקומית אלא מ-push. הוא נוצר כאן בכל זאת,
+    כי ערוץ חייב להתקיים לפני שמגיעה אליו הודעה - אחרת אנדרואיד מפיל
+    אותה לערוץ ברירת המחדל, והמשתמש לא יוכל להשתיק הזמנות בלבד. השם
+    חייב להתאים ל-CHANNEL ב-functions/index.js.
+  */
+  { id: 'invites', name: 'הזמנות', description: 'הזמנה לרשימה משותפת' },
 ] as const;
 
 export type ChannelId = (typeof CHANNELS)[number]['id'];
 
-/** לאיזה ערוץ שייכת תזכורת, לפי המזהה שלה. */
+/**
+ * לאיזה ערוץ שייכת תזכורת, לפי המזהה שלה.
+ * `invites` אינו מוחזר כאן לעולם: הוא מגיע מהשרת ולא מתזכורת מקומית.
+ */
 export function channelFor(reminderId: string): ChannelId {
   if (reminderId.startsWith('event-')) return 'events';
   if (reminderId.startsWith('place-')) return 'places';
   return 'shabbat';
+}
+
+/* ==========================================================================
+   התראות push
+   ========================================================================== */
+
+/**
+ * רישום המכשיר לקבלת push, והחזרת הטוקן.
+ *
+ * למה בכלל: תזכורת מקומית עובדת רק על מה שהמכשיר כבר יודע. הזמנה
+ * נוצרת על מכשיר אחר, ולכן אין דרך לדעת עליה בלי שמישהו ידחוף - ראו
+ * `functions/index.js`.
+ *
+ * מחזיר `null` בדפדפן, כשההרשאה נדחתה, או כשאין שירותי גוגל במכשיר.
+ * בכל אחד מהמקרים האלה האפליקציה ממשיכה לעבוד: הבאנר בתוך המסך עדיין
+ * מראה את ההזמנה, הוא פשוט לא קופץ מבחוץ.
+ *
+ * הייבוא דינמי, כמו כל פלאגין כאן. ייבוא סטטי היה שובר את הבדיקות
+ * ב-node ואת הטוהר של `src/lib`.
+ */
+export async function registerPush(): Promise<string | null> {
+  if (!isNative()) return null;
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+
+    let status = await PushNotifications.checkPermissions();
+    if (status.receive === 'prompt' || status.receive === 'prompt-with-rationale') {
+      status = await PushNotifications.requestPermissions();
+    }
+    if (status.receive !== 'granted') return null;
+
+    await ensureChannels();
+
+    /*
+      ההרשמה אינה מחזירה את הטוקן - הוא מגיע באירוע. לכן ההמתנה כאן
+      מפורשת, ועם תקרה: מכשיר בלי שירותי גוגל לא יירה לעולם, ובלי
+      התקרה ההבטחה הזו הייתה תלויה לנצח.
+    */
+    const token = await new Promise<string | null>((resolve) => {
+      const timer = setTimeout(() => resolve(null), 10_000);
+      void PushNotifications.addListener('registration', (t) => {
+        clearTimeout(timer);
+        resolve(t.value);
+      });
+      void PushNotifications.addListener('registrationError', () => {
+        clearTimeout(timer);
+        resolve(null);
+      });
+      void PushNotifications.register();
+    });
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * לחיצה על התראת push שהגיעה מבחוץ.
+ *
+ * ההתראה נושאת `type` ו-`listId`, והיא מובילה ללשונית המשותפת - אותה
+ * כתובת שהוידג׳ט משתמש בה, כדי שיהיה מסלול אחד ולא שניים.
+ */
+export async function onPushOpened(handler: (url: string) => void): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+    void PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      const data = action.notification?.data as Record<string, string> | undefined;
+      if (data?.type === 'invite') handler('hebcal://open?tab=reminders&view=shared');
+    });
+  } catch {
+    /* אין פלאגין - אין מה להאזין לו */
+  }
 }
 
 let channelsReady = false;

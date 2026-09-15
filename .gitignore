@@ -39,3 +39,6 @@ dist-preview/
 
 # תוצרי בנייה של TypeScript
 *.tsbuildinfo
+android/app/google-services.json
+functions/node_modules
+functions/package-lock.json

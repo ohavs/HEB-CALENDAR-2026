@@ -25,6 +25,8 @@ import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
 import { startShared, stopShared } from '@/lib/sharedSync';
+import { syncPushToken } from '@/lib/pushTokens';
+import { onPushOpened } from '@/lib/native';
 import { useEvents, useEventsStore } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { initNative, isNative, paintNativeChrome } from '@/lib/native';
@@ -190,8 +192,17 @@ export default function App() {
     פתוח אחרי יציאה היה קורא נתונים של משתמש שכבר אינו כאן.
   */
   useEffect(() => {
-    if (authUser) void startShared();
-    else stopShared();
+    if (!authUser) {
+      stopShared();
+      return;
+    }
+    void startShared();
+    /*
+      הטוקן נרשם אחרי ההתחברות ולא בעלייה: הוא נשמר תחת המשתמש, ובלי
+      uid אין לאן לכתוב אותו. ההרשמה גם מבקשת הרשאת התראות, וזו שאלה
+      שיש לה הקשר רק אחרי שיש חשבון לשתף איתו.
+    */
+    void syncPushToken();
   }, [authUser]);
 
   /* ------------------------------- תזכורות ------------------------------- */
@@ -264,6 +275,14 @@ export default function App() {
 
     // כשהאפליקציה כבר פתוחה, לחיצה בוידג׳ט מגיעה כאירוע ולא ככתובת
     if (!isNative()) return;
+
+    /*
+      לחיצה על התראת הזמנה נכנסת לאותו מסלול בדיוק: היא מתורגמת לכתובת
+      ועוברת באותו פענוח. מסלול שני היה מתפצל מהראשון ביום שמישהו ישנה
+      אחד מהם.
+    */
+    void onPushOpened((url) => apply(parseExternalUrl(url)));
+
     let remove: (() => void) | undefined;
     void import('@capacitor/app').then(({ App: CapApp }) =>
       CapApp.addListener('appUrlOpen', ({ url }) => apply(parseExternalUrl(url))).then((handle) => {

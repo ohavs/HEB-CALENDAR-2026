@@ -54,10 +54,38 @@ service cloud.firestore {
               || request.resource.data.settings.keys().size() <= 60);
       }
 
-      // כל נתיב אחר תחת המשתמש - רק הבעלים
-      match /{rest=**} {
-        allow read, write: if isOwner(uid);
+      /*
+        טוקני ה-push של המכשירים.
+
+        הבעלים כותב, ואיש מלבדו לא קורא - גם לא חבר באותה רשימה. טוקן
+        דלוף מאפשר לשלוח התראות למכשיר של מישהו אחר. הקורא היחיד הוא
+        הפונקציה, שרצה כ-admin ואינה כפופה לכללים האלה.
+
+        חסם גודל, כמו ב-meta: מסמך אחד כאן הוא טוקן ושני שדות, ובלי
+        חסם לקוח פרוץ יכול לנפח אותו על חשבון הבעלים.
+      */
+      match /push/{tokenId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.token is string
+          && request.resource.data.token.size() <= 4096
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt']);
       }
+
+      /*
+        אין כאן `match /{rest=**}`, וזו אינה השמטה.
+
+        כלל תואם אחד שמתיר - מתיר, גם אם כלל אחר מחמיר יותר. תבנית
+        `{rest=**}` תואמת גם את `events`, `meta` ו-`push`, ולכן
+        `allow read, write: if isOwner(uid)` עליה ביטלה בשקט את
+        `validEvent` ואת כל חסמי הגודל שמעליה: לקוח פרוץ יכול היה
+        לכתוב אירוע בלי כותרת, עם שדות זרים ובגודל בלי גבול, על חשבון
+        הבעלים. נבדק מול האמולטור - כל הארבעה נכתבו.
+
+        שלושת הנתיבים שלמעלה - events, meta ו-push - הם כל מה
+        שהאפליקציה כותבת תחת המשתמש. נתיב חדש צריך כלל משלו, ועדיף
+        שייכשל ברעש מאשר שייפתח לרווחה.
+      */
     }
 
     /* ====================================================================

@@ -116,6 +116,44 @@ await check('משתמש כותב לעצמו', () =>
 await check('ולא לאחר', () =>
   assertFails(setDoc(doc(b, 'users/uidA/events/e2'), { title: 't', date: '2026-09-15', createdAt: 1, updatedAt: 1 })));
 
+/*
+  אלה נכשלו בשקט עד שהוסר `match /{rest=**}` תחת users/: תבנית רקורסיבית
+  שמתירה מבטלת כל כלל מחמיר יותר על אותו נתיב, ולכן validEvent וחסמי
+  הגודל היו קוד מת. הבדיקות כאן קיימות כדי שלא יחזור.
+*/
+console.log('\nהוולידציה תחת users/ באמת פועלת');
+const ev = { title: 't', date: '2026-09-15', createdAt: 1, updatedAt: 1 };
+await check('אירוע בלי כותרת נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/events/x1'), { date: '2026-09-15', createdAt: 1, updatedAt: 1 })));
+await check('אירוע עם שדה זר נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/events/x2'), { ...ev, admin: true })));
+await check('כותרת ענקית נדחית', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/events/x3'), { ...ev, title: 'x'.repeat(5000) })));
+await check('meta מנופח נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/meta/m1'),
+    Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`k${i}`, i])))));
+await check('אירוע תקין עדיין נכתב', () =>
+  assertSucceeds(setDoc(doc(a, 'users/uidA/events/x4'), ev)));
+
+console.log('\nטוקני push');
+const TOKEN = { token: 'fcm-token', platform: 'android', updatedAt: 1 };
+await check('הבעלים כותב טוקן של עצמו', () =>
+  assertSucceeds(setDoc(doc(a, 'users/uidA/push/t1'), TOKEN)));
+await check('הבעלים קורא את הטוקנים של עצמו', () =>
+  assertSucceeds(getDoc(doc(a, 'users/uidA/push/t1'))));
+await check('אחר אינו קורא טוקן של מישהו', () =>
+  assertFails(getDoc(doc(b, 'users/uidA/push/t1'))));
+await check('אחר אינו כותב טוקן אצל מישהו', () =>
+  assertFails(setDoc(doc(b, 'users/uidA/push/t2'), TOKEN)));
+await check('טוקן ענק נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/push/t3'), { ...TOKEN, token: 'x'.repeat(5000) })));
+await check('שדה זר נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/push/t4'), { ...TOKEN, admin: true })));
+await check('טוקן שאינו מחרוזת נדחה', () =>
+  assertFails(setDoc(doc(a, 'users/uidA/push/t5'), { ...TOKEN, token: 42 })));
+await check('הבעלים מוחק טוקן שלו', () =>
+  assertSucceeds(deleteDoc(doc(a, 'users/uidA/push/t1'))));
+
 await env.cleanup();
 console.log(`\n${pass} עברו, ${fail} נכשלו`);
 process.exit(fail ? 1 : 0);
