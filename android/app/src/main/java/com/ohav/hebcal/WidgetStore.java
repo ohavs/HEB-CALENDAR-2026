@@ -26,6 +26,7 @@ final class WidgetStore {
     static final String KEY_CALENDAR = "calendar";
     static final String KEY_REMINDERS = "reminders";
     static final String KEY_SHABBAT = "shabbat";
+    static final String KEY_SHARED = "shared";
     private static final String KEY_INBOX = "inbox";
 
     /** תקרה לתור, כדי שאפליקציה שלא נפתחה חודש לא תצבור בלי גבול. */
@@ -53,6 +54,37 @@ final class WidgetStore {
         } catch (JSONException e) {
             return null;
         }
+    }
+
+    /* ------------------------ הגדרת וידג׳ט משותף ------------------------ */
+
+    /*
+      לכל מופע של וידג׳ט הרשימות המשותפות יש רשימה וקטגוריה משלו,
+      ולכן ההגדרה נשמרת לפי מזהה המופע ולא כהעדפה אחת. מחרוזת ריקה
+      בקטגוריה פירושה "הכול".
+    */
+
+    static void putSharedConfig(Context context, int widgetId, String listId, String categoryId) {
+        prefs(context).edit()
+            .putString("shared_list_" + widgetId, listId)
+            .putString("shared_cat_" + widgetId, categoryId == null ? "" : categoryId)
+            .apply();
+    }
+
+    static String sharedListId(Context context, int widgetId) {
+        return prefs(context).getString("shared_list_" + widgetId, null);
+    }
+
+    static String sharedCategoryId(Context context, int widgetId) {
+        return prefs(context).getString("shared_cat_" + widgetId, "");
+    }
+
+    /** נמחק כשהמשתמש מסיר את הוידג׳ט, אחרת ההגדרה נשארת לנצח. */
+    static void clearSharedConfig(Context context, int widgetId) {
+        prefs(context).edit()
+            .remove("shared_list_" + widgetId)
+            .remove("shared_cat_" + widgetId)
+            .apply();
     }
 
     /* ------------------------------ התור ------------------------------ */
@@ -83,8 +115,8 @@ final class WidgetStore {
     /* ---------------------------- רענון ציור ---------------------------- */
 
     /**
-     * מבקש מהמערכת לצייר מחדש את שני הוידג׳טים.
-     * הרשימה הנגללת דורשת הודעה נפרדת: שינוי הנתונים לבדו לא מרענן אותה.
+     * מבקש מהמערכת לצייר מחדש את כל הוידג׳טים.
+     * רשימה נגללת דורשת הודעה נפרדת: שינוי הנתונים לבדו לא מרענן אותה.
      */
     static void refreshAll(Context context) {
         Context app = context.getApplicationContext();
@@ -104,6 +136,12 @@ final class WidgetStore {
         if (reminderIds.length > 0) {
             manager.notifyAppWidgetViewDataChanged(reminderIds, R.id.reminders_list);
             RemindersWidgetProvider.renderAll(app, manager, reminderIds);
+        }
+
+        int[] sharedIds = manager.getAppWidgetIds(new ComponentName(app, SharedWidgetProvider.class));
+        if (sharedIds.length > 0) {
+            manager.notifyAppWidgetViewDataChanged(sharedIds, R.id.shared_list);
+            SharedWidgetProvider.renderAll(app, manager, sharedIds);
         }
     }
 }

@@ -11,9 +11,12 @@ import {
   buildCalendarWidget,
   buildRemindersWidget,
   buildShabbatWidget,
+  buildSharedWidget,
   occurrenceRef,
   parseInbox,
   parseOccurrenceRef,
+  parseSharedRef,
+  sharedRef,
 } from './widgetData';
 import { expandEvents } from './recurrence';
 import { buildDays, upcomingShabbatot } from './hebrew';
@@ -266,5 +269,158 @@ describe('הוידג׳ט והמסך מציגים אותו דבר', () => {
     expect(out.groups[0].label).toBe('בלי תאריך');
     expect(out.groups[0].items[0].title).toBe('בלי תאריך');
     expect(out.open).toBe(1);
+  });
+});
+
+
+/* ==========================================================================
+   הוידג׳ט המשותף
+   ========================================================================== */
+
+describe('מזהי פריטים משותפים', () => {
+  it('הלוך ושוב', () => {
+    const ref = sharedRef('l1', 'i1', '2026-09-14');
+    expect(parseSharedRef(ref)).toEqual({
+      listId: 'l1',
+      baseId: 'i1',
+      sourceKey: '2026-09-14',
+    });
+  });
+
+  it('מזהה פריט שמכיל קו אנכי אינו נשבר', () => {
+    // baseId מגיע ממי שיצר אותו ואינו מובטח נקי
+    const ref = sharedRef('l1', 'a|b', '2026-09-14');
+    expect(parseSharedRef(ref)).toEqual({
+      listId: 'l1',
+      baseId: 'a|b',
+      sourceKey: '2026-09-14',
+    });
+  });
+
+  it('מזהה פגום מחזיר null', () => {
+    expect(parseSharedRef('')).toBeNull();
+    expect(parseSharedRef('l1')).toBeNull();
+    expect(parseSharedRef('l1|i1')).toBeNull();
+    expect(parseSharedRef('|i1|2026-09-14')).toBeNull();
+    expect(parseSharedRef('l1|i1|')).toBeNull();
+  });
+});
+
+describe('buildSharedWidget', () => {
+  const days = realDays(NOW, addDays(NOW, 30));
+  const expand = (items: ReturnType<typeof event>[]) =>
+    expandEvents(items, NOW, addDays(NOW, 30));
+
+  const shared = (patch: Partial<ReturnType<typeof event>> & { categoryId?: string; createdBy?: string }) => ({
+    ...event(patch),
+    categoryId: patch.categoryId,
+    createdBy: patch.createdBy ?? 'me',
+  });
+
+  function build(items: ReturnType<typeof shared>[], categories: { id: string; name: string }[] = []) {
+    return buildSharedWidget(
+      [
+        {
+          id: 'l1',
+          name: 'קניות',
+          categories,
+          items,
+          who: (uid: string) => (uid === 'me' ? '' : 'דנה'),
+        },
+      ],
+      days,
+      expand,
+      true,
+      NOW,
+    );
+  }
+
+  it('מקבץ לפי יום, כמו המסך', () => {
+    const out = build([
+      shared({ date: '2026-09-16', title: 'מאוחר' }),
+      shared({ date: '2026-09-14', title: 'היום' }),
+    ]);
+    expect(out.lists[0].groups.map((g) => g.k)).toEqual(['2026-09-14', '2026-09-16']);
+  });
+
+  it('שם הקטגוריה מגיע מוכן, והמזהה נשמר להשוואה', () => {
+    const out = build(
+      [shared({ date: '2026-09-14', categoryId: 'c1' })],
+      [{ id: 'c1', name: 'סופר' }],
+    );
+    expect(out.lists[0].categories).toEqual([{ id: 'c1', name: 'סופר' }]);
+    expect(out.lists[0].groups[0].items[0].cat).toBe('c1');
+  });
+
+  it('פריט בלי קטגוריה מקבל מחרוזת ריקה ולא undefined', () => {
+    // הצד הנייטיבי משווה מחרוזות; undefined היה מגיע כ-null ב-JSON
+    const out = build([shared({ date: '2026-09-14' })]);
+    expect(out.lists[0].groups[0].items[0].cat).toBe('');
+  });
+
+  it('מי שהוסיף מופיע רק כשזה לא אני', () => {
+    const out = build([
+      shared({ date: '2026-09-14', title: 'שלי' }),
+      shared({ date: '2026-09-14', title: 'שלה', createdBy: 'u2' }),
+    ]);
+    const items = out.lists[0].groups[0].items;
+    expect(items.find((i) => i.title === 'שלי')!.who).toBe('');
+    expect(items.find((i) => i.title === 'שלה')!.who).toBe('דנה');
+  });
+
+  it('המזהה של פריט נושא גם את הרשימה', () => {
+    const out = build([shared({ id: 'i1', date: '2026-09-14' })]);
+    expect(parseSharedRef(out.lists[0].groups[0].items[0].id)?.listId).toBe('l1');
+  });
+
+  it('פריט בלי תאריך נאסף לקבוצה משלו', () => {
+    const out = build([shared({ date: '2026-09-14', undated: true, title: 'מתישהו' })]);
+    expect(out.lists[0].groups[0].k).toBe('undated');
+    expect(out.lists[0].groups[0].items[0].title).toBe('מתישהו');
+  });
+
+  it('רשימה ריקה נשמרת, כדי שאפשר יהיה לבחור בה בהגדרת הוידג׳ט', () => {
+    const out = build([]);
+    expect(out.lists).toHaveLength(1);
+    expect(out.lists[0].groups).toHaveLength(0);
+  });
+
+  it('בלי חשבון - signedIn כבוי', () => {
+    const out = buildSharedWidget([], days, expand, false, NOW);
+    expect(out.signedIn).toBe(false);
+    expect(out.lists).toEqual([]);
+  });
+
+  it('רשימות שונות אינן נדרסות זו בזו', () => {
+    // כל רשימה מורחבת בנפרד; מפה אחת לפי תאריך הייתה מאבדת אחת מהן
+    const out = buildSharedWidget(
+      [
+        { id: 'l1', name: 'א', categories: [], items: [shared({ date: '2026-09-14', title: 'של א' })], who: () => '' },
+        { id: 'l2', name: 'ב', categories: [], items: [shared({ date: '2026-09-14', title: 'של ב' })], who: () => '' },
+      ],
+      days,
+      expand,
+      true,
+      NOW,
+    );
+    expect(out.lists[0].groups[0].items[0].title).toBe('של א');
+    expect(out.lists[1].groups[0].items[0].title).toBe('של ב');
+  });
+
+  it('אותן כותרות קבוצה של המסך', () => {
+    // שני חישובים נפרדים היו נפרדים גם בתוצאה
+    const out = build([shared({ date: dateKey(NOW) })]);
+    expect(out.lists[0].groups[0].label).toBe('היום');
+  });
+});
+
+describe('parseInbox - סימון משותף', () => {
+  it('מקבל shared-done', () => {
+    const raw = JSON.stringify([{ type: 'shared-done', ref: 'l1|i1|2026-09-14', done: true, at: 1 }]);
+    expect(parseInbox(raw)).toHaveLength(1);
+  });
+
+  it('דוחה shared-done בלי ref', () => {
+    expect(parseInbox(JSON.stringify([{ type: 'shared-done', done: true, at: 1 }]))).toHaveLength(0);
   });
 });

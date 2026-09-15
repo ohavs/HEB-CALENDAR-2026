@@ -11,6 +11,7 @@
  */
 import type { TabId } from '@/components/TabBar';
 import type { DateKey } from '@/types';
+import type { RemindersView } from './remindersView';
 import { dateKey, keyToDate, startOfDay } from './dates';
 
 export type LaunchIntent = {
@@ -20,6 +21,8 @@ export type LaunchIntent = {
   date?: Date;
   /** לפתוח מיד את עורך האירוע על התאריך הזה */
   compose?: DateKey;
+  /** איזו לשונית פנימית במסך התזכורות. רק `tab=reminders` מתייחס אליה */
+  view?: RemindersView;
 };
 
 const TABS: TabId[] = ['calendar', 'reminders', 'shabbat', 'settings'];
@@ -45,6 +48,10 @@ export function parseLaunch(search: string): LaunchIntent {
 
   const tab = params.get('tab');
   if (tab && (TABS as string[]).includes(tab)) out.tab = tab as TabId;
+
+  // ?view=shared - וידג׳ט הרשימה המשותפת מוביל ללשונית שלו, לא לשלי
+  const view = params.get('view');
+  if (view === 'shared' || view === 'mine') out.view = view;
 
   // ?go=today או ?date=YYYY-MM-DD
   if (params.get('go') === 'today') out.date = startOfDay(new Date());

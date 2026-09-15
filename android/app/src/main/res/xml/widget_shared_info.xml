@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- configure פותח את מסך הבחירה ברגע שמניחים את הוידג׳ט: בלי רשימה
+     נבחרת אין לו מה להציג. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="500dp"
+    android:maxResizeHeight="500dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:configure="com.ohav.hebcal.SharedWidgetConfigActivity"
+    android:initialLayout="@layout/widget_shared"
+    android:previewLayout="@layout/widget_shared"
+    android:description="@string/widget_shared_label"
+    android:updatePeriodMillis="1800000" />

@@ -19,12 +19,18 @@ import {
   type CalendarWidgetData,
   type RemindersWidgetData,
   type ShabbatWidgetData,
+  type SharedWidgetData,
   type WidgetAction,
 } from './widgetData';
 
 type HebWidgetsPlugin = {
-  /** כותב את שני המסמכים ומבקש מהמערכת לצייר את הוידג׳טים מחדש */
-  publish(options: { calendar: string; reminders: string; shabbat: string }): Promise<void>;
+  /** כותב את המסמכים ומבקש מהמערכת לצייר את הוידג׳טים מחדש */
+  publish(options: {
+    calendar: string;
+    reminders: string;
+    shabbat: string;
+    shared: string;
+  }): Promise<void>;
   /** מחזיר את תור הפעולות שהוידג׳ט צבר, ומרוקן אותו */
   takeInbox(): Promise<{ actions: string }>;
 };
@@ -36,6 +42,7 @@ export async function publishWidgets(
   calendar: CalendarWidgetData,
   reminders: RemindersWidgetData,
   shabbat: ShabbatWidgetData,
+  shared: SharedWidgetData,
 ): Promise<void> {
   if (!isNative()) return;
   try {
@@ -43,6 +50,7 @@ export async function publishWidgets(
       calendar: JSON.stringify(calendar),
       reminders: JSON.stringify(reminders),
       shabbat: JSON.stringify(shabbat),
+      shared: JSON.stringify(shared),
     });
   } catch {
     /* אין וידג׳טים במכשיר הזה, או שהפלאגין אינו זמין */

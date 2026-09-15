@@ -15,19 +15,21 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "HebWidgets")
 public class HebWidgetsPlugin extends Plugin {
 
-    /** מקבל את שתי תמונות המצב ומרענן את מה שמוצג במסך הבית. */
+    /** מקבל את תמונות המצב ומרענן את מה שמוצג במסך הבית. */
     @PluginMethod
     public void publish(PluginCall call) {
         String calendar = call.getString("calendar");
         String reminders = call.getString("reminders");
         String shabbat = call.getString("shabbat");
-        if (calendar == null || reminders == null || shabbat == null) {
+        String shared = call.getString("shared");
+        if (calendar == null || reminders == null || shabbat == null || shared == null) {
             call.reject("missing-payload");
             return;
         }
         WidgetStore.write(getContext(), WidgetStore.KEY_CALENDAR, calendar);
         WidgetStore.write(getContext(), WidgetStore.KEY_REMINDERS, reminders);
         WidgetStore.write(getContext(), WidgetStore.KEY_SHABBAT, shabbat);
+        WidgetStore.write(getContext(), WidgetStore.KEY_SHARED, shared);
         WidgetStore.refreshAll(getContext());
         call.resolve();
     }

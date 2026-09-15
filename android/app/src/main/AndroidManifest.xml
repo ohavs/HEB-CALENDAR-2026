@@ -69,16 +69,44 @@
         </receiver>
 
         <receiver
+            android:name=".SharedWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_shared_info" />
+        </receiver>
+
+        <receiver
             android:name=".WidgetActionReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.ohav.hebcal.TOGGLE_DONE" />
+                <action android:name="com.ohav.hebcal.TOGGLE_SHARED_DONE" />
             </intent-filter>
         </receiver>
+
+        <!-- מסך הבחירה של הוידג׳ט המשותף. exported, כי המשגר הוא שפותח
+             אותו כשמניחים את הוידג׳ט - ולא אנחנו. -->
+        <activity
+            android:name=".SharedWidgetConfigActivity"
+            android:theme="@style/AppTheme.WidgetConfig"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <!-- ההרשאה נדרשת כדי שמערכת ההפעלה תוכל לקשור את הרשימה -->
         <service
             android:name=".RemindersWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <service
+            android:name=".SharedWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 

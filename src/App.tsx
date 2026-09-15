@@ -20,6 +20,7 @@ import {
   syncReminders,
 } from '@/lib/notifications';
 import { startGeofenceWatch } from '@/lib/geofence';
+import type { RemindersView } from '@/lib/remindersView';
 import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
@@ -253,6 +254,8 @@ export default function App() {
     const apply = (intent: ReturnType<typeof consumeLaunch>) => {
       if (intent.tab) setTab(intent.tab);
       if (intent.date) goToDate(intent.date);
+      // וידג׳ט הרשימה המשותפת מוביל ללשונית הפנימית שלו, לא ל"שלי"
+      if (intent.view) setRemindersView(intent.view);
       // במסך התזכורות "כתיבה" היא שדה ההוספה שבראשו, ולא עורך אירוע
       if (intent.compose && intent.tab === 'reminders') setComposeReminder(true);
       else if (intent.compose) openEditor(intent.compose);
@@ -396,6 +399,8 @@ export default function App() {
 
   /** נפתח מהוידג׳ט: שדה ההקלדה במסך התזכורות ממוקד מיד */
   const [composeReminder, setComposeReminder] = useState(false);
+  /** לשונית פנימית שנכפתה מבחוץ (וידג׳ט). null = מה שהמשתמש בחר אחרון */
+  const [remindersView, setRemindersView] = useState<RemindersView | null>(null);
 
   const editOccurrence = useCallback((occurrence: Occurrence) => {
     setEditor({ open: true, date: occurrence.date, editing: occurrence });
@@ -470,6 +475,7 @@ export default function App() {
               <RemindersScreen
                 onEditEvent={editAnything}
                 composeOnMount={composeReminder}
+                viewOverride={remindersView}
                 bottomInset={bottomInset}
               />
             )}

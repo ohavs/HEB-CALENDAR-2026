@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- שורה נלחצת במסך הבחירה של הוידג׳ט המשותף.
+
+     השם בלי הקידומת widget_ בכוונה: הקידומת הזו שמורה לפריסות שמנופחות
+     על ידי RemoteViews, ויש בדיקה שסורקת בדיוק אותן. זו פריסה של
+     Activity רגילה ואינה כפופה לאותן מגבלות.
+
+     גובה נדיב: זו בחירה שנעשית פעם אחת, באצבע, על מסך הבית. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_field_bg"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="56dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <TextView
+        android:id="@+id/config_row_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/widget_ink"
+        android:textSize="16sp" />
+</LinearLayout>

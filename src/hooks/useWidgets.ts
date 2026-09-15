@@ -17,13 +17,19 @@ import { findCity } from '@/lib/locations';
 import { expandEvents } from '@/lib/recurrence';
 import { toFilters, useSettings } from '@/store/settings';
 import { useEvents, useEventsStore } from '@/store/events';
+import { useAuthStore } from '@/store/auth';
+import { useSharedStore } from '@/store/shared';
+import { memberLabel } from '@/lib/sharedLists';
+import { setItemDone } from '@/lib/sharedSync';
 import { isNative } from '@/lib/native';
 import {
   REMINDER_HORIZON_DAYS,
   buildCalendarWidget,
   buildRemindersWidget,
   buildShabbatWidget,
+  buildSharedWidget,
   parseOccurrenceRef,
+  parseSharedRef,
   type WidgetAction,
 } from '@/lib/widgetData';
 import { publishWidgets, takeWidgetActions } from '@/lib/widgetBridge';
@@ -36,6 +42,8 @@ export function useWidgets(): void {
   const events = useEvents();
   const setDone = useEventsStore((s) => s.setOccurrenceDone);
   const add = useEventsStore((s) => s.add);
+  const sharedLists = useSharedStore((s) => s.lists);
+  const sharedItems = useSharedStore((s) => s.items);
   /** משתנה כשהתור יושם, כדי לפרסם מחדש אחריו */
   const [applied, setApplied] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,17 +65,37 @@ export function useWidgets(): void {
       const days = buildDays(from, to, options, month);
       const occurrences = expandEvents(events, from, to);
 
+      /*
+        הרשימות המשותפות מורחבות בנפרד לכל רשימה: `expandEvents` בונה
+        מפה לפי תאריך, ורשימות שונות היו נדרסות זו בזו במפה אחת.
+      */
+      const me = useAuthStore.getState().user;
+      const shared = buildSharedWidget(
+        sharedLists.map((list) => ({
+          id: list.id,
+          name: list.name,
+          categories: list.categories.map((c) => ({ id: c.id, name: c.name })),
+          items: sharedItems[list.id] ?? [],
+          who: (uid: string) => (uid === me?.uid ? '' : memberLabel(list, uid)),
+        })),
+        days,
+        (items) => expandEvents(items, from, to),
+        Boolean(me),
+        now,
+      );
+
       void publishWidgets(
         buildCalendarWidget(month, grid, days, occurrences, now),
         buildRemindersWidget(events, days, occurrences, now),
         buildShabbatWidget(upcomingShabbatot(now, 8, options), city.name, now),
+        shared,
       );
     }, DEBOUNCE_MS);
 
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [settings, events, applied]);
+  }, [settings, events, sharedLists, sharedItems, applied]);
 
   /* ---------------------- יישום מה שנעשה בוידג׳ט ---------------------- */
   useEffect(() => {
@@ -77,6 +105,16 @@ export function useWidgets(): void {
       if (action.type === 'done') {
         const ref = parseOccurrenceRef(action.ref);
         if (ref) setDone(ref.baseId, ref.sourceKey, action.done);
+        return;
+      }
+      if (action.type === 'shared-done') {
+        const ref = parseSharedRef(action.ref);
+        if (!ref) return;
+        const item = useSharedStore
+          .getState()
+          .items[ref.listId]?.find((it) => it.id === ref.baseId);
+        // הפריט נמחק או שהרשימה עוד לא נטענה - הסימון פשוט מתבטל
+        if (item) void setItemDone(ref.listId, item, ref.sourceKey, action.done);
         return;
       }
       const title = action.title.trim();

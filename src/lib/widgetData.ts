@@ -30,6 +30,10 @@ const MAX_REMINDERS = 40;
 const MAX_UPCOMING = 12;
 /** כמה כניסות ויציאות נשמרות לוידג׳ט השבת */
 const MAX_SHABBATOT = 8;
+/** תקרת פריטים לכל רשימה משותפת */
+const MAX_SHARED_ITEMS = 30;
+/** כמה רשימות משותפות נשמרות. יותר מזה - איש לא בוחר מהן בוידג׳ט */
+const MAX_SHARED_LISTS = 8;
 
 /** תא אחד ברשת החודש. שמות קצרים בכוונה - הקובץ נקרא בכל ציור. */
 export type WidgetCell = {
@@ -322,6 +326,143 @@ export function buildShabbatWidget(
 }
 
 /** הסוג היחיד שהצד הנייטיבי מכיר. קיים כדי שהחוזה יישאר במקום אחד. */
+/* ==========================================================================
+   וידג׳ט הרשימות המשותפות
+   ========================================================================== */
+
+/**
+ * פריט ברשימה משותפת, כפי שהוידג׳ט מצייר אותו.
+ *
+ * `cat` הוא היחיד שהצד הנייטיבי *משווה* ולא רק מצייר, כדי לכבד את
+ * הקטגוריה שנבחרה בהגדרת הוידג׳ט. זו השוואת מחרוזות ולא לוגיקה שלנו:
+ * שם הקטגוריה להצגה מגיע מוכן ב-`SharedWidgetList.categories`, ולא נגזר
+ * שם מהמזהה.
+ */
+export type SharedWidgetItem = {
+  /** `listId|itemId|sourceKey` - מה שחוזר מהוידג׳ט בסימון */
+  id: string;
+  title: string;
+  time: string;
+  done?: true;
+  color: string;
+  /** מזהה הקטגוריה, או ריק לפריט בלי קטגוריה */
+  cat: string;
+  /** מי הוסיף, ריק כשזה אני */
+  who: string;
+};
+
+export type SharedWidgetGroup = {
+  k: DateKey | 'undated';
+  label: string;
+  hebrew: string;
+  items: SharedWidgetItem[];
+};
+
+export type SharedWidgetList = {
+  id: string;
+  name: string;
+  /** לבחירה במסך ההגדרה של הוידג׳ט. השמות מוכנים להצגה */
+  categories: { id: string; name: string }[];
+  groups: SharedWidgetGroup[];
+};
+
+export type SharedWidgetData = {
+  updatedAt: number;
+  lists: SharedWidgetList[];
+  /** כבוי כשאין חשבון: הוידג׳ט מציג "התחברו" במקום "אין פריטים" */
+  signedIn: boolean;
+};
+
+/** מזהה פריט משותף כפי שהוא עובר לצד הנייטיבי וחוזר ממנו. */
+export function sharedRef(listId: string, baseId: string, sourceKey: string): string {
+  return `${listId}|${baseId}|${sourceKey}`;
+}
+
+/**
+ * מפרק מזהה שחזר מהוידג׳ט המשותף.
+ *
+ * הפירוק הוא משמאל ומימין ולא `split`: `sourceKey` הוא תאריך בלי `|`,
+ * ו-`listId` נוצר על ידינו - אבל `baseId` עלול להכיל כל תו, ופיצול
+ * נאיבי היה שובר אותו.
+ */
+export function parseSharedRef(
+  ref: string,
+): { listId: string; baseId: string; sourceKey: DateKey } | null {
+  const first = ref.indexOf('|');
+  const last = ref.lastIndexOf('|');
+  if (first <= 0 || last <= first || last === ref.length - 1) return null;
+  return {
+    listId: ref.slice(0, first),
+    baseId: ref.slice(first + 1, last),
+    sourceKey: ref.slice(last + 1) as DateKey,
+  };
+}
+
+/**
+ * תמונת המצב של הרשימות המשותפות.
+ *
+ * הקבוצות נבנות ב-`buildReminderGroups` בדיוק כמו במסך, ולכן "היום",
+ * "מחר" והתאריך העברי זהים בשני המקומות. שני חישובים נפרדים היו נפרדים
+ * גם בתוצאה.
+ */
+export function buildSharedWidget(
+  lists: {
+    id: string;
+    name: string;
+    categories: { id: string; name: string }[];
+    items: (UserEvent & { categoryId?: string; createdBy: string })[];
+    /** שם להצגה של כל חבר, ריק למי שזה אני */
+    who: (uid: string) => string;
+  }[],
+  days: Map<DateKey, DayInfo>,
+  expand: (items: UserEvent[]) => Map<DateKey, Occurrence[]>,
+  signedIn: boolean,
+  now = new Date(),
+): SharedWidgetData {
+  const out: SharedWidgetList[] = [];
+
+  for (const list of lists.slice(0, MAX_SHARED_LISTS)) {
+    const byId = new Map(list.items.map((it) => [it.id, it]));
+    const groups: SharedWidgetGroup[] = [];
+    let count = 0;
+
+    for (const group of buildReminderGroups(
+      list.items,
+      expand(list.items),
+      days,
+      now,
+      REMINDER_HORIZON_DAYS,
+    )) {
+      if (count >= MAX_SHARED_ITEMS) break;
+      if (!group.items.length) continue;
+
+      const items: SharedWidgetItem[] = [];
+      for (const source of group.items) {
+        if (count >= MAX_SHARED_ITEMS) break;
+        const origin = byId.get(source.baseId);
+        const item: SharedWidgetItem = {
+          id: sharedRef(list.id, source.baseId, source.sourceKey),
+          title: source.title,
+          time: source.time,
+          color: source.color,
+          cat: origin?.categoryId ?? '',
+          who: origin ? list.who(origin.createdBy) : '',
+        };
+        if (source.done) item.done = true;
+        items.push(item);
+        count += 1;
+      }
+      if (!items.length) continue;
+
+      groups.push({ k: group.key, label: group.label, hebrew: group.hebrew, items });
+    }
+
+    out.push({ id: list.id, name: list.name, categories: list.categories, groups });
+  }
+
+  return { updatedAt: Date.now(), lists: out, signedIn };
+}
+
 export type WidgetPayload = {
   calendar: CalendarWidgetData;
   reminders: RemindersWidgetData;
@@ -331,6 +472,7 @@ export const WIDGET_KEYS = {
   calendar: 'widget:calendar',
   reminders: 'widget:reminders',
   shabbat: 'widget:shabbat',
+  shared: 'widget:shared',
   /** תור הפעולות שהוידג׳ט כתב וממתינות לאפליקציה */
   inbox: 'widget:inbox',
 } as const;
@@ -338,7 +480,11 @@ export const WIDGET_KEYS = {
 /** פעולה שהוידג׳ט ביצע וממתינה שהאפליקציה תחיל אותה. */
 export type WidgetAction =
   | { type: 'done'; ref: string; done: boolean; at: number }
-  | { type: 'add'; title: string; date: DateKey; at: number };
+  | { type: 'add'; title: string; date: DateKey; at: number }
+  /* ברשימה משותפת אין הוספה מהוידג׳ט: כתיבה לרשימה של מישהו אחר דורשת
+     חיבור חי, והתור מיועד בדיוק למצב שבו הוא אינו קיים. סימון "בוצע"
+     כן - הוא מתיישב גם כשהוא מאחר, כי הוא מצב ולא פעולה מצטברת. */
+  | { type: 'shared-done'; ref: string; done: boolean; at: number };
 
 /** קורא תור פעולות שנכתב בצד הנייטיבי. סובל קלט פגום בשקט. */
 export function parseInbox(raw: string | null | undefined): WidgetAction[] {
@@ -349,7 +495,9 @@ export function parseInbox(raw: string | null | undefined): WidgetAction[] {
     return parsed.filter((a): a is WidgetAction => {
       if (!a || typeof a !== 'object') return false;
       const action = a as Partial<WidgetAction> & { type?: string };
-      if (action.type === 'done') return typeof (a as { ref?: unknown }).ref === 'string';
+      if (action.type === 'done' || action.type === 'shared-done') {
+        return typeof (a as { ref?: unknown }).ref === 'string';
+      }
       if (action.type === 'add') {
         const add = a as { title?: unknown; date?: unknown };
         return typeof add.title === 'string' && typeof add.date === 'string';

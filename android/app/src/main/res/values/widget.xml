@@ -24,6 +24,17 @@
     <string name="widget_empty_reminders">אין תזכורות קרובות</string>
     <string name="widget_add">הוספת תזכורת</string>
 
+    <!-- וידג׳ט הרשימות המשותפות -->
+    <string name="widget_shared_label">רשימה משותפת</string>
+    <string name="widget_shared_empty">אין פריטים פתוחים</string>
+    <string name="widget_shared_signin">התחברו באפליקציה כדי לראות רשימות משותפות</string>
+    <string name="widget_shared_gone">הרשימה כבר לא זמינה</string>
+    <string name="widget_config_pick_list">איזו רשימה?</string>
+    <string name="widget_config_pick_category">איזו קטגוריה?</string>
+    <string name="widget_config_all">הכול</string>
+    <string name="widget_config_no_lists">עוד אין רשימות משותפות. צרו אחת באפליקציה, בלשונית התזכורות.</string>
+    <string name="widget_config_signin">התחברו באפליקציה כדי ליצור רשימה משותפת.</string>
+
     <plurals name="widget_open">
         <item quantity="one">פתוחה אחת</item>
         <item quantity="two">שתיים פתוחות</item>

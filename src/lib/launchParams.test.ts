@@ -110,3 +110,27 @@ describe('parseExternalUrl', () => {
     expect(out.date).toBeUndefined();
   });
 });
+
+describe('view - הלשונית הפנימית של התזכורות', () => {
+  it('view=shared נקרא', () => {
+    expect(parseLaunch('?tab=reminders&view=shared').view).toBe('shared');
+  });
+
+  it('view=mine נקרא', () => {
+    expect(parseLaunch('?tab=reminders&view=mine').view).toBe('mine');
+  });
+
+  it('ערך לא מוכר מדולג בשקט', () => {
+    expect(parseLaunch('?tab=reminders&view=zzz').view).toBeUndefined();
+  });
+
+  it('בלי view אין שדה', () => {
+    expect(parseLaunch('?tab=reminders').view).toBeUndefined();
+  });
+
+  it('עובר גם דרך קישור חיצוני של וידג׳ט', () => {
+    const intent = parseExternalUrl('hebcal://open?tab=reminders&view=shared');
+    expect(intent.tab).toBe('reminders');
+    expect(intent.view).toBe('shared');
+  });
+});

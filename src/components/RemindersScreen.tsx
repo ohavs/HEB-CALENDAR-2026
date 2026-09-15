@@ -46,11 +46,14 @@ type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
 export function RemindersScreen({
   onEditEvent,
   composeOnMount,
+  viewOverride,
   bottomInset,
 }: {
   onEditEvent: (occurrence: Occurrence | UserEvent) => void;
   /** נפתח מהוידג׳ט - שדה ההקלדה ממוקד מיד */
   composeOnMount?: boolean;
+  /** לשונית שנכפתה מבחוץ, למשל מוידג׳ט הרשימה המשותפת */
+  viewOverride?: RemindersView | null;
   bottomInset: number;
 }) {
   const events = useEvents();
@@ -80,6 +83,14 @@ export function RemindersScreen({
     setView('mine');
     document.getElementById('reminder-input')?.focus();
   }, [composeOnMount]);
+
+  /*
+    לשונית שנכפתה מבחוץ אינה נשמרת כהעדפה: וידג׳ט שפתח את המשותף פעם
+    אחת לא אמור לשנות את מה שהמשתמש בחר בעצמו.
+  */
+  useEffect(() => {
+    if (viewOverride) setView(viewOverride);
+  }, [viewOverride]);
 
   /** התאריך שהפריט החדש יקבל, או null כשאין לו תאריך. */
   const targetDate = (): DateKey | null => {

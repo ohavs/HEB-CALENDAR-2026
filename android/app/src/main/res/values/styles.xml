@@ -19,4 +19,11 @@
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
     </style>
+
+    <!-- מסך הבחירה של וידג׳ט הרשימה המשותפת. נפתח מעל מסך הבית ולא
+         בתוך האפליקציה, ולכן הוא לא לוקח את ערכת הפתיחה עם ה-splash -
+         רקע מסך הפתיחה היה מהבהב לרגע על שאלה של שתי שורות. -->
+    <style name="AppTheme.WidgetConfig" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/widget_well</item>
+    </style>
 </resources>
