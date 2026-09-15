@@ -94,6 +94,9 @@ export function RemindersScreen({
 
   return (
     <div
+      // המנוע גולל את הרשימה כשגוררים אל הקצה שלה - בלי זה אפשר היה
+      // להפיל רק על יום שגלוי כרגע, והגלילה חסומה ממילא בזמן גרירה
+      data-drag-scroll
       className="no-scrollbar app-shell-narrow flex-1 overflow-y-auto overscroll-contain gutter-x"
       style={{ paddingBottom: bottomInset + 24 }}
     >

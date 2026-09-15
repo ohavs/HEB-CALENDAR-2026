@@ -6,6 +6,15 @@
  * - חלק תגובתי (zustand) עם שדות שמשתנים לעיתים רחוקות (מי נגרר, מעל איזה יום),
  *   כדי שתאי הלוח יתרנדרו רק כשצריך.
  * - מיקום המצביע מוחזק ב-motion values, כך שהצל הנגרר זז ב-60fps בלי רינדור.
+ *
+ * למה גם אירועי מגע ולא רק Pointer Events: במסך גליל הדפדפן מחליט בעצמו
+ * שהתנועה היא גלילה, שולח `pointercancel` ומפסיק לשלוח `pointermove`.
+ * בלוח זה לא הופיע כי הרשת אינה נגללת, ובמסך התזכורות הגרירה מתה מיד
+ * אחרי הלחיצה הארוכה. `preventDefault` על `pointermove` אינו עוצר גלילת
+ * מגע - רק על `touchmove`, ורק כשהמאזין אינו passive.
+ *
+ * לכן: מאזין `touchmove` לא-passive שמונע את הגלילה וגם מזין את המיקום,
+ * ו-`pointercancel` מתעלם מגרירה שכבר התחילה.
  */
 import { motionValue } from 'framer-motion';
 import { haptic } from './native';
@@ -25,6 +34,16 @@ const LONG_PRESS_MS = 330;
 const EDGE_WIDTH = 34;
 /** כמה זמן להחזיק בקצה לפני מעבר חודש */
 const EDGE_HOLD_MS = 620;
+/**
+ * אזור בקצה רשימה נגללת שמפעיל גלילה אוטומטית בזמן גרירה.
+ *
+ * רחב בכוונה: הגולל נמתח עד תחתית המסך, אבל סרגל הלשוניות יושב עליו
+ * ומכסה את 68 הפיקסלים האחרונים. אזור צר יותר היה מתחיל מתחת לסרגל,
+ * כלומר במקום שאי אפשר לגרור אליו.
+ */
+const SCROLL_ZONE = 100;
+/** מהירות הגלילה האוטומטית, פיקסלים לפריים */
+const SCROLL_SPEED = 11;
 
 export type DragEdge = 'prev' | 'next' | null;
 
@@ -127,6 +146,79 @@ function handleEdges(x: number) {
   }, EDGE_HOLD_MS);
 }
 
+/* --------------------------- גלילה אוטומטית --------------------------- */
+
+/*
+  בלי זה אפשר להפיל רק על מה שגלוי: הגלילה חסומה בזמן גרירה, ורשימת
+  התזכורות ארוכה בהרבה מהמסך. המסך שרוצה בזה מסמן את הגולל שלו
+  ב-data-drag-scroll.
+*/
+let scroller: HTMLElement | null = null;
+let scrollDelta = 0;
+let scrollFrame: number | null = null;
+
+function stepScroll() {
+  if (!scroller || !scrollDelta) {
+    scrollFrame = null;
+    return;
+  }
+  scroller.scrollTop += scrollDelta;
+  scrollFrame = requestAnimationFrame(stepScroll);
+}
+
+function updateAutoScroll(y: number) {
+  const el = document.querySelector<HTMLElement>('[data-drag-scroll]');
+  scroller = el;
+  if (!el) {
+    scrollDelta = 0;
+    return;
+  }
+  const box = el.getBoundingClientRect();
+  if (y < box.top + SCROLL_ZONE) scrollDelta = -SCROLL_SPEED;
+  else if (y > box.bottom - SCROLL_ZONE) scrollDelta = SCROLL_SPEED;
+  else scrollDelta = 0;
+  if (scrollDelta && scrollFrame === null) scrollFrame = requestAnimationFrame(stepScroll);
+}
+
+function stopAutoScroll() {
+  scrollDelta = 0;
+  scroller = null;
+  if (scrollFrame !== null) {
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame = null;
+  }
+}
+
+/* ------------------------------ תנועה ------------------------------ */
+
+/** מקור אחד לתנועה, בין אם היא הגיעה מ-pointer ובין אם מ-touch. */
+function moveTo(x: number, y: number) {
+  if (!session?.started) return;
+  ghostX.set(x);
+  ghostY.set(y);
+  const over = dayKeyAtPoint(x, y);
+  if (over !== useDragStore.getState().overKey) {
+    if (over) buzz();
+    useDragStore.setState({ overKey: over });
+  }
+  handleEdges(x);
+  updateAutoScroll(y);
+}
+
+/** סיום הגרירה - נקרא גם מ-pointerup וגם מ-touchend, ובטוח לקריאה כפולה. */
+function finish() {
+  if (!session) return;
+  const { occurrence, started } = session;
+  const { overKey, fromKey } = useDragStore.getState();
+
+  teardown();
+
+  if (started && overKey && overKey !== fromKey) {
+    buzz();
+    callbacks?.onDrop(occurrence.baseId, overKey, occurrence);
+  }
+}
+
 function onPointerMove(e: PointerEvent) {
   if (!session || e.pointerId !== session.pointerId) return;
 
@@ -137,33 +229,47 @@ function onPointerMove(e: PointerEvent) {
   }
 
   e.preventDefault();
-  ghostX.set(e.clientX);
-  ghostY.set(e.clientY);
-  const over = dayKeyAtPoint(e.clientX, e.clientY);
-  if (over !== useDragStore.getState().overKey) {
-    if (over) buzz();
-    useDragStore.setState({ overKey: over });
+  moveTo(e.clientX, e.clientY);
+}
+
+/**
+ * מגע. המאזין אינו passive, וזה מה שמאפשר לעצור את הגלילה בזמן גרירה.
+ * הוא גם מזין את המיקום, כדי שהגרירה תשרוד גם אם הדפדפן כבר ביטל את
+ * אירועי ה-pointer.
+ */
+function onTouchMove(e: TouchEvent) {
+  if (!session) return;
+  const touch = e.touches[0];
+  if (!touch) return;
+
+  if (!session.started) {
+    const dist = Math.hypot(touch.clientX - session.startX, touch.clientY - session.startY);
+    if (dist > CANCEL_DISTANCE) cancelSession();
+    return;
   }
-  handleEdges(e.clientX);
+
+  e.preventDefault();
+  moveTo(touch.clientX, touch.clientY);
+}
+
+function onTouchEnd() {
+  finish();
 }
 
 function onPointerUp(e: PointerEvent) {
   if (!session || e.pointerId !== session.pointerId) return;
-  const { occurrence, started } = session;
-  const overKey = useDragStore.getState().overKey;
-  const fromKey = useDragStore.getState().fromKey;
-
-  teardown();
-
-  if (started && overKey && overKey !== fromKey) {
-    buzz();
-    callbacks?.onDrop(occurrence.baseId, overKey, occurrence);
-  }
+  finish();
 }
 
+/*
+  גרירה שכבר התחילה שורדת ביטול של אירועי ה-pointer: הדפדפן שולח
+  pointercancel ברגע שהוא מחליט שהתנועה היא גלילה, ובלי ההתעלמות הזו
+  הגרירה מתה מיד אחרי הלחיצה הארוכה בכל מסך נגלל. מכאן והלאה אירועי
+  המגע נושאים אותה.
+*/
 function onPointerCancel(e: PointerEvent) {
   if (!session || e.pointerId !== session.pointerId) return;
-  teardown();
+  if (!session.started) teardown();
 }
 
 function teardown() {
@@ -178,9 +284,13 @@ function teardown() {
   }
   session = null;
   document.documentElement.classList.remove('dragging');
+  stopAutoScroll();
   window.removeEventListener('pointermove', onPointerMove);
   window.removeEventListener('pointerup', onPointerUp);
   window.removeEventListener('pointercancel', onPointerCancel);
+  window.removeEventListener('touchmove', onTouchMove);
+  window.removeEventListener('touchend', onTouchEnd);
+  window.removeEventListener('touchcancel', onTouchEnd);
   useDragStore.setState({
     active: false,
     occurrence: null,
@@ -227,6 +337,10 @@ export function beginLongPress(
   window.addEventListener('pointermove', onPointerMove, { passive: false });
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointercancel', onPointerCancel);
+  // passive: false הוא כל העניין - בלעדיו preventDefault לא יעצור גלילה
+  window.addEventListener('touchmove', onTouchMove, { passive: false });
+  window.addEventListener('touchend', onTouchEnd);
+  window.addEventListener('touchcancel', onTouchEnd);
 
   session.longPressTimer = setTimeout(() => {
     if (!session) return;
@@ -239,11 +353,18 @@ export function beginLongPress(
     }
     document.documentElement.classList.add('dragging');
     buzz();
+    /*
+      לפריט בלי תאריך יש עדיין `date` שמור - זה מה שמאפשר לו לחזור ליום
+      שממנו הגיע - אבל מבחינת הגרירה הוא יושב בקבוצת `undated`. בלי
+      התרגום הזה הכיתוב הראשון היה מציע "העברה ל-14 בספטמבר" בזמן
+      שהאצבע עדיין על הקבוצה חסרת התאריך.
+    */
+    const from = (occurrence.undated ? 'undated' : occurrence.date) as DateKey;
     useDragStore.setState({
       active: true,
       occurrence,
-      fromKey: occurrence.date,
-      overKey: occurrence.date,
+      fromKey: from,
+      overKey: from,
       pressing: null,
     });
   }, LONG_PRESS_MS);
