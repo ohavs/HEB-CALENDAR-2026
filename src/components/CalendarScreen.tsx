@@ -319,7 +319,6 @@ export function CalendarScreen({
               canSwitchViews={canSwitchViews(views)}
               photoURL={photoURL}
               onProfile={onProfile}
-              onAdd={() => onAddEvent(selectedKey)}
               onToday={goToToday}
               onTitle={onOpenYear}
             />

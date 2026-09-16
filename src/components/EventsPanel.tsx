@@ -236,14 +236,32 @@ function summaryOf(day: DayInfo | undefined, count: number): string {
    ========================================================================== */
 
 export function DockedDayPanel(props: ContentProps) {
-  const { day } = props;
+  const { day, onAddEvent } = props;
   return (
     <aside className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-3xl bg-surface shadow-raised xl:w-[420px]">
-      <header className="shrink-0 border-b border-hairline px-5 py-5">
-        <h2 className="text-title font-semibold leading-tight text-ink">
-          {day ? relativeDayLabel(day.date) : ''}
-        </h2>
-        <p className="mt-1 text-caption text-muted">{day ? dayTitleLabel(day.date) : ''}</p>
+      {/*
+        ההוספה יושבת בכותרת החלונית ולא בכותרת המסך, בדיוק כמו בטלפון:
+        המקום שבו רואים את היום הוא המקום שבו מוסיפים לו.
+      */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-hairline px-5 py-5">
+        <span className="min-w-0 flex-1">
+          <h2 className="truncate text-title font-semibold leading-tight text-ink">
+            {day ? relativeDayLabel(day.date) : ''}
+          </h2>
+          <p className="mt-1 truncate text-caption text-muted">
+            {day ? dayTitleLabel(day.date) : ''}
+          </p>
+        </span>
+        <motion.button
+          type="button"
+          onClick={onAddEvent}
+          whileTap={{ scale: 0.9 }}
+          transition={SNAP}
+          aria-label="אירוע חדש ביום הזה"
+          className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+        >
+          <Plus size={ICON.lg} strokeWidth={STROKE} />
+        </motion.button>
       </header>
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <DayPanelContent {...props} />
@@ -384,7 +402,7 @@ export function EventsPanel({
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={SNAP}
-            className="shrink-0 text-faint"
+            className="me-1 shrink-0 text-faint"
           >
             <ChevronUp size={ICON.xl} strokeWidth={STROKE} />
           </motion.span>
@@ -400,7 +418,7 @@ export function EventsPanel({
           whileTap={{ scale: 0.9 }}
           transition={SNAP}
           aria-label="אירוע חדש ביום הזה"
-          className="focus-ring me-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+          className="focus-ring me-4 ms-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
         >
           <Plus size={ICON.lg} strokeWidth={STROKE} />
         </motion.button>

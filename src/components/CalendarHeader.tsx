@@ -1,9 +1,17 @@
-/** כותרת הלוח: פרופיל, שם החודש, חיפוש והוספה - בדיוק כמו בעיצוב הייחוס. */
+/**
+ * כותרת הלוח: פרופיל, שם החודש, חזרה להיום והחלפת תצוגה.
+ *
+ * ההוספה ירדה מכאן. היא הייתה הפעולה היחידה בשורה שאינה ניווט, וממילא
+ * יש כפתור הוספה בכל מקום שבו רואים יום: בשורת הידית של החלונית
+ * התחתונה בטלפון, בכותרת העמודה הקבועה במסך רחב, ובשורת הכלים של סדר
+ * היום. שם הוא גם יודע לאיזה יום הוא מוסיף - מה שכפתור בכותרת לא ידע
+ * לומר.
+ */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Columns3, LayoutGrid, List, Plus } from 'lucide-react';
+import { CalendarDays, Columns3, LayoutGrid, List } from 'lucide-react';
 import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 import { Avatar } from './ui/Avatar';
 
 const VIEW_ICON = { month: LayoutGrid, week: Columns3, agenda: List } as const;
@@ -22,7 +30,6 @@ export function CalendarHeader({
   canSwitchViews = true,
   photoURL,
   onProfile,
-  onAdd,
   onToday,
   onTitle,
 }: {
@@ -36,7 +43,6 @@ export function CalendarHeader({
   canSwitchViews?: boolean;
   photoURL: string | null;
   onProfile: () => void;
-  onAdd: () => void;
   onToday: () => void;
   onTitle: () => void;
 }) {
@@ -114,15 +120,6 @@ export function CalendarHeader({
             </motion.button>
           )}
 
-          <motion.button
-            type="button"
-            onClick={onAdd}
-            whileTap={{ scale: 0.9 }}
-            aria-label="אירוע חדש"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white shadow-raised lg:h-[52px] lg:w-[52px]"
-          >
-            <Plus size={ICON.xl} strokeWidth={STROKE} />
-          </motion.button>
         </div>
       </div>
     </header>

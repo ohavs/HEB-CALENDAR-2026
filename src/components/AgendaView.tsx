@@ -9,7 +9,7 @@
  */
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, ChevronDown, RotateCcw, Search } from 'lucide-react';
+import { CalendarPlus, ChevronDown, Plus, RotateCcw, Search } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
@@ -247,16 +247,34 @@ export function AgendaView({
           hidden={hidden}
           onOpen={() => setFiltersOpen(true)}
           action={
-            <motion.button
-              type="button"
-              onClick={onSearch}
-              whileTap={{ scale: 0.92 }}
-              transition={TAP}
-              aria-label="חיפוש"
-              className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-surface text-muted shadow-raised"
-            >
-              <Search size={ICON.md} strokeWidth={STROKE} />
-            </motion.button>
+            <>
+              <motion.button
+                type="button"
+                onClick={onSearch}
+                whileTap={{ scale: 0.92 }}
+                transition={TAP}
+                aria-label="חיפוש"
+                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-surface text-muted shadow-raised"
+              >
+                <Search size={ICON.md} strokeWidth={STROKE} />
+              </motion.button>
+              {/*
+                ההוספה ירדה מכותרת הלוח, ובחודש ובשבוע היא ירשה את שורת
+                הידית של החלונית התחתונה. בסדר יום אין חלונית כזו, ולכן
+                היא יושבת כאן - אחרת זו הייתה התצוגה היחידה שאי אפשר
+                להוסיף ממנה אירוע.
+              */}
+              <motion.button
+                type="button"
+                onClick={onAddEvent}
+                whileTap={{ scale: 0.92 }}
+                transition={TAP}
+                aria-label="אירוע חדש"
+                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-brand text-white shadow-raised"
+              >
+                <Plus size={ICON.md} strokeWidth={2.5} />
+              </motion.button>
+            </>
           }
         />
 
