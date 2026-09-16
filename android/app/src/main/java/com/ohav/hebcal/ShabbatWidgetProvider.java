@@ -120,7 +120,7 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             if (entry == null) continue;
             RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat_row);
             row.setTextViewText(R.id.row_title, entry.optString("title"));
-            row.setTextViewText(R.id.row_day, entry.optString("hebrew"));
+            row.setTextViewText(R.id.row_day, subLine(entry));
             row.setTextViewText(R.id.row_candles, orDash(entry.optString("candles")));
             row.setTextViewText(R.id.row_havdalah, orDash(entry.optString("havdalah")));
             row.setOnClickPendingIntent(
@@ -133,13 +133,25 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         manager.updateAppWidget(id, views);
     }
 
-    /** "היום · י״ז באלול" - שתי העובדות שבאמת נדרשות בשורה אחת */
+    /**
+     * שורת המשנה: לועזי ואחריו עברי, ערוך מראש ב-widgetData.ts.
+     *
+     * `hebrew` הוא נפילה לאחור לחבילת web ישנה שעוד לא שולחת `sub` -
+     * החבילה מתחלפת בלי התקנה, ולכן מעטפת חדשה עשויה לפגוש נתונים
+     * ישנים עד העדכון החי הבא.
+     */
+    private static String subLine(JSONObject entry) {
+        String sub = entry.optString("sub");
+        return sub.isEmpty() ? entry.optString("hebrew") : sub;
+    }
+
+    /** "היום · 18 בספטמבר · י״ז באלול" - בשורה אחת */
     private static String dayLine(JSONObject entry) {
         String day = entry.optString("day");
-        String hebrew = entry.optString("hebrew");
-        if (day.isEmpty()) return hebrew;
-        if (hebrew.isEmpty()) return day;
-        return day + " · " + hebrew;
+        String sub = subLine(entry);
+        if (day.isEmpty()) return sub;
+        if (sub.isEmpty()) return day;
+        return day + " · " + sub;
     }
 
     private static String orDash(String value) {

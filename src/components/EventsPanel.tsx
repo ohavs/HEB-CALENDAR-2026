@@ -29,6 +29,7 @@ import { useSettings } from '@/store/settings';
 import { TemplateStrip } from './TemplateStrip';
 import { useElementSize } from '@/hooks/useElementSize';
 import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
+import { haptic } from '@/lib/native';
 
 /**
  * כמה מהחלונית נשאר גלוי כשהיא מקופלת.
@@ -44,8 +45,13 @@ const PEEK_HEIGHT = 58;
  * זו העצירה שהקשה על יום מגיעה אליה. קודם היו שתי עצירות בלבד, ולכן
  * "מה יש לי ביום הזה" - המסלול השכיח בלוח - עלה שתי פעולות: הקשה
  * לבחירה, ואז גרירה או הקשה שנייה שיוצאת מהלוח למסך היום.
+ *
+ * עלה מ-330: ביום שיש בו גם מועד וגם זמני כניסה ויציאה - כלומר כל
+ * שבת וכל חג - התוכן שמעל דחף את מצב הריקנות אל מתחת לקצה, ומי שהקיש
+ * על היום כדי להוסיף בו משהו היה צריך לגרור עוד. זה עדיין תלוי באורך
+ * התוכן, ולכן הכפתור עצמו עבר לשורת הידית שלא זזה לעולם.
  */
-const HALF_HEIGHT = 330;
+const HALF_HEIGHT = 400;
 /** כמה מהמהירות נזקפת לכיוון שאליו המשתמש התכוון */
 const FLING_PROJECTION = 0.12;
 /** מרחק המשיכה שבו התוכן מגיע לשקיפות מלאה */
@@ -336,16 +342,35 @@ export function EventsPanel({
       onDragEnd={onDragEnd}
       {...panelProps}
     >
-      {/* ידית + סיכום - גם כפתור פתיחה וסגירה */}
-      <button
+      {/*
+        שורת הידית, ובה גם ההוספה.
+
+        קודם הכפתור היחיד להוספה ישב בתוך מצב הריקנות, בתחתית התוכן -
+        וביום שיש בו גם מועד וגם זמני כניסה ויציאה, כלומר כל שבת וכל
+        חג, הוא נדחף אל מתחת לקצה. מי שהקיש על יום כדי להוסיף בו משהו
+        היה צריך לגרור עוד.
+
+        כאן הוא אינו תלוי באורך התוכן בכלל: השורה הזו אינה זזה, והיא
+        גלויה בכל עצירה - כולל המקופלת. זה גם מכסה יום שכבר יש בו
+        אירועים, שבו מצב הריקנות אינו מצויר ולא היה שם כפתור בכלל.
+
+        הוא אחות של הידית ולא בתוכה, כי `handleProps` מתחיל גרירה
+        ב-pointerdown - וכפתור שיושב בתוך אזור הגרירה מאבד את ההקשה.
+      */}
+      {/* הידית עצמה יושבת מעל השורה, כדי שתישאר ממורכזת ברוחב החלונית */}
+      <span
+        aria-hidden="true"
+        className="mx-auto mt-2.5 block h-1.5 w-12 shrink-0 rounded-full bg-hairline"
+      />
+      <div className="flex shrink-0 items-center">
+        <button
         type="button"
         onClick={() => onDetentChange(open ? 'peek' : 'half')}
         aria-label={open ? 'סגירת אירועי היום' : 'פתיחת אירועי היום'}
         aria-expanded={open}
-        className="focus-ring-inset shrink-0 cursor-grab touch-none px-5 pb-2.5 pt-2.5 text-right active:cursor-grabbing"
+        className="focus-ring-inset min-w-0 flex-1 cursor-grab touch-none ps-5 pb-2.5 pt-2 text-right active:cursor-grabbing"
         {...handleProps}
       >
-        <span className="mx-auto mb-2 block h-1.5 w-12 rounded-full bg-hairline" />
         <span className="flex items-center gap-3">
           {/* היום והסיכום בשורה אחת: זו שורת הצצה, לא כותרת מסך */}
           <span className="flex min-w-0 flex-1 items-baseline gap-2 truncate">
@@ -364,7 +389,22 @@ export function EventsPanel({
             <ChevronUp size={ICON.xl} strokeWidth={STROKE} />
           </motion.span>
         </span>
-      </button>
+        </button>
+
+        <motion.button
+          type="button"
+          onClick={() => {
+            void haptic('light');
+            onAddEvent();
+          }}
+          whileTap={{ scale: 0.9 }}
+          transition={SNAP}
+          aria-label="אירוע חדש ביום הזה"
+          className="focus-ring me-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+        >
+          <Plus size={ICON.lg} strokeWidth={STROKE} />
+        </motion.button>
+      </div>
 
       <motion.div
         ref={scrollRef}

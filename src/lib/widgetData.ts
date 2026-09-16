@@ -18,7 +18,15 @@
  */
 import type { DateKey, DayInfo, HolidayKind, UserEvent } from '@/types';
 import type { Occurrence } from './recurrence';
-import { addDays, dateKey, monthLabel, relativeDayLabel, startOfDay } from './dates';
+import {
+  addDays,
+  dateKey,
+  monthLabel,
+  relativeDayLabel,
+  startOfDay,
+  GREG_MONTHS_HE,
+  WEEKDAYS_HE,
+} from './dates';
 import { hebrewDateParts, hebrewMonthSpanLabel, type ShabbatEntry } from './hebrew';
 import { buildReminderGroups } from './reminders';
 
@@ -263,8 +271,23 @@ export type ShabbatWidgetEntry = {
   title: string;
   /** "היום", "מחר", "יום שישי, 18 בספטמבר" */
   day: string;
-  /** התאריך העברי של ערב הכניסה */
+  /**
+   * התאריך העברי של ערב הכניסה.
+   *
+   * נשאר בפני עצמו כדי שגרסה מותקנת ישנה של המעטפת, שקוראת רק אותו,
+   * תמשיך להראות משהו. חדשה מעדיפה את `sub`.
+   */
   hebrew: string;
+  /**
+   * שורת המשנה המוכנה: לועזי ואחריו עברי.
+   *
+   * הלועזי קודם כי הוא זה שאפשר להצליב מולו פגישה או טיסה. העברי
+   * נשאר, כי בוידג׳ט שבת הוא חלק מהעניין - אבל אחריו.
+   *
+   * זו מחרוזת ערוכה ולא שני שדות שהמעטפת מרכיבה: הרכבה בצד הנייטיבי
+   * פירושה שכל שינוי בניסוח מחייב התקנה.
+   */
+  sub: string;
   /** שעת הדלקת הנרות */
   candles: string;
   /** שעת ההבדלה */
@@ -290,6 +313,29 @@ function hebrewLabel(date: Date): string {
   return `${parts.day} ב${parts.month}`;
 }
 
+/** "18 בספטמבר" - לועזי, בלי שם היום */
+function gregorianLabel(date: Date): string {
+  return `${date.getDate()} ב${GREG_MONTHS_HE[date.getMonth()]}`;
+}
+
+/**
+ * "היום" / "מחר" / "יום שישי" - שם בלבד, בלי תאריך.
+ *
+ * `relativeDayLabel` נופל לתאריך מלא אחרי מחרתיים, וכאן זה היה מכפיל
+ * אותו: המעטפת מחברת את השדה הזה לשורת המשנה, ויצא "יום שישי,
+ * 25 בספטמבר · 25 בספטמבר · כ״ג בתשרי". התאריך שייך לשורת המשנה, וכאן
+ * נשאר רק השם.
+ */
+function dayName(date: Date, now: Date): string {
+  const diff = Math.round(
+    (startOfDay(date).getTime() - startOfDay(now).getTime()) / 86_400_000,
+  );
+  if (diff === 0) return 'היום';
+  if (diff === 1) return 'מחר';
+  if (diff === 2) return 'מחרתיים';
+  return `יום ${WEEKDAYS_HE[date.getDay()]}`;
+}
+
 /**
  * בונה את נתוני וידג׳ט השבת.
  *
@@ -311,8 +357,9 @@ export function buildShabbatWidget(
 
     const item: ShabbatWidgetEntry = {
       title: entry.title,
-      day: relativeDayLabel(entry.startDate, now),
+      day: dayName(entry.startDate, now),
       hebrew: hebrewLabel(entry.startDate),
+      sub: `${gregorianLabel(entry.startDate)} · ${hebrewLabel(entry.startDate)}`,
       candles: entry.candles?.time ?? '',
       havdalah: entry.havdalah?.time ?? '',
       endDay: relativeDayLabel(entry.endDate, now),

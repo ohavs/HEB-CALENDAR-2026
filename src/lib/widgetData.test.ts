@@ -255,6 +255,43 @@ describe('buildShabbatWidget', () => {
   it('רשימה ריקה אינה מפילה כלום', () => {
     expect(buildShabbatWidget([], 'ירושלים', NOW).entries).toEqual([]);
   });
+
+  /* ------------------------- התאריך הלועזי ------------------------- */
+
+  /*
+    הוידג׳ט אינו מריץ שום קוד שלנו, ולכן כל מחרוזת מגיעה ערוכה מכאן.
+    הלועזי קודם לעברי כי הוא זה שאפשר להצליב מולו פגישה או טיסה.
+  */
+  it('לכל רשומה שורת משנה שמתחילה בתאריך לועזי', () => {
+    const out = buildShabbatWidget(entries(NOW), 'ירושלים', NOW);
+    for (const entry of out.entries.slice(0, 3)) {
+      expect(entry.sub).toMatch(/^\d{1,2} ב[\u0590-\u05FF]+ · /);
+    }
+  });
+
+  it('שורת המשנה נושאת גם את התאריך העברי, אחרי הלועזי', () => {
+    // ערב יום כיפור תשפ״ז: 20 בספטמבר 2026, ט׳ בתשרי
+    const out = buildShabbatWidget(entries(new Date(2026, 8, 18)), 'ירושלים', new Date(2026, 8, 18));
+    const kippur = out.entries.find((e) => e.k === '2026-09-20');
+    expect(kippur?.sub).toBe('20 בספטמבר · ט׳ בתשרי');
+  });
+
+  /* מעטפת מותקנת ישנה קוראת רק אותו, ולכן הוא נשאר */
+  it('התאריך העברי נשאר גם בשדה שלו', () => {
+    const out = buildShabbatWidget(entries(new Date(2026, 8, 18)), 'ירושלים', new Date(2026, 8, 18));
+    expect(out.entries.find((e) => e.k === '2026-09-20')?.hebrew).toBe('ט׳ בתשרי');
+  });
+
+  /*
+    "יום שישי, 25 בספטמבר · 25 בספטמבר" היה כופל את התאריך בשורה אחת,
+    כי `dayLine` בצד הנייטיבי מחבר את השניים.
+  */
+  it('שם היום אינו נושא תאריך, כדי שלא יוכפל בשורה', () => {
+    const out = buildShabbatWidget(entries(NOW), 'ירושלים', NOW);
+    for (const entry of out.entries.slice(0, 4)) {
+      expect(entry.day).not.toMatch(/\d/);
+    }
+  });
 });
 
 describe('הוידג׳ט והמסך מציגים אותו דבר', () => {
