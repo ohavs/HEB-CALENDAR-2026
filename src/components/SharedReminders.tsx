@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Plus, Settings2, Trash2, UserPlus, Users } from 'lucide-react';
+import { Check, ChevronDown, Plus, Settings2, Trash2, UserPlus, Users } from 'lucide-react';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
 import { buildReminderGroups, type ReminderItem } from '@/lib/reminders';
@@ -40,6 +40,7 @@ import { ENTER, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { ListManagerSheet } from './ListManagerSheet';
 import { ConfirmDeleteSheet } from './ConfirmDeleteSheet';
 import { SharedItemSheet } from './SharedItemSheet';
+import { ListPickerSheet } from './ListPickerSheet';
 import { PrimaryButton } from './ui/controls';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
@@ -59,6 +60,8 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
   const [title, setTitle] = useState('');
   const [managerOpen, setManagerOpen] = useState(false);
+  /** בורר הרשימות. ראו ListPickerSheet - למה גיליון ולא שורת צ׳יפים. */
+  const [pickerOpen, setPickerOpen] = useState(false);
   /*
     פריט שממתין לאישור מחיקה. כאן אין "ביטול" אחרי הפעולה כמו בתזכורות
     האישיות: הפריט חי בענן ונמחק אצל כל החברים באותו רגע, ולכן השאלה
@@ -222,77 +225,88 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
         </div>
       ) : (
         <>
-          <div className="mb-3 flex items-center gap-2">
-            <div className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto">
-              {lists.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => {
-                    void haptic('light');
-                    select(l.id);
-                  }}
-                  aria-pressed={l.id === list?.id}
-                  className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-caption font-medium transition-colors ${
-                    l.id === list?.id ? 'bg-brand text-white' : 'bg-surface text-muted shadow-raised'
-                  }`}
-                >
-                  {l.name}
-                  {l.memberUids.length > 1 && (
-                    <span className="flex items-center gap-0.5 opacity-75">
-                      <Users size={ICON.xs} strokeWidth={STROKE} />
-                      {l.memberUids.length}
-                    </span>
-                  )}
-                </button>
-              ))}
-              <button
+          {/*
+            ------------------------- כרטיס הרשימה -------------------------
+
+            קודם היו כאן שתי שורות של צ׳יפים זו מעל זו - רשימות למעלה,
+            קטגוריות מתחת - ושתיהן נראו אותו דבר. זה גם היה רועש וגם
+            הסתיר את הקשר: הקטגוריות שייכות לרשימה, ולא יושבות לצידה.
+
+            הכרטיס *הוא* הרשימה. שמה בכותרת שלו, הקטגוריות בתוכו, ולכן
+            ההיררכיה נראית לעין בלי להסביר אותה. החלפת רשימה היא פעולה
+            נדירה ולכן היא עברה לגיליון; סינון קטגוריה הוא פעולה תכופה
+            ולכן הוא נשאר בהקשה אחת, עם המונים גלויים.
+          */}
+          <div className="mb-3 overflow-hidden rounded-3xl bg-surface shadow-raised">
+            <div className="flex items-center gap-1 px-2 py-1.5">
+              <motion.button
                 type="button"
-                onClick={() => void addList()}
-                aria-label="רשימה חדשה"
-                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-raised"
+                onClick={() => {
+                  void haptic('light');
+                  setPickerOpen(true);
+                }}
+                whileTap={{ scale: 0.99 }}
+                transition={TAP}
+                aria-label={`הרשימה ${list?.name ?? ''} - החלפה`}
+                aria-haspopup="dialog"
+                className="focus-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl px-2.5 py-2 text-right"
               >
-                <Plus size={ICON.md} strokeWidth={STROKE} />
-              </button>
-            </div>
-            {list && (
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-title font-semibold leading-tight text-ink">
+                    {list?.name}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
+                    <Users size={ICON.xs} strokeWidth={STROKE} />
+                    {list && list.memberUids.length > 1
+                      ? `${list.memberUids.length} חברים`
+                      : 'רק אתם'}
+                    {lists.length > 1 && <span className="opacity-60">· {lists.length} רשימות</span>}
+                  </span>
+                </span>
+                <ChevronDown size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+              </motion.button>
+
               <button
                 type="button"
                 onClick={() => setManagerOpen(true)}
                 aria-label="ניהול הרשימה"
-                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-raised"
+                className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-muted"
               >
                 <Settings2 size={ICON.md} strokeWidth={STROKE} />
               </button>
+            </div>
+
+            {/*
+              הקטגוריות בתוך הכרטיס, על רקע שקוע - כך הן נקראות כחלק
+              מהרשימה ולא כשורה נוספת שמתחרה בה. הקו העליון הוא כל
+              ההפרדה שצריך.
+            */}
+            {list && list.categories.length > 0 && (
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-t border-hairline px-2.5 py-2.5">
+                <CategoryChip
+                  label="הכול"
+                  active={category === null}
+                  count={counts.get(null)}
+                  onClick={() => setCategory(null)}
+                />
+                {list.categories.map((c) => (
+                  <CategoryChip
+                    key={c.id}
+                    label={c.name}
+                    active={category === c.id}
+                    count={counts.get(c.id)}
+                    onClick={() => setCategory(c.id)}
+                  />
+                ))}
+                <CategoryChip
+                  label="בלי קטגוריה"
+                  active={category === 'none'}
+                  count={counts.get('none')}
+                  onClick={() => setCategory('none')}
+                />
+              </div>
             )}
           </div>
-
-          {/*
-            --------------------------- קטגוריות ---------------------------
-            הצ׳יפים כאן יושבים על רקע המסך ולא בתוך כרטיס, ולכן הרקע שלהם
-            הוא `bg-surface` ולא `bg-well` - `bg-well` הוא באותו גוון של
-            רקע המסך, וצ׳יפ שאינו נבחר היה נעלם.
-          */}
-          {list && list.categories.length > 0 && (
-            <div className="no-scrollbar mb-3 flex gap-1.5 overflow-x-auto">
-              <CategoryChip label="הכול" active={category === null} count={counts.get(null)} onClick={() => setCategory(null)} />
-              {list.categories.map((c) => (
-                <CategoryChip
-                  key={c.id}
-                  label={c.name}
-                  active={category === c.id}
-                  count={counts.get(c.id)}
-                  onClick={() => setCategory(c.id)}
-                />
-              ))}
-              <CategoryChip
-                label="בלי קטגוריה"
-                active={category === 'none'}
-                count={counts.get('none')}
-                onClick={() => setCategory('none')}
-              />
-            </div>
-          )}
 
           {/*
             רשימה משותפת עם חבר אחד אינה משותפת. ההזמנה ישבה עד כה רק
@@ -402,6 +416,18 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
         <ListManagerSheet open={managerOpen} onClose={() => setManagerOpen(false)} list={list} />
       )}
 
+      <ListPickerSheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        lists={lists}
+        items={itemsByList}
+        todayKey={todayKey}
+        activeId={list?.id ?? null}
+        onSelect={select}
+        onCreate={() => void addList()}
+        busy={busy}
+      />
+
       {list && (
         <SharedItemSheet
           open={Boolean(editing)}
@@ -464,8 +490,14 @@ function CategoryChip({
         onClick();
       }}
       aria-pressed={active}
+      /*
+        רקע שקוע ובלי צל: הצ׳יפים יושבים *בתוך* כרטיס הרשימה, ולא על
+        רקע המסך. קודם הם היו `bg-surface` עם צל - נכון כשהם ריחפו על
+        הקנבס, אבל בתוך כרטיס לבן זה צ׳יפ לבן על לבן שמורם בצל, וזה
+        נראה כמו רעש ולא כמו בורר.
+      */
       className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-white' : 'bg-surface text-muted shadow-raised'
+        active ? 'bg-brand text-white' : 'bg-well text-muted'
       }`}
     >
       {label}
