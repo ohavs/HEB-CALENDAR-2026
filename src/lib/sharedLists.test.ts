@@ -7,8 +7,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  calendarItems,
   countByCategory,
   findCategory,
+  isHiddenFor,
   inviteId,
   isMember,
   isOwner,
@@ -178,5 +180,77 @@ describe('newId', () => {
   it('לא מתנגש בין קריאות סמוכות', () => {
     const ids = new Set(Array.from({ length: 500 }, () => newId()));
     expect(ids.size).toBe(500);
+  });
+});
+
+/* ==========================================================================
+   מה נכנס ללוח
+   ========================================================================== */
+
+describe('calendarItems', () => {
+  const base = {
+    id: 'i1',
+    title: 'לחם',
+    date: '2026-09-20',
+    startTime: null,
+    endTime: null,
+    allDay: true,
+    color: 'violet',
+    reminderMinutes: null,
+    repeat: 'none',
+    createdBy: 'uidA',
+    createdAt: 1,
+    updatedAt: 1,
+  } as SharedItem;
+
+  it('פריט עם תאריך נכנס ללוח של שני החברים', () => {
+    expect(calendarItems([base], 'uidA').map((i) => i.id)).toEqual(['i1']);
+    expect(calendarItems([base], 'uidB').map((i) => i.id)).toEqual(['i1']);
+  });
+
+  /* אותו כלל בדיוק כמו בתזכורת אישית: בלי יום אין מקום בלוח */
+  it('פריט בלי תאריך אינו נכנס', () => {
+    expect(calendarItems([{ ...base, undated: true }], 'uidA')).toEqual([]);
+  });
+
+  it('פריט מחוק אינו נכנס', () => {
+    expect(calendarItems([{ ...base, deleted: true }], 'uidA')).toEqual([]);
+  });
+
+  /* לב העניין: ההסתרה אישית, והתאריך נשאר משותף */
+  it('הסתרה אצל אחד אינה משפיעה על השני', () => {
+    const hidden = { ...base, hiddenBy: { uidA: true } };
+    expect(calendarItems([hidden], 'uidA')).toEqual([]);
+    expect(calendarItems([hidden], 'uidB').map((i) => i.id)).toEqual(['i1']);
+    // והתאריך עצמו לא זז
+    expect(hidden.date).toBe('2026-09-20');
+  });
+
+  it('שניהם יכולים להסתיר, בלי לדרוס זה את זה', () => {
+    const hidden = { ...base, hiddenBy: { uidA: true, uidB: true } };
+    expect(calendarItems([hidden], 'uidA')).toEqual([]);
+    expect(calendarItems([hidden], 'uidB')).toEqual([]);
+  });
+
+  it('משתמש שאינו מחובר רואה הכול', () => {
+    expect(calendarItems([{ ...base, hiddenBy: { uidA: true } }], null).length).toBe(1);
+  });
+});
+
+describe('isHiddenFor', () => {
+  const item = { hiddenBy: { uidA: true } } as unknown as SharedItem;
+
+  it('אמת רק למי שהסתיר', () => {
+    expect(isHiddenFor(item, 'uidA')).toBe(true);
+    expect(isHiddenFor(item, 'uidB')).toBe(false);
+  });
+
+  it('בלי מפה בכלל - שקר', () => {
+    expect(isHiddenFor({} as SharedItem, 'uidA')).toBe(false);
+  });
+
+  /* false מפורש נשאר גלוי, כדי שהחזרה תעבוד גם אם נכתב כך במקום נמחק */
+  it('false מפורש אינו מסתיר', () => {
+    expect(isHiddenFor({ hiddenBy: { uidA: false } } as unknown as SharedItem, 'uidA')).toBe(false);
   });
 });

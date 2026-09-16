@@ -63,6 +63,20 @@ export type SharedList = {
 export type SharedItem = UserEvent & {
   categoryId?: string;
   createdBy: string;
+  /**
+   * מי בחר לא לראות את הפריט בלוח שלו.
+   *
+   * התאריך משותף - זו כל הנקודה - אבל "שיהיה גם בלוח שלי" הוא עניין
+   * אישי: שניים שקונים יחד רוצים את אותה רשימה, ולא בהכרח את אותן
+   * תזכורות. לכן הסתרה אינה מוחקת ואינה נוגעת בתאריך; היא אומרת רק
+   * "לא אצלי".
+   *
+   * המפה יושבת על הפריט המשותף ולא בהגדרות של כל משתמש, משתי סיבות:
+   * היא נוסעת עם הפריט (מכשיר חדש מקבל אותה בלי סנכרון נוסף), והכתיבה
+   * היא לשדה בודד בנתיב מנוקד - `hiddenBy.<uid>` - כך ששני אנשים
+   * שמסתירים באותה שנייה אינם דורסים זה את זה.
+   */
+  hiddenBy?: Record<string, boolean>;
 };
 
 /** הזמנה ממתינה. מזוהה לפי הרשימה והנמען, ולכן אין כפילויות. */
@@ -159,4 +173,30 @@ export function countByCategory(
 /** מזהה קצר וייחודי מספיק לקטגוריה או לרשימה. */
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
+
+/* ==========================================================================
+   מה נכנס ללוח
+   ========================================================================== */
+
+/** האם המשתמש הזה בחר להסתיר את הפריט מהלוח שלו */
+export function isHiddenFor(item: SharedItem, uid: string | null): boolean {
+  if (!uid) return false;
+  return item.hiddenBy?.[uid] === true;
+}
+
+/**
+ * הפריטים שצריכים להופיע בלוח של המשתמש הזה.
+ *
+ * שלושה סינונים, וכל אחד מהם מסיבה אחרת:
+ * - `undated` - אין לו יום, ולכן אין לו מקום בלוח. זה בדיוק הכלל של
+ *   `expandEvents` בתזכורות האישיות.
+ * - `deleted` - סימן מחיקה, לא פריט.
+ * - `hiddenBy[uid]` - הוא בלוח של מישהו אחר, ולא בשלי.
+ */
+export function calendarItems(items: SharedItem[], uid: string | null): SharedItem[] {
+  return items.filter(
+    (item) => !item.undated && !item.deleted && !isHiddenFor(item, uid),
+  );
 }

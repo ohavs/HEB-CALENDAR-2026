@@ -18,13 +18,13 @@ import {
 } from 'framer-motion';
 import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
+import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
 import type { DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { dateKey, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
 import { EventCard } from './EventChip';
-import { useEventsStore } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { TemplateStrip } from './TemplateStrip';
 import { useElementSize } from '@/hooks/useElementSize';
@@ -94,7 +94,7 @@ function DayPanelContent({
   onPlaceTemplate,
   showTemplates = true,
 }: ContentProps) {
-  const setDone = useEventsStore((s) => s.setOccurrenceDone);
+  const toggleDone = useToggleDone();
   const settings = useSettings();
   if (!day) return null;
 
@@ -199,7 +199,7 @@ function DayPanelContent({
               occurrence={occ}
               onClick={() => onEditEvent(occ)}
               onMove={(days) => onMoveEvent(occ, days)}
-              onToggleDone={(done) => setDone(occ.baseId, occ.sourceKey, done)}
+              onToggleDone={(done) => toggleDone(occ, done)}
             />
           ))}
         </div>

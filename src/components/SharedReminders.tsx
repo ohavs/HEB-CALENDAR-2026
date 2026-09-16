@@ -39,6 +39,7 @@ import { haptic } from '@/lib/native';
 import { ENTER, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { ListManagerSheet } from './ListManagerSheet';
 import { ConfirmDeleteSheet } from './ConfirmDeleteSheet';
+import { SharedItemSheet } from './SharedItemSheet';
 import { PrimaryButton } from './ui/controls';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
@@ -64,6 +65,8 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
     נשאלת לפני.
   */
   const [pendingDelete, setPendingDelete] = useState<ReminderItem | null>(null);
+  /** הפריט שפתוח לעריכה. שיבוץ התאריך קורה שם. */
+  const [editing, setEditing] = useState<SharedItem | null>(null);
   const [busy, setBusy] = useState(false);
 
   const now = useMemo(() => new Date(), []);
@@ -378,6 +381,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                                 )
                           }
                           onDelete={setPendingDelete}
+                          onOpen={setEditing}
                         />
                       ))}
                     </div>
@@ -396,6 +400,15 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
       {list && (
         <ListManagerSheet open={managerOpen} onClose={() => setManagerOpen(false)} list={list} />
+      )}
+
+      {list && (
+        <SharedItemSheet
+          open={Boolean(editing)}
+          onClose={() => setEditing(null)}
+          list={list}
+          item={editing}
+        />
       )}
 
       <ConfirmDeleteSheet
@@ -467,12 +480,14 @@ function SharedRow({
   source,
   who,
   onDelete,
+  onOpen,
 }: {
   item: ReminderItem;
   listId: string;
   source: SharedItem | undefined;
   who: string | null;
   onDelete: (item: ReminderItem) => void;
+  onOpen: (item: SharedItem) => void;
 }) {
   return (
     <div
@@ -499,7 +514,13 @@ function SharedRow({
         {item.done && <Check size={ICON.sm} strokeWidth={3} />}
       </motion.button>
 
-      <span className="min-w-0 flex-1">
+      <motion.button
+        type="button"
+        onClick={() => source && onOpen(source)}
+        whileTap={{ scale: 0.99 }}
+        transition={TAP}
+        className="focus-ring min-w-0 flex-1 rounded-xl text-right"
+      >
         <span
           className={`block truncate text-body font-medium leading-snug ${
             item.done ? 'line-through' : ''
@@ -512,10 +533,15 @@ function SharedRow({
           בלי אייקון: כל אייקון של אדם באזור הזה נקרא כפעולה ("הוספת
           חבר") ולא כייחוס, והשם לבדו ברור יותר.
         */}
-        {who && <span className="mt-0.5 block truncate text-caption opacity-70">{who}</span>}
-      </span>
-
-      {item.time && <span className="tnum shrink-0 text-caption font-semibold">{item.time}</span>}
+        {/*
+          מתי, ומי הוסיף. התאריך הוא החדש כאן: פריט משובץ נראה אחרת
+          מפריט שממתין, ובלי הכיתוב הזה שני המצבים נראים זהים ברשימה.
+        */}
+        <span className="mt-0.5 flex items-center gap-2 text-caption opacity-70">
+          {item.time && <span className="tnum font-medium">{item.time}</span>}
+          {who && <span className="truncate">{who}</span>}
+        </span>
+      </motion.button>
 
       {/*
         גם כאן הצ׳קבוקס היה הפעולה היחידה, ופריט שנוסף בטעות נשאר

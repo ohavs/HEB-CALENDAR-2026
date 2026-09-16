@@ -6,7 +6,7 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Check, MapPin, Repeat } from 'lucide-react';
+import { Check, MapPin, Repeat, Users } from 'lucide-react';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
@@ -61,8 +61,23 @@ export function MiniEventChip({
       style={{ touchAction: draggable ? 'none' : undefined }}
       onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
     >
-      {/* בתא צר יש מקום רק לכותרת; השעה מופיעה בפאנל ובתצוגת היום */}
+      {/*
+        בתא צר יש מקום רק לכותרת; השעה מופיעה בפאנל ובתצוגת היום.
+
+        לפריט מרשימה משותפת יש סימון קטן לפני הכותרת: בתא של הלוח
+        "לחם" בלי הקשר נראה כמו אירוע שהמשתמש שכח שיצר, ולא כמו משהו
+        שמישהו אחר הוסיף. שם הרשימה עצמו אינו נכנס לתא - הוא מופיע
+        בכרטיס בחלונית היום.
+      */}
       <span className={lines === 2 ? 'line-clamp-2' : 'block truncate'}>
+        {occurrence.shared && !(multiDay && !labelled) && (
+          <Users
+            size={ICON.xs}
+            strokeWidth={2.4}
+            aria-hidden="true"
+            className="-mt-px me-0.5 inline-block align-[-1px] opacity-80"
+          />
+        )}
         {multiDay && !labelled ? '\u00A0' : occurrence.title}
       </span>
     </div>
@@ -77,6 +92,7 @@ function cardLabel(occ: Occurrence): string {
   else if (occ.startTime) parts.push(occ.endTime ? `${occ.startTime} עד ${occ.endTime}` : occ.startTime);
   if (occ.location) parts.push(occ.location);
   if (occ.repeat !== 'none') parts.push('אירוע חוזר');
+  if (occ.shared) parts.push(`מהרשימה המשותפת ${occ.shared.listName}`);
   return parts.join(', ');
 }
 
@@ -202,6 +218,16 @@ export function EventCard({
         </span>
 
         <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption opacity-85">
+          {/*
+            שם הרשימה, ולא רק "משותף": בלוח השאלה אינה אם הפריט משותף
+            אלא *עם מי*, ורשימה אחת של קניות נראית אחרת מרשימה של עבודה.
+          */}
+          {occurrence.shared && (
+            <span className="flex min-w-0 items-center gap-1.5 font-medium">
+              <Users size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />
+              <span className="truncate">{occurrence.shared.listName}</span>
+            </span>
+          )}
           {meta && <span className="tnum font-medium">{meta}</span>}
           {occurrence.location && (
             <span className="flex min-w-0 items-center gap-1.5">

@@ -4,13 +4,13 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus, Sun } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
+import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { ZMANIM_LABELS, dayZmanim, hebrewDateAfterSunset } from '@/lib/hebrew';
 import { addDays, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { EventCard } from './EventChip';
-import { useEventsStore } from '@/store/events';
 import { ICON, SNAP, STROKE } from '@/lib/motion';
 
 export function DayView({
@@ -31,7 +31,7 @@ export function DayView({
   onEditEvent: (occurrence: Occurrence) => void;
 }) {
   const settings = useSettings();
-  const setDone = useEventsStore((s) => s.setOccurrenceDone);
+  const toggleDone = useToggleDone();
   const [showZmanim, setShowZmanim] = useState(false);
   const city = findCity(settings.cityId);
 
@@ -160,7 +160,7 @@ export function DayView({
                 key={occ.occurrenceId}
                 occurrence={occ}
                 onClick={() => onEditEvent(occ)}
-                onToggleDone={(done) => setDone(occ.baseId, occ.sourceKey, done)}
+                onToggleDone={(done) => toggleDone(occ, done)}
               />
             ))}
           </div>

@@ -88,6 +88,10 @@ function toItem(id: string, d: Record<string, unknown>): SharedItem | null {
         : undefined,
     undated: d.undated === true ? true : undefined,
     categoryId: (d.categoryId as string | undefined) || undefined,
+    hiddenBy:
+      d.hiddenBy && typeof d.hiddenBy === 'object'
+        ? (d.hiddenBy as Record<string, boolean>)
+        : undefined,
     createdBy: (d.createdBy as string) ?? '',
     createdAt: typeof d.createdAt === 'number' ? d.createdAt : Date.now(),
     updatedAt: typeof d.updatedAt === 'number' ? d.updatedAt : Date.now(),
@@ -116,6 +120,7 @@ function itemDoc(item: SharedItem): Record<string, unknown> {
   if (item.exceptions) out.exceptions = item.exceptions;
   if (item.undated) out.undated = true;
   if (item.categoryId) out.categoryId = item.categoryId;
+  if (item.hiddenBy) out.hiddenBy = item.hiddenBy;
   if (item.deleted) out.deleted = true;
   return out;
 }
@@ -361,6 +366,28 @@ export async function leaveList(listId: string): Promise<void> {
 export async function saveItem(listId: string, item: SharedItem): Promise<void> {
   const { db: store } = requireUser();
   await setDoc(doc(store, 'lists', listId, 'items', item.id), itemDoc(item));
+}
+
+/**
+ * הסתרה או החזרה של פריט מהלוח של המשתמש הנוכחי בלבד.
+ *
+ * כתיבה לנתיב מנוקד ולא `setDoc` על הפריט כולו: שני חברים שמסתירים
+ * באותה שנייה נוגעים בשני שדות שונים, ולכן אף אחד אינו דורס את השני -
+ * וגם לא את התאריך, שהוא משותף.
+ *
+ * החזרה *מוחקת* את המפתח במקום לכתוב `false`, כדי שהמפה לא תתפח עם
+ * כל החלטה שבוטלה.
+ */
+export async function setItemHiddenForMe(
+  listId: string,
+  itemId: string,
+  hidden: boolean,
+): Promise<void> {
+  const { db: store, user } = requireUser();
+  await updateDoc(doc(store, 'lists', listId, 'items', itemId), {
+    [`hiddenBy.${user.uid}`]: hidden ? true : deleteField(),
+    updatedAt: Date.now(),
+  });
 }
 
 export async function removeItem(listId: string, itemId: string): Promise<void> {

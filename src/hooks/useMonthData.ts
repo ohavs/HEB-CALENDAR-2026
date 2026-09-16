@@ -7,6 +7,42 @@ import { findCity } from '@/lib/locations';
 import { expandEvents, type Occurrence } from '@/lib/recurrence';
 import { toFilters, useSettings } from '@/store/settings';
 import { useEvents } from '@/store/events';
+import { useAuthStore } from '@/store/auth';
+import { useSharedStore } from '@/store/shared';
+import { mergeOccurrences, sharedOccurrences } from '@/lib/sharedCalendar';
+
+/**
+ * המופעים המשותפים בטווח, ממוזגים עם האישיים.
+ *
+ * הרשימות המשותפות אינן עוברות ב-`persist` והן מתעדכנות ב-onSnapshot,
+ * ולכן זהות האובייקטים משתנה בכל תשובה מהשרת. החתימה היא מה שמונע
+ * חישוב מחדש של הלוח כולו בכל פעימה כזו.
+ */
+function useWithShared(
+  personal: Map<DateKey, Occurrence[]>,
+  start: Date,
+  end: Date,
+): Map<DateKey, Occurrence[]> {
+  const uid = useAuthStore((s) => s.user?.uid ?? null);
+  const lists = useSharedStore((s) => s.lists);
+  const items = useSharedStore((s) => s.items);
+  const range = `${dateKey(start)}..${dateKey(end)}`;
+
+  const signature = lists
+    .map((list) => `${list.id}:${list.name}:${(items[list.id] ?? []).length}`)
+    .join('|');
+
+  const shared = useMemo(
+    () => sharedOccurrences(lists, items, uid, start, end),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [signature, uid, range, items],
+  );
+
+  return useMemo(() => mergeOccurrences(personal, shared), [personal, shared]);
+}
+
+/** עוגן ליום שאינו פתוח. ראו `useDayData`. */
+const EPOCH = new Date(0);
 
 /** חתימה של ההגדרות שמשפיעות על החישוב, כדי לא לחשב מחדש לחינם. */
 function filtersSignature(...values: unknown[]): string {
@@ -63,19 +99,35 @@ export function useMonthData(month: Date): MonthData {
     [gridDays, signature],
   );
 
-  const occurrences = useMemo(
+  const personal = useMemo(
     () => expandEvents(events, gridDays[0], gridDays[gridDays.length - 1]),
     [events, gridDays],
   );
+  const occurrences = useWithShared(personal, gridDays[0], gridDays[gridDays.length - 1]);
 
   return { gridDays, days, occurrences };
 }
+
+/** מפה ריקה יציבה, כדי שהוק שאין לו יום לא יפיל את ההשוואות במעלה הזרם */
+const NO_OCCURRENCES: Map<DateKey, Occurrence[]> = new Map();
 
 /** נתוני יום בודד, לתצוגת היום המורחבת. */
 export function useDayData(date: Date | null) {
   const settings = useSettings();
   const events = useEvents();
   const key = date ? monthKey(date) + '-' + date.getDate() : '';
+
+  const personal = useMemo(
+    () => (date ? expandEvents(events, date, date) : NO_OCCURRENCES),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [key, events],
+  );
+  /*
+    ההוקים חייבים לרוץ גם כשאין יום פתוח, ולכן העוגן נופל ל-1 בינואר
+    1970: הטווח ריק ממילא, והמיזוג מחזיר את המפה הריקה כמות שהיא.
+  */
+  const anchor = date ?? EPOCH;
+  const merged = useWithShared(personal, anchor, anchor);
 
   return useMemo(() => {
     if (!date) return null;
@@ -85,10 +137,9 @@ export function useDayData(date: Date | null) {
       showCandleTimes: true,
     });
     const day = [...map.values()][0];
-    const occurrences = expandEvents(events, date, date);
-    return { day, occurrences: [...occurrences.values()].flat() };
+    return { day, occurrences: [...merged.values()].flat() };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, events, settings]);
+  }, [key, merged, settings]);
 }
 
 
@@ -126,11 +177,12 @@ export function useRangeData(start: Date, end: Date): RangeData {
     [range, signature],
   );
 
-  const occurrences = useMemo(
+  const personal = useMemo(
     () => expandEvents(events, start, end),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [events, range],
   );
+  const occurrences = useWithShared(personal, start, end);
 
   return { dates, days, occurrences };
 }

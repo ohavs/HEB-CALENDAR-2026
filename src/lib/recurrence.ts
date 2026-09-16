@@ -42,6 +42,14 @@ export type Occurrence = UserEvent & {
   spanStart: DateKey;
   /** המופע סומן כבוצע */
   done: boolean;
+  /**
+   * מאיזו רשימה משותפת הגיע המופע, אם הגיע מאחת.
+   *
+   * זה מה שמבדיל אותו מאירוע אישי בכל מקום שנוגע בו: הוא מצויר עם
+   * סימון, והכתיבה עליו הולכת לענן ולא לחנות המקומית. שדה רשות, ולכן
+   * כל מי שלא יודע עליו ממשיך לעבוד כרגיל.
+   */
+  shared?: { listId: string; listName: string };
 };
 
 function hebrewMonthMatches(baseMonth: number, baseLeap: boolean, hd: HDate): boolean {

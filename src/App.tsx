@@ -27,7 +27,7 @@ import type { RemindersView } from '@/lib/remindersView';
 import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
-import { startShared, stopShared } from '@/lib/sharedSync';
+import { saveItem as saveSharedItem, startShared, stopShared } from '@/lib/sharedSync';
 import { syncPushToken } from '@/lib/pushTokens';
 import { onPushOpened } from '@/lib/native';
 import { useEvents, useEventsStore } from '@/store/events';
@@ -43,6 +43,7 @@ import {
 import { UpdateSheet } from '@/components/UpdateSheet';
 import { WelcomeSheet, markWelcomeSeen, welcomeSeen } from '@/components/WelcomeSheet';
 import { useAuthStore, wasSignedIn } from '@/store/auth';
+import { useSharedStore } from '@/store/shared';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
 import { CalendarScreen } from '@/components/CalendarScreen';
@@ -65,6 +66,8 @@ import { useOverlayHistory } from '@/lib/overlayHistory';
 import { consumeLaunch, parseExternalUrl } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
 import { ConfirmDeleteSheet } from '@/components/ConfirmDeleteSheet';
+import { SharedItemSheet } from '@/components/SharedItemSheet';
+import { useFindShared, type SharedTarget } from '@/hooks/useOccurrenceActions';
 import { ConflictSheet } from '@/components/ConflictSheet';
 
 const REMINDER_DEBOUNCE_MS = 700;
@@ -109,6 +112,14 @@ export default function App() {
   );
   /** אירוע שנגרר אל הפח וממתין לאישור המחיקה */
   const [pendingTrash, setPendingTrash] = useState<Occurrence | null>(null);
+  /**
+   * פריט משותף שנפתח מתוך הלוח.
+   *
+   * אותו גיליון של מסך הרשימות, כי זו אותה ישות: מה שנערך כאן נכתב
+   * לענן ונראה אצל כל החברים. העורך האישי אינו יכול לשמש כאן - הוא
+   * כותב לחנות המקומית, ושם הפריט הזה אינו קיים.
+   */
+  const [sharedEditing, setSharedEditing] = useState<SharedTarget | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [yearOpen, setYearOpen] = useState(false);
   const [yearValue, setYearValue] = useState(today.getFullYear());
@@ -372,6 +383,20 @@ export default function App() {
     [placeTemplateOn],
   );
 
+  /*
+    מקור אחד לאיתור הפריט שמאחורי מופע משותף, שנקרא גם מתוך מנוע
+    הגרירה. הוא נקרא ב-`getState()` ולא דרך הוק, כי ההרשמה הזו קורית
+    פעם אחת ואסור לה להיתלות בזהות של רשימות שמתחלפת בכל snapshot.
+  */
+  const sharedRef = useCallback((occurrence: Occurrence): SharedTarget | null => {
+    const tag = occurrence.shared;
+    if (!tag) return null;
+    const { lists, items } = useSharedStore.getState();
+    const list = lists.find((l) => l.id === tag.listId);
+    const item = (items[tag.listId] ?? []).find((i) => i.id === occurrence.baseId);
+    return list && item ? { list, item } : null;
+  }, []);
+
   useEffect(() => {
     setDragCallbacks({
       onDrop: (baseId, to, occurrence) => {
@@ -392,6 +417,28 @@ export default function App() {
             .settings.templates.find((t) => t.id === id);
           if (!template || (to as string) === 'undated') return;
           placeTemplate(template, to);
+          return;
+        }
+
+        /*
+          פריט מרשימה משותפת נכתב לענן, לא לחנות המקומית - שם הוא אינו
+          קיים, וקריאה לחנות הייתה נבלעת בשקט. הזזה שלו מזיזה אותו
+          אצל *כל* החברים, וזו בדיוק הכוונה: התאריך משותף.
+        */
+        if (occurrence.shared) {
+          const target = sharedRef(occurrence);
+          if (!target) return;
+          const to_ = to as string;
+          void saveSharedItem(target.list.id, {
+            ...target.item,
+            date: to_ === 'undated' ? target.item.date : to,
+            undated: to_ === 'undated' ? true : undefined,
+          });
+          toast(
+            to_ === 'undated'
+              ? `"${occurrence.title}" הוסר מהתאריך אצל כל החברים`
+              : `"${occurrence.title}" הועבר אצל כל חברי "${target.list.name}"`,
+          );
           return;
         }
 
@@ -432,10 +479,20 @@ export default function App() {
       */
       onTrash: (occurrence) => {
         if (occurrence.baseId.startsWith(TEMPLATE_DRAG_PREFIX)) return;
+        /*
+          פריט משותף נמחק אצל כולם, ואין לו ביטול מקומי - הוא חי בענן.
+          לכן הוא נשלח לגיליון שלו, שם ההסתרה האישית יושבת לצד המחיקה
+          וההבדל ביניהן מנוסח במפורש.
+        */
+        if (occurrence.shared) {
+          const target = sharedRef(occurrence);
+          if (target) setSharedEditing(target);
+          return;
+        }
         setPendingTrash(occurrence);
       },
     });
-  }, [move, placeTemplate]);
+  }, [move, placeTemplate, sharedRef]);
 
   /** מחיקה אחרי שאושרה. `scope` רלוונטי רק לסדרה חוזרת. */
   const applyTrash = useCallback(
@@ -521,19 +578,40 @@ export default function App() {
     setEditor({ open: true, date, editing: null, startTime });
   }, []);
 
+  const findShared = useFindShared();
+
   /** פותח את העורך על מופע או על תזכורת בלי תאריך. */
-  const editAnything = useCallback((item: Occurrence | UserEvent) => {
-    setEditor({ open: true, date: item.date, editing: item });
-  }, []);
+  const editAnything = useCallback(
+    (item: Occurrence | UserEvent) => {
+      // פריט מרשימה משותפת נערך בגיליון שלו, לא בעורך האישי
+      if ('shared' in item && item.shared) {
+        const target = findShared(item as Occurrence);
+        if (target) {
+          setSharedEditing(target);
+          return;
+        }
+      }
+      setEditor({ open: true, date: item.date, editing: item });
+    },
+    [findShared],
+  );
 
   /** נפתח מהוידג׳ט: שדה ההקלדה במסך התזכורות ממוקד מיד */
   const [composeReminder, setComposeReminder] = useState(false);
   /** לשונית פנימית שנכפתה מבחוץ (וידג׳ט). null = מה שהמשתמש בחר אחרון */
   const [remindersView, setRemindersView] = useState<RemindersView | null>(null);
 
-  const editOccurrence = useCallback((occurrence: Occurrence) => {
-    setEditor({ open: true, date: occurrence.date, editing: occurrence });
-  }, []);
+  const editOccurrence = useCallback(
+    (occurrence: Occurrence) => {
+      const target = findShared(occurrence);
+      if (target) {
+        setSharedEditing(target);
+        return;
+      }
+      setEditor({ open: true, date: occurrence.date, editing: occurrence });
+    },
+    [findShared],
+  );
 
   /**
    * הזזה במקלדת - Alt+חיצים על כרטיס אירוע. זו החלופה לגרירה, שאין לה
@@ -702,6 +780,15 @@ export default function App() {
         seriesHint="כל המופעים יימחקו"
         destructive
       />
+
+      {sharedEditing && (
+        <SharedItemSheet
+          open
+          onClose={() => setSharedEditing(null)}
+          list={sharedEditing.list}
+          item={sharedEditing.item}
+        />
+      )}
 
       <ConfirmDeleteSheet
         open={Boolean(pendingTrash && pendingTrash.repeat === 'none')}
