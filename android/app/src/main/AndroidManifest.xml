@@ -99,6 +99,17 @@
             </intent-filter>
         </activity>
 
+        <!-- מסך הבחירה של וידג׳ט התזכורות. מגיעים אליו גם בהנחה וגם
+             בלחיצה ארוכה, דרך reconfigurable ב-widget_reminders_info. -->
+        <activity
+            android:name=".RemindersWidgetConfigActivity"
+            android:theme="@style/AppTheme.WidgetConfig"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- ההרשאה נדרשת כדי שמערכת ההפעלה תוכל לקשור את הרשימה -->
         <service
             android:name=".RemindersWidgetService"

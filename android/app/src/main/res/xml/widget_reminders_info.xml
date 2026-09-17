@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- configure פותח את מסך הבחירה, ו-reconfigurable הוא מה שמאפשר
+     לחזור אליו בלחיצה ארוכה על וידג׳ט שכבר מונח. configuration_optional
+     משאיר את ההנחה הראשונה מיידית: יש ברירת מחדל שעובדת (התזכורות
+     האישיות), ומי שרוצה אחרת נכנס להגדרות. שניהם מ-API 31; במכשיר
+     ישן יותר המשגר מתעלם מהם ופותח את המסך בהנחה בלבד. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
     android:minHeight="110dp"
@@ -10,6 +15,8 @@
     android:maxResizeHeight="500dp"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:configure="com.ohav.hebcal.RemindersWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:initialLayout="@layout/widget_reminders"
     android:previewLayout="@layout/widget_reminders"
     android:description="@string/widget_reminders_label"

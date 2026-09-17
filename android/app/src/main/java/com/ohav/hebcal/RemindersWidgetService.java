@@ -64,6 +64,14 @@ public class RemindersWidgetService extends RemoteViewsService {
          */
         private int width = 250;
 
+        /**
+         * הפריטים המוצגים שייכים לרשימה משותפת.
+         *
+         * תבנית הלחיצה אחת לכל הוידג׳ט, ולכן היא אינה יכולה לדעת לאיזה
+         * מסמך הפריט שייך. הדגל נוסע בכוונת המילוי של כל שורה.
+         */
+        private boolean shared = false;
+
         Factory(Context context, int widgetId) {
             this.context = context;
             this.widgetId = widgetId;
@@ -82,7 +90,17 @@ public class RemindersWidgetService extends RemoteViewsService {
             }
             JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_REMINDERS);
             if (data == null) return;
-            JSONArray groups = data.optJSONArray("groups");
+
+            /*
+              הקבוצות של המקור שהוידג׳ט מכוון אליו. נפילה לאחור ל-groups
+              שבשורש - שהן האישיות - מכסה גם חבילה ישנה שאינה מפרסמת
+              `sources` וגם מקור שנמחק מאז שנבחר.
+            */
+            JSONObject source = RemindersWidgetProvider.sourceFor(context, data, widgetId);
+            JSONArray groups = source != null
+                ? source.optJSONArray("groups")
+                : data.optJSONArray("groups");
+            shared = source != null && !source.optString("list").isEmpty();
             if (groups == null) return;
 
             for (int g = 0; g < groups.length(); g++) {
@@ -181,6 +199,7 @@ public class RemindersWidgetService extends RemoteViewsService {
             // כוונת המילוי היא מה שהופך תבנית אחת לפעולה על שורה מסוימת
             Intent fill = new Intent();
             fill.putExtra(WidgetActionReceiver.EXTRA_REF, row.id);
+            fill.putExtra(WidgetActionReceiver.EXTRA_SHARED, shared);
             views.setOnClickFillInIntent(R.id.item_root, fill);
             return views;
         }

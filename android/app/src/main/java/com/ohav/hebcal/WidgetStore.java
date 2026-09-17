@@ -79,6 +79,27 @@ final class WidgetStore {
         return prefs(context).getString("shared_cat_" + widgetId, "");
     }
 
+    /*
+      וידג׳ט התזכורות מכוון למקור אחד: "me", "list:<id>" או
+      "list:<id>/cat:<id>". ברירת המחדל היא האישי, ולכן וידג׳ט שהונח
+      לפני שההגדרה קיימת ממשיך להראות בדיוק את מה שהראה.
+    */
+    static final String SOURCE_ME = "me";
+
+    static void putRemindersSource(Context context, int widgetId, String sourceId) {
+        prefs(context).edit()
+            .putString("reminders_src_" + widgetId, sourceId == null ? SOURCE_ME : sourceId)
+            .apply();
+    }
+
+    static String remindersSource(Context context, int widgetId) {
+        return prefs(context).getString("reminders_src_" + widgetId, SOURCE_ME);
+    }
+
+    static void clearRemindersSource(Context context, int widgetId) {
+        prefs(context).edit().remove("reminders_src_" + widgetId).apply();
+    }
+
     /** נמחק כשהמשתמש מסיר את הוידג׳ט, אחרת ההגדרה נשארת לנצח. */
     static void clearSharedConfig(Context context, int widgetId) {
         prefs(context).edit()

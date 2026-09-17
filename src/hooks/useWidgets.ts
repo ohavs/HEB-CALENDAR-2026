@@ -86,7 +86,22 @@ export function useWidgets(): void {
 
       void publishWidgets(
         buildCalendarWidget(month, grid, days, occurrences, now),
-        buildRemindersWidget(events, days, occurrences, now),
+        /*
+          הרשימות המשותפות נכנסות גם לוידג׳ט התזכורות, כמקורות שאפשר
+          לכוון אליו. מי שכל התזכורות שלו משותפות ראה עד כה וידג׳ט ריק.
+        */
+        buildRemindersWidget(
+          events,
+          days,
+          occurrences,
+          now,
+          sharedLists.map((list) => ({
+            id: list.id,
+            name: list.name,
+            categories: list.categories.map((c) => ({ id: c.id, name: c.name })),
+            items: sharedItems[list.id] ?? [],
+          })),
+        ),
         buildShabbatWidget(upcomingShabbatot(now, 8, options), city.name, now),
         shared,
       );

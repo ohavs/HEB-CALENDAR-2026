@@ -34,6 +34,7 @@
     <string name="widget_config_all">הכול</string>
     <string name="widget_config_no_lists">עוד אין רשימות משותפות. צרו אחת באפליקציה, בלשונית התזכורות.</string>
     <string name="widget_config_signin">התחברו באפליקציה כדי ליצור רשימה משותפת.</string>
+    <string name="widget_config_pick_source">מה יוצג בוידג׳ט?</string>
 
     <plurals name="widget_open">
         <item quantity="one">פתוחה אחת</item>

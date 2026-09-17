@@ -9,6 +9,7 @@ import android.os.Build;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -73,7 +74,19 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_reminders);
         JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_REMINDERS);
 
-        int open = data == null ? 0 : data.optInt("open", 0);
+        /*
+          הכותרת והמונה מגיעים מהמקור שהוידג׳ט מכוון אליו. וידג׳ט שמראה
+          רשימה משותפת וכתוב עליו "תזכורות" משקר, ובמסך בית עם שניים
+          שונים אי אפשר לדעת מי מי.
+        */
+        JSONObject source = sourceFor(context, data, id);
+        if (source != null) {
+            views.setTextViewText(R.id.rem_title, source.optString("label"));
+        }
+
+        int open = source != null
+            ? source.optInt("open", 0)
+            : (data == null ? 0 : data.optInt("open", 0));
         views.setTextViewText(
             R.id.rem_count,
             open == 0 ? "" : context.getResources().getQuantityString(R.plurals.widget_open, open, open)
@@ -93,7 +106,12 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
             R.id.rem_root,
             CalendarWidgetProvider.openTab(context, "reminders")
         );
-        views.setViewVisibility(R.id.rem_add, View.VISIBLE);
+        /*
+          ההוספה יוצרת תזכורת אישית. על וידג׳ט שמכוון לרשימה משותפת היא
+          הייתה הבטחה ריקה: מה שנוצר לא היה מופיע בו כלל. מוטב בלי.
+        */
+        boolean personal = source == null || source.optString("list").isEmpty();
+        views.setViewVisibility(R.id.rem_add, personal ? View.VISIBLE : View.GONE);
 
         int width = manager.getAppWidgetOptions(id)
             .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
@@ -107,6 +125,31 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
         );
 
         manager.updateAppWidget(id, views);
+    }
+
+    /**
+     * המקור שהוידג׳ט הזה מכוון אליו, מתוך מה שהאפליקציה פרסמה.
+     *
+     * `null` פירושו שאין מה לבחור - חבילת web ישנה שעוד לא מפרסמת
+     * `sources`, או מקור שנמחק מאז (רשימה שהוסרה, קטגוריה שנמחקה). בשני
+     * המקרים נופלים בחזרה לכותרת ולמונה של המקור האישי, שתמיד קיים.
+     */
+    static JSONObject sourceFor(Context context, JSONObject data, int id) {
+        if (data == null) return null;
+        JSONArray sources = data.optJSONArray("sources");
+        if (sources == null) return null;
+        String wanted = WidgetStore.remindersSource(context, id);
+        for (int i = 0; i < sources.length(); i++) {
+            JSONObject source = sources.optJSONObject(i);
+            if (source != null && wanted.equals(source.optString("id"))) return source;
+        }
+        return null;
+    }
+
+    /** הגדרה של מופע שהוסר נשארת אחרת לנצח. */
+    @Override
+    public void onDeleted(Context context, int[] ids) {
+        for (int id : ids) WidgetStore.clearRemindersSource(context, id);
     }
 
     /**

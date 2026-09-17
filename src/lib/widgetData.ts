@@ -17,7 +17,7 @@
  * למופע ולא לאירוע. הצד הנייטיבי מחזיר אותו כמות שהוא.
  */
 import type { DateKey, DayInfo, HolidayKind, UserEvent } from '@/types';
-import type { Occurrence } from './recurrence';
+import { expandEvents, type Occurrence } from './recurrence';
 import {
   addDays,
   dateKey,
@@ -103,11 +103,48 @@ export type ReminderGroup = {
   items: WidgetReminder[];
 };
 
+/**
+ * מקור אחד שהוידג׳ט יכול להיות מכוון אליו.
+ *
+ * הרשימות המשותפות הן תזכורות לכל דבר, ולכן וידג׳ט שמראה רק את
+ * האישיות מראה חצי תמונה - ואצל מי שכל התזכורות שלו משותפות, הוא ריק.
+ *
+ * כל מקור מגיע *מקובץ מראש*, בדיוק כמו הקבוצות של המקור האישי. הוידג׳ט
+ * אינו מסנן ואינו מקבץ - הוא בוחר מערך לפי `id` ומצייר. זה מה שמאפשר
+ * לשנות ניסוח או חיתוך בלי התקנה.
+ */
+export type ReminderSource = {
+  /** "me", "list:<id>", "list:<id>/cat:<id>" */
+  id: string;
+  /** "התזכורות שלי" / "עם בובי" / "עם בובי · קניות" */
+  label: string;
+  groups: ReminderGroup[];
+  /** כמה פתוחות במקור הזה */
+  open: number;
+  /**
+   * מזהה הרשימה המשותפת, כשהמקור הוא כזה.
+   *
+   * הצד הנייטיבי אינו מפרק את `id` - הוא רק צריך לדעת *לאיזה מסמך*
+   * שייכים הפריטים, כי סימון "בוצע" על פריט משותף נכתב אחרת לגמרי
+   * מסימון על תזכורת אישית. בלי הדגל הזה הלחיצה הייתה נבלעת בשקט:
+   * המזהה פשוט לא היה נמצא בתזכורות האישיות.
+   */
+  list?: string;
+};
+
 export type RemindersWidgetData = {
   updatedAt: number;
+  /**
+   * הקבוצות של המקור האישי.
+   *
+   * נשאר בנפרד כדי שמעטפת מותקנת ישנה, שאינה מכירה `sources`, תמשיך
+   * להראות בדיוק מה שהראתה. חדשה בוחרת מתוך `sources`.
+   */
   groups: ReminderGroup[];
   /** כמה פתוחות בסך הכול, לכותרת */
   open: number;
+  /** כל מה שאפשר לכוון אליו. הראשון תמיד האישי. */
+  sources: ReminderSource[];
 };
 
 /** מזהה מופע כפי שהוא עובר לצד הנייטיבי וחוזר ממנו. */
@@ -226,12 +263,19 @@ function buildUpcoming(
  * רשימה, כולל הפריטים שאין להם תאריך. שני חישובים נפרדים היו נפרדים גם
  * בתוצאה, וזה בדיוק מה שהופך וידג׳ט למשהו שאי אפשר לסמוך עליו.
  */
-export function buildRemindersWidget(
+/** קיבוץ אחד, שמשרת גם את התזכורות האישיות וגם כל רשימה משותפת. */
+function groupsFor(
   events: UserEvent[],
   days: Map<DateKey, DayInfo>,
   occurrences: Map<DateKey, Occurrence[]>,
-  now = new Date(),
-): RemindersWidgetData {
+  now: Date,
+  /**
+   * בניית המזהה של פריט. ברירת המחדל היא מזהה מופע אישי; רשימה משותפת
+   * מעבירה כאן את `sharedRef`, כי פריט משותף חוזר למסמך אחר.
+   */
+  refFor: (baseId: string, sourceKey: string) => string = (baseId, sourceKey) =>
+    `${baseId}|${sourceKey}`,
+): { groups: ReminderGroup[]; open: number } {
   const groups: ReminderGroup[] = [];
   let count = 0;
   let open = 0;
@@ -244,7 +288,7 @@ export function buildRemindersWidget(
     for (const source of group.items) {
       if (count >= MAX_REMINDERS) break;
       const item: WidgetReminder = {
-        id: source.occurrence ? occurrenceRef(source.occurrence) : `${source.baseId}|${source.sourceKey}`,
+        id: refFor(source.baseId, source.sourceKey),
         title: source.title,
         time: source.time,
         color: source.color,
@@ -259,7 +303,68 @@ export function buildRemindersWidget(
     groups.push({ k: group.key as DateKey, label: group.label, hebrew: group.hebrew, items });
   }
 
-  return { updatedAt: Date.now(), groups, open };
+  return { groups, open };
+}
+
+/** רשימה משותפת כפי שהיא נכנסת לבניית המקורות. */
+export type SharedSourceList = {
+  id: string;
+  name: string;
+  categories: { id: string; name: string }[];
+  items: (UserEvent & { categoryId?: string })[];
+};
+
+export function buildRemindersWidget(
+  events: UserEvent[],
+  days: Map<DateKey, DayInfo>,
+  occurrences: Map<DateKey, Occurrence[]>,
+  now = new Date(),
+  shared: SharedSourceList[] = [],
+): RemindersWidgetData {
+  const mine = groupsFor(events, days, occurrences, now);
+
+  const sources: ReminderSource[] = [
+    { id: 'me', label: 'התזכורות שלי', groups: mine.groups, open: mine.open },
+  ];
+
+  /*
+    לכל רשימה מקור, ולכל קטגוריה בתוכה מקור משלה. זה מייקר את המטען,
+    אבל הוא נכתב פעם אחת בכל שינוי ונקרא על ידי מערכת ההפעלה בתהליך
+    אחר - שם כל חישוב הוא בלתי אפשרי. התקרה של `MAX_REMINDERS` חלה על
+    כל מקור בנפרד, ולכן הוא אינו גדל בלי גבול.
+  */
+  for (const list of shared) {
+    const expand = (items: (UserEvent & { categoryId?: string })[]) => {
+      const occ = expandEvents(items, addDays(now, -1), addDays(now, REMINDER_HORIZON_DAYS));
+      return groupsFor(items, days, occ, now, (baseId, sourceKey) =>
+        sharedRef(list.id, baseId, sourceKey),
+      );
+    };
+
+    const all = expand(list.items);
+    sources.push({
+      id: `list:${list.id}`,
+      label: list.name,
+      groups: all.groups,
+      open: all.open,
+      list: list.id,
+    });
+
+    for (const category of list.categories) {
+      const inCategory = list.items.filter((i) => i.categoryId === category.id);
+      if (!inCategory.length) continue;
+      const built = expand(inCategory);
+      sources.push({
+        id: `list:${list.id}/cat:${category.id}`,
+        label: `${list.name} · ${category.name}`,
+        groups: built.groups,
+        open: built.open,
+        list: list.id,
+      });
+    }
+  }
+
+  return { updatedAt: Date.now(), groups: mine.groups, open: mine.open, sources };
 }
 
 /* ==========================================================================

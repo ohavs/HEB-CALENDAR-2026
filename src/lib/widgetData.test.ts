@@ -211,6 +211,123 @@ describe('parseInbox', () => {
   });
 });
 
+describe('מקורות וידג׳ט התזכורות', () => {
+  const days = realDays(NOW, addDays(NOW, 40));
+  const mine = [event({ date: dateKey(NOW), title: 'שלי' })];
+  const shared = [
+    {
+      id: 'L1',
+      name: 'עם בובי',
+      categories: [
+        { id: 'c1', name: 'קניות' },
+        { id: 'c2', name: 'בית' },
+      ],
+      items: [
+        { ...event({ date: dateKey(NOW), title: 'לחם' }), categoryId: 'c1' },
+        { ...event({ date: dateKey(NOW), title: 'עוף' }), categoryId: 'c1' },
+        { ...event({ date: dateKey(NOW), title: 'מנורה' }), categoryId: 'c2' },
+      ],
+    },
+  ];
+
+  function build() {
+    return buildRemindersWidget(mine, days, expandEvents(mine, NOW, addDays(NOW, 40)), NOW, shared);
+  }
+
+  it('המקור הראשון הוא תמיד האישי', () => {
+    const out = build();
+    expect(out.sources[0].id).toBe('me');
+    expect(out.sources[0].label).toBe('התזכורות שלי');
+  });
+
+  it('לכל רשימה משותפת יש מקור, עם שמה ככיתוב', () => {
+    const list = build().sources.find((s) => s.id === 'L1' || s.id === 'list:L1');
+    expect(list?.label).toBe('עם בובי');
+  });
+
+  it('לכל קטגוריה שיש בה פריטים יש מקור משלה', () => {
+    const ids = build().sources.map((s) => s.id);
+    expect(ids).toContain('list:L1/cat:c1');
+    expect(ids).toContain('list:L1/cat:c2');
+  });
+
+  /* קטגוריה ריקה אינה מקור - היא רק עוד שורה במסך הבחירה שלא תראה כלום */
+  it('קטגוריה בלי פריטים אינה מקור', () => {
+    const empty = [{ ...shared[0], categories: [...shared[0].categories, { id: 'c3', name: 'ריקה' }] }];
+    const out = buildRemindersWidget(mine, days, new Map(), NOW, empty);
+    expect(out.sources.map((s) => s.id)).not.toContain('list:L1/cat:c3');
+  });
+
+  it('מקור הקטגוריה מכיל רק את הפריטים שלה', () => {
+    const source = build().sources.find((s) => s.id === 'list:L1/cat:c2');
+    const titles = (source?.groups ?? []).flatMap((g) => g.items.map((i) => i.title));
+    expect(titles).toEqual(['מנורה']);
+  });
+
+  it('מקור הרשימה מכיל את כל הפריטים שלה', () => {
+    const source = build().sources.find((s) => s.id === 'list:L1');
+    const titles = (source?.groups ?? []).flatMap((g) => g.items.map((i) => i.title));
+    expect(titles.sort()).toEqual(['לחם', 'מנורה', 'עוף']);
+  });
+
+  /*
+    מעטפת מותקנת ישנה קוראת רק את `groups` שבשורש, ואינה מכירה
+    `sources`. היא חייבת להמשיך לראות בדיוק את מה שראתה.
+  */
+  it('הקבוצות שבשורש נשארות האישיות בלבד', () => {
+    const out = build();
+    const titles = out.groups.flatMap((g) => g.items.map((i) => i.title));
+    expect(titles).toEqual(['שלי']);
+    expect(out.groups).toEqual(out.sources[0].groups);
+  });
+
+  it('בלי רשימות משותפות יש מקור אחד', () => {
+    const out = buildRemindersWidget(mine, days, expandEvents(mine, NOW, addDays(NOW, 40)), NOW);
+    expect(out.sources).toHaveLength(1);
+  });
+
+  /*
+    המזהה הוא מה שחוזר מהוידג׳ט כשמסמנים "בוצע", והוא זה שקובע לאן
+    הסימון נכתב. פריט משותף שהיה נושא מזהה של מופע אישי היה נשלח לחנות
+    המקומית - שם הוא אינו קיים - והלחיצה הייתה נבלעת בלי שום סימן.
+  */
+  it('פריט במקור משותף נושא מזהה משותף, עם מזהה הרשימה', () => {
+    const source = build().sources.find((s) => s.id === 'list:L1');
+    const ids = (source?.groups ?? []).flatMap((g) => g.items.map((i) => i.id));
+    expect(ids).not.toHaveLength(0);
+    for (const id of ids) {
+      expect(parseSharedRef(id)?.listId).toBe('L1');
+    }
+  });
+
+  it('גם מקור הקטגוריה נושא את מזהה הרשימה, ולא את הקטגוריה', () => {
+    const source = build().sources.find((s) => s.id === 'list:L1/cat:c1');
+    const ids = (source?.groups ?? []).flatMap((g) => g.items.map((i) => i.id));
+    expect(ids).not.toHaveLength(0);
+    for (const id of ids) {
+      expect(parseSharedRef(id)?.listId).toBe('L1');
+    }
+  });
+
+  it('פריט אישי נשאר מזהה מופע', () => {
+    const out = build();
+    const ids = out.sources[0].groups.flatMap((g) => g.items.map((i) => i.id));
+    expect(ids).not.toHaveLength(0);
+    for (const id of ids) {
+      expect(parseOccurrenceRef(id)).not.toBeNull();
+      expect(parseSharedRef(id)).toBeNull();
+    }
+  });
+
+  /* הדגל הוא מה שמאפשר לצד הנייטיבי לבחור פעולה בלי לפרק את `id` */
+  it('מקור משותף מסומן ברשימה שלו, והאישי לא', () => {
+    const out = build();
+    expect(out.sources[0].list).toBeUndefined();
+    expect(out.sources.find((s) => s.id === 'list:L1')?.list).toBe('L1');
+    expect(out.sources.find((s) => s.id === 'list:L1/cat:c1')?.list).toBe('L1');
+  });
+});
+
 describe('buildShabbatWidget', () => {
   const options = buildOptions() as never;
 
