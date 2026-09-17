@@ -297,10 +297,15 @@ export function RemindersScreen({
             <ColorRow value={color} onChange={setColor} label="צבע התזכורת" />
           </div>
 
+          {/*
+            אין כאן "בלי תאריך": זו ברירת המחדל ממילא, וצ׳יפ שמסמן את
+            מצב המנוחה תפס רבע מהשורה כדי לומר מה שכבר נכון. במקומו יושב
+            המוצא לעורך המלא. ההקשה על הצ׳יפ הנבחר מבטלת אותו וחוזרת
+            לבלי תאריך - בלעדיה לא הייתה שום דרך לחזור.
+          */}
           <div className="flex items-center gap-1.5 px-0.5 pt-2">
             {(
               [
-                ['none', 'בלי תאריך'],
                 ['today', 'היום'],
                 ['tomorrow', 'מחר'],
               ] as const
@@ -310,14 +315,11 @@ export function RemindersScreen({
                 type="button"
                 onClick={() => {
                   void haptic('light');
-                  chooseSlot(
-                    id,
-                    id === 'today'
-                      ? dateKey(now)
-                      : id === 'tomorrow'
-                        ? dateKey(addDays(now, 1))
-                        : null,
-                  );
+                  if (slot === id) {
+                    chooseSlot('none', null);
+                    return;
+                  }
+                  chooseSlot(id, id === 'today' ? dateKey(now) : dateKey(addDays(now, 1)));
                 }}
                 aria-pressed={slot === id}
                 className={`focus-ring flex-1 whitespace-nowrap rounded-lg py-1.5 text-caption font-medium transition-colors ${
@@ -329,9 +331,16 @@ export function RemindersScreen({
             ))}
             <button
               type="button"
-              onClick={() => setPickerOpen(true)}
+              onClick={() => {
+                void haptic('light');
+                if (slot === 'pick') {
+                  chooseSlot('none', null);
+                  return;
+                }
+                setPickerOpen(true);
+              }}
               aria-pressed={slot === 'pick'}
-              aria-label="בחירת תאריך"
+              aria-label={slot === 'pick' ? 'ביטול התאריך' : 'בחירת תאריך'}
               className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption font-medium transition-colors ${
                 slot === 'pick' ? 'bg-brand text-white' : 'bg-well text-muted'
               }`}
@@ -339,14 +348,28 @@ export function RemindersScreen({
               <CalendarPlus size={ICON.xs} strokeWidth={STROKE} />
               {slot === 'pick' && picked ? relativeShort(picked) : ''}
             </button>
+
+            {/*
+              המוצא לעורך המלא. ההוספה כאן היא שורה אחת, ומה שדורש מקום,
+              הערות, חזרה או התראה מוקדמת ממשיך לשם עם מה שכבר הוקלד.
+            */}
+            <button
+              type="button"
+              onClick={openMore}
+              className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg bg-well px-2.5 py-1.5 text-caption font-medium text-muted"
+            >
+              <SlidersHorizontal size={ICON.xs} strokeWidth={STROKE} />
+              עוד
+            </button>
           </div>
 
           {/*
             שורת השעה מופיעה רק כשיש יום לתלות אותה בו. "בלי תאריך" עם
-            שעה הוא סתירה, ולהראות שם שדה מעומעם זה להזמין ניסיון.
+            שעה הוא סתירה, ולהראות שם שדה מעומעם זה להזמין ניסיון. ללא
+            יום היא נסגרת לגמרי, ולא משאירה שורה ריקה מתחת לצ׳יפים.
           */}
-          <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-1.5">
-            {slot !== 'none' && (
+          {slot !== 'none' && (
+            <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-1.5">
               <div
                 className={`flex items-center overflow-hidden rounded-lg ${
                   time ? 'bg-brand text-white' : 'bg-well text-muted'
@@ -379,21 +402,8 @@ export function RemindersScreen({
                   </button>
                 )}
               </div>
-            )}
-
-            {/*
-              המוצא לעורך המלא. ההוספה כאן היא שורה אחת, ומה שדורש מקום,
-              הערות, חזרה או התראה מוקדמת ממשיך לשם עם מה שכבר הוקלד.
-            */}
-            <button
-              type="button"
-              onClick={openMore}
-              className="focus-ring ms-auto flex shrink-0 items-center gap-1.5 rounded-lg bg-well px-2.5 py-1.5 text-caption font-medium text-muted"
-            >
-              <SlidersHorizontal size={ICON.xs} strokeWidth={STROKE} />
-              עוד אפשרויות
-            </button>
-          </div>
+            </div>
+          )}
         </motion.div>
       </div>
 
