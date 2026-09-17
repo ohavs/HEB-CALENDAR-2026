@@ -28,6 +28,7 @@ import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { LocationPicker } from './LocationPicker';
 import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
+import { shiftEndWithStart } from '@/lib/reminderCompose';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Segmented, Toggle } from './ui/controls';
@@ -79,6 +80,18 @@ function ToggleRow({
 const DEFAULT_START = '09:00';
 /** משך האירוע החדש, בדקות */
 const DEFAULT_LENGTH = 60;
+/** הדקה האחרונה ביממה. סיום אינו גולש ליום הבא. */
+const LAST_MINUTE = 23 * 60 + 59;
+
+/**
+ * הסיום שנגזר מהתחלה.
+ *
+ * מקור אחד, כי קודם היה כאן `'10:00'` כתוב ביד בתוך ה-JSX - ולכן אירוע
+ * שהתחיל ב-14:00 הציג סיום ב-10:00, שעות לפני שהתחיל.
+ */
+function defaultEndFor(start: string): string {
+  return minutesToTime(Math.min(LAST_MINUTE, timeToMinutes(start) + DEFAULT_LENGTH));
+}
 
 function emptyDraft(date: DateKey, color: EventColor, startTime?: string): EventDraft {
   const start = startTime ?? DEFAULT_START;
@@ -87,7 +100,7 @@ function emptyDraft(date: DateKey, color: EventColor, startTime?: string): Event
     date,
     startTime: start,
     // 23:00 + שעה אינו 24:00 - נעצרים בסוף היממה ולא גולשים ליום הבא
-    endTime: minutesToTime(Math.min(23 * 60 + 59, timeToMinutes(start) + DEFAULT_LENGTH)),
+    endTime: defaultEndFor(start),
     allDay: false,
     location: '',
     notes: '',
@@ -102,6 +115,7 @@ export function EventEditor({
   onClose,
   date,
   startTime,
+  prefill,
   editing,
 }: {
   open: boolean;
@@ -116,6 +130,14 @@ export function EventEditor({
    * הראה באצבע. השדה נשאר לעריכה כרגיל.
    */
   startTime?: string;
+  /**
+   * טיוטה שהגיעה מוכנה מהוספה מהירה.
+   *
+   * ההוספה במסך התזכורות היא שורה אחת, ומי שצריך יותר ממנה ממשיך לכאן.
+   * היא מוסרת את מה שכבר הוקלד במקום לשמור ואז לפתוח לעריכה - אחרת
+   * ביטול היה משאיר אחריו תזכורת שאיש לא ביקש.
+   */
+  prefill?: EventDraft | null;
   /** אירוע קיים לעריכה, או null ליצירה */
   editing: Occurrence | UserEvent | null;
 }) {
@@ -145,11 +167,20 @@ export function EventEditor({
     setAskScope(null);
     setLocationOpen(false);
     if (editing) {
+      const start = editing.startTime ?? DEFAULT_START;
       setDraft({
         title: editing.title,
         date: editing.date,
-        startTime: editing.startTime,
-        endTime: editing.endTime,
+        /*
+          תזכורת נשמרת בלי שעות (`allDay`), אבל שדות השעה מציגים ערך גם
+          אז - מעומעמים. כשהטיוטה נשארה `null` השניים נפרדו: הכיבוי של
+          "כל היום" חשף 09:00 ו-10:00 שאינם קיימים באמת, ולכן שינוי
+          ההתחלה לא הזיז את הסיום - הוא נשאר על אותה עשר קבועה. הטיוטה
+          מקבלת שעות אמיתיות כבר בפתיחה, ו-`payloadOf` מאפס אותן בחזרה
+          כשהמתג דלוק.
+        */
+        startTime: start,
+        endTime: editing.endTime ?? defaultEndFor(start),
         allDay: editing.allDay,
         location: editing.location ?? '',
         placeId: editing.placeId,
@@ -161,9 +192,9 @@ export function EventEditor({
         endDate: editing.endDate,
       });
     } else {
-      setDraft(emptyDraft(date, settings.defaultEventColor, startTime));
+      setDraft(prefill ?? emptyDraft(date, settings.defaultEventColor, startTime));
     }
-  }, [open, editing, date, startTime, settings.defaultEventColor]);
+  }, [open, editing, date, startTime, prefill, settings.defaultEventColor]);
 
   const patch = (values: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...values }));
 
@@ -265,14 +296,18 @@ export function EventEditor({
   const spanDays = spanLengthOf({ date: draft.date, endDate: draft.endDate });
   const spanHint = multiDay ? `${spanDays} ימים` : '';
 
-  /** שינוי שעת ההתחלה מזיז גם את שעת הסיום, כדי לשמור על המשך */
+  /**
+   * שינוי שעת ההתחלה מזיז גם את שעת הסיום, כדי לשמור על המשך.
+   *
+   * הנפילה לאחור היא בדיוק זו של השדות, כדי שהחישוב ייעשה על מה
+   * שהמשתמש רואה. `minutesToTime` מגלגל מודולו יממה, ולכן בלי התקרה
+   * אירוע ב-22:00 באורך שלוש שעות היה מקבל סיום ב-01:00 - כלומר לפני
+   * שהתחיל.
+   */
   const onStartChange = (value: string) => {
-    if (!draft.startTime || !draft.endTime) {
-      patch({ startTime: value });
-      return;
-    }
-    const delta = timeToMinutes(draft.endTime) - timeToMinutes(draft.startTime);
-    patch({ startTime: value, endTime: minutesToTime(timeToMinutes(value) + Math.max(0, delta)) });
+    const from = draft.startTime ?? DEFAULT_START;
+    const end = draft.endTime ?? defaultEndFor(from);
+    patch({ startTime: value, endTime: shiftEndWithStart(from, end, value) });
   };
 
   return (
@@ -396,7 +431,15 @@ export function EventEditor({
           icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
           label="כל היום"
           checked={draft.allDay}
-          onChange={(allDay) => patch({ allDay })}
+          onChange={(allDay) => {
+            // כיבוי המתג הופך את מה שהשדות הראו לערך אמיתי בטיוטה
+            if (allDay) {
+              patch({ allDay });
+              return;
+            }
+            const start = draft.startTime ?? DEFAULT_START;
+            patch({ allDay, startTime: start, endTime: draft.endTime ?? defaultEndFor(start) });
+          }}
         />
 
         {/*
@@ -425,7 +468,7 @@ export function EventEditor({
           <div className="flex-1">
             <TimeField
               label="סיום"
-              value={draft.endTime ?? '10:00'}
+              value={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
               onChange={(endTime: string) => patch({ endTime })}
               variant="row"
             />

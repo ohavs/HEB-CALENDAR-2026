@@ -30,7 +30,7 @@ import { startSync } from '@/lib/sync';
 import { saveItem as saveSharedItem, startShared, stopShared } from '@/lib/sharedSync';
 import { syncPushToken } from '@/lib/pushTokens';
 import { onPushOpened } from '@/lib/native';
-import { useEvents, useEventsStore } from '@/store/events';
+import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import { haptic, initNative, isNative, paintNativeChrome } from '@/lib/native';
 import {
@@ -78,6 +78,8 @@ type EditorState = {
   editing: Occurrence | UserEvent | null;
   /** שעת פתיחה לאירוע חדש, כשההקשה כבר אמרה אותה (תא בתצוגת שבוע) */
   startTime?: string;
+  /** טיוטה שהגיעה מההוספה המהירה במסך התזכורות */
+  prefill?: EventDraft | null;
 };
 
 export default function App() {
@@ -578,6 +580,16 @@ export default function App() {
     setEditor({ open: true, date, editing: null, startTime });
   }, []);
 
+  /**
+   * המשך של הוספה מהירה בעורך המלא.
+   *
+   * הטיוטה נוסעת כמות שהיא ואינה נשמרת בדרך: מי שיסגור את העורך לא
+   * ימצא אחר כך תזכורת חצי־מוכנה ברשימה.
+   */
+  const openEditorWith = useCallback((draft: EventDraft) => {
+    setEditor({ open: true, date: draft.date, editing: null, prefill: draft });
+  }, []);
+
   const findShared = useFindShared();
 
   /** פותח את העורך על מופע או על תזכורת בלי תאריך. */
@@ -683,6 +695,7 @@ export default function App() {
               <RemindersScreen
                 onEditEvent={editAnything}
                 onDeleteEvent={setPendingTrash}
+          onComposeMore={openEditorWith}
                 composeOnMount={composeReminder}
                 viewOverride={remindersView}
                 onPlaceTemplate={placeTemplateOn}
@@ -762,6 +775,7 @@ export default function App() {
         onClose={() => setEditor((e) => ({ ...e, open: false }))}
         date={editor.date}
         startTime={editor.startTime}
+        prefill={editor.prefill}
         editing={editor.editing}
       />
 
