@@ -48,6 +48,7 @@ type Form = {
 
 export function SharedItemSheet({
   open,
+  draft = false,
   onClose,
   list,
   item,
@@ -56,6 +57,14 @@ export function SharedItemSheet({
   onClose: () => void;
   list: SharedList;
   item: SharedItem | null;
+  /**
+   * הפריט עדיין אינו בענן - הוא הגיע מההוספה המהירה ונשמר רק ב"שמירה".
+   *
+   * שני הבדלים נגזרים מזה: "להסתיר מהלוח שלי" כותבת לנתיב של מסמך
+   * שאינו קיים, ולכן היא אינה מוצגת; והשאלה לפני יציאה נמדדת מול טופס
+   * ריק, כי כאן *כל* מה שבטופס הוא מה שהמשתמש הקליד וטרם נשמר.
+   */
+  draft?: boolean;
 }) {
   const uid = useAuthStore((s) => s.user?.uid ?? null);
   const [title, setTitle] = useState('');
@@ -91,8 +100,8 @@ export function SharedItemSheet({
     setCategory(loaded.category);
     setBusy(false);
     setConfirmDiscard(false);
-    baseline.current = loaded;
-  }, [open, item]);
+    baseline.current = draft ? { ...loaded, title: '' } : loaded;
+  }, [open, item, draft]);
 
   /*
     שער היציאה. `Sheet` קורא לו בכל ארבעת המוצאים, ולכן די באחד.
@@ -154,7 +163,7 @@ export function SharedItemSheet({
       subtitle={list.name}
       footer={
         <PrimaryButton onClick={save} disabled={busy || !title.trim()}>
-          {!title.trim() ? 'צריך שם לפריט' : 'שמירה'}
+          {!title.trim() ? 'צריך שם לפריט' : draft ? 'הוספה לרשימה' : 'שמירה'}
         </PrimaryButton>
       }
     >
@@ -230,6 +239,7 @@ export function SharedItemSheet({
               הפעולה האישית היחידה במסך, ולכן היא מופרדת ומנוסחת בגוף
               ראשון. "אצלי בלבד" הוא כל ההבדל בינה לבין מחיקה.
             */}
+            {!draft && (
             <motion.button
               type="button"
               whileTap={TAP_SCALE}
@@ -250,6 +260,7 @@ export function SharedItemSheet({
                 </span>
               </span>
             </motion.button>
+            )}
           </>
         )}
       </div>
@@ -261,7 +272,11 @@ export function SharedItemSheet({
           setConfirmDiscard(false);
           onClose();
         }}
-        hint="השינויים בפריט המשותף עוד לא נשמרו, ושאר החברים לא יראו אותם"
+        hint={
+          draft
+            ? 'הפריט עוד לא נוסף לרשימה, ואיש מהחברים אינו רואה אותו'
+            : 'השינויים בפריט המשותף עוד לא נשמרו, ושאר החברים לא יראו אותם'
+        }
       />
     </Sheet>
   );

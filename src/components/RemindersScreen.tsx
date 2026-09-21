@@ -17,22 +17,11 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Bell,
-  CalendarPlus,
-  Check,
-  Clock,
-  MapPin,
-  Plus,
-  Repeat,
-  SlidersHorizontal,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Bell, Check, MapPin, Plus, Repeat, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
-import { addDays, dateKey, keyToDate, startOfDay } from '@/lib/dates';
+import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { useRangeData } from '@/hooks/useMonthData';
@@ -43,8 +32,8 @@ import {
   useIsDraggingOccurrence,
   useIsDropTarget,
 } from '@/lib/dragEngine';
-import { DatePickerSheet, TimePickerSheet } from './ui/Picker';
-import { buildReminderDraft, suggestReminderTime } from '@/lib/reminderCompose';
+import { buildReminderDraft } from '@/lib/reminderCompose';
+import { ComposeRow, useComposeRow } from './ui/ComposeRow';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
@@ -52,9 +41,6 @@ import { Segmented } from './ui/controls';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
-
-/** מה הכפתור מציע כברירת מחדל: היום, מחר, או בלי תאריך */
-type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
 
 export function RemindersScreen({
   onEditEvent,
@@ -104,12 +90,7 @@ export function RemindersScreen({
     שממילא יושבת ב"עוד". הוא עדיין נוסע בטיוטה, ומי שרוצה אחר בוחר שם.
   */
   const [color, setColor] = useState<EventColor>(settings.defaultEventColor);
-  const [slot, setSlot] = useState<Slot>('none');
-  const [picked, setPicked] = useState<DateKey | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  /** השעה שנבחרה, או null ל"כל היום" */
-  const [time, setTime] = useState<string | null>(null);
-  const [timeOpen, setTimeOpen] = useState(false);
+  const compose = useComposeRow(now);
   /** יש מה להוסיף: רק אז נפתחות אפשרויות התאריך והכפתור */
   const composing = title.trim().length > 0;
 
@@ -128,45 +109,24 @@ export function RemindersScreen({
     if (viewOverride) setView(viewOverride);
   }, [viewOverride]);
 
-  /** התאריך שהפריט החדש יקבל, או null כשאין לו תאריך. */
-  const targetDate = (): DateKey | null => {
-    if (slot === 'none') return null;
-    if (slot === 'today') return dateKey(now);
-    if (slot === 'tomorrow') return dateKey(addDays(now, 1));
-    return picked;
-  };
-
-  /**
-   * מעבר בין ימים.
-   *
-   * יום שנבחר מקבל שעה מיד, כי תזכורת לשעה מסוימת היא המקרה הרגיל -
-   * וקודם כל תזכורת נולדה "כל היום" והמשתמש היה צריך לפתוח את העורך
-   * ולכבות מתג כדי לקבוע שעה. "בלי תאריך" מאפס אותה: שעה בלי יום אינה
-   * שעה. הבחירה הידנית גוברת - מרגע שנקבעה שעה היא אינה נדרסת במעבר בין
-   * "היום" ל"מחר".
-   */
-  const chooseSlot = (next: Slot, date: DateKey | null) => {
-    setSlot(next);
-    if (next === 'none') {
-      setTime(null);
-      return;
-    }
-    if (time === null) setTime(suggestReminderTime(now, date === dateKey(now)));
-  };
-
   /** מה שנשמר, לפי הכללים ב-`reminderCompose` - ולא לפי מה שהמסך זוכר */
   const draftOf = (): EventDraft | null => {
     const clean = title.trim();
     if (!clean) return null;
-    return buildReminderDraft({ title: clean, color, date: targetDate(), time, now });
+    return buildReminderDraft({
+      title: clean,
+      color,
+      date: compose.targetDate,
+      time: compose.time,
+      now,
+    });
   };
 
   /** אחרי הוספה או מסירה לעורך: השורה חוזרת נקייה */
   const resetCompose = () => {
     setTitle('');
     setColor(settings.defaultEventColor);
-    setSlot('none');
-    setTime(null);
+    compose.reset();
   };
 
   const submit = () => {
@@ -291,113 +251,7 @@ export function RemindersScreen({
           className="overflow-hidden"
           aria-hidden={!composing}
         >
-          {/*
-            אין כאן "בלי תאריך": זו ברירת המחדל ממילא, וצ׳יפ שמסמן את
-            מצב המנוחה תפס רבע מהשורה כדי לומר מה שכבר נכון. במקומו יושב
-            המוצא לעורך המלא. ההקשה על הצ׳יפ הנבחר מבטלת אותו וחוזרת
-            לבלי תאריך - בלעדיה לא הייתה שום דרך לחזור.
-          */}
-          <div className="flex items-center gap-1.5 px-0.5 pt-2">
-            {(
-              [
-                ['today', 'היום'],
-                ['tomorrow', 'מחר'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  void haptic('light');
-                  if (slot === id) {
-                    chooseSlot('none', null);
-                    return;
-                  }
-                  chooseSlot(id, id === 'today' ? dateKey(now) : dateKey(addDays(now, 1)));
-                }}
-                aria-pressed={slot === id}
-                className={`focus-ring flex-1 whitespace-nowrap rounded-lg py-1.5 text-caption font-medium transition-colors ${
-                  slot === id ? 'bg-brand text-white' : 'bg-well text-muted'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                void haptic('light');
-                if (slot === 'pick') {
-                  chooseSlot('none', null);
-                  return;
-                }
-                setPickerOpen(true);
-              }}
-              aria-pressed={slot === 'pick'}
-              aria-label={slot === 'pick' ? 'ביטול התאריך' : 'בחירת תאריך'}
-              className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption font-medium transition-colors ${
-                slot === 'pick' ? 'bg-brand text-white' : 'bg-well text-muted'
-              }`}
-            >
-              <CalendarPlus size={ICON.xs} strokeWidth={STROKE} />
-              {slot === 'pick' && picked ? relativeShort(picked) : ''}
-            </button>
-
-            {/*
-              המוצא לעורך המלא. ההוספה כאן היא שורה אחת, ומה שדורש מקום,
-              הערות, חזרה או התראה מוקדמת ממשיך לשם עם מה שכבר הוקלד.
-            */}
-            <button
-              type="button"
-              onClick={openMore}
-              className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg bg-well px-2.5 py-1.5 text-caption font-medium text-muted"
-            >
-              <SlidersHorizontal size={ICON.xs} strokeWidth={STROKE} />
-              עוד
-            </button>
-          </div>
-
-          {/*
-            שורת השעה מופיעה רק כשיש יום לתלות אותה בו. "בלי תאריך" עם
-            שעה הוא סתירה, ולהראות שם שדה מעומעם זה להזמין ניסיון. ללא
-            יום היא נסגרת לגמרי, ולא משאירה שורה ריקה מתחת לצ׳יפים.
-          */}
-          {slot !== 'none' && (
-            <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-1.5">
-              <div
-                className={`flex items-center overflow-hidden rounded-lg ${
-                  time ? 'bg-brand text-white' : 'bg-well text-muted'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    void haptic('light');
-                    if (time) setTimeOpen(true);
-                    else setTime(suggestReminderTime(now, targetDate() === dateKey(now)));
-                  }}
-                  className="focus-ring flex items-center gap-1.5 py-1.5 ps-2.5 pe-2 text-caption font-medium"
-                >
-                  <Clock size={ICON.xs} strokeWidth={STROKE} />
-                  {time ?? 'כל היום'}
-                </button>
-                {/* ניקוי חוזר ל"כל היום" - בלי זה אי אפשר היה לוותר על השעה */}
-                {time && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void haptic('light');
-                      setTime(null);
-                    }}
-                    aria-label="בלי שעה"
-                    className="focus-ring py-1.5 pe-2.5 ps-1"
-                  >
-                    <X size={ICON.xs} strokeWidth={2.6} />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          <ComposeRow state={compose} now={now} onMore={openMore} />
         </motion.div>
       </div>
 
@@ -431,24 +285,6 @@ export function RemindersScreen({
         )}
       </div>
 
-      <DatePickerSheet
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        title="תאריך לתזכורת"
-        value={picked ?? dateKey(now)}
-        onChange={(next) => {
-          setPicked(next);
-          chooseSlot('pick', next);
-        }}
-      />
-
-      <TimePickerSheet
-        open={timeOpen}
-        onClose={() => setTimeOpen(false)}
-        title="שעה לתזכורת"
-        value={time ?? suggestReminderTime(now, targetDate() === dateKey(now))}
-        onChange={setTime}
-      />
         </>
       )}
     </div>
@@ -463,11 +299,6 @@ function pendingLabel({ undated, today }: { undated: number; today: number }): s
   return parts.length ? parts.join(' · ') : 'אין מה לסמן היום';
 }
 
-/** "20 בספטמבר" - קצר, לצ׳יפ */
-function relativeShort(key: DateKey): string {
-  const date = keyToDate(key);
-  return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
-}
 
 /**
  * באיזה מקום בקבוצה הפריט הנגרר ייכנס.

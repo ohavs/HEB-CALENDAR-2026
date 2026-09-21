@@ -128,3 +128,44 @@ describe('pendingCount', () => {
     expect(pendingCount(out, TODAY)).toEqual({ undated: 0, today: 0 });
   });
 });
+
+describe('הבוצעו יורדות לתחתית', () => {
+  /* `done` של תזכורת בלי תאריך נשמר בחריג שממופתח בתאריך של האירוע */
+  const undatedDone = (title: string, createdAt: number) => {
+    const ev = event({ undated: true, title, createdAt });
+    return { ...ev, exceptions: { [ev.date]: { done: true } } };
+  };
+
+  it('בקבוצה בלי תאריך, מה שסומן יורד למטה', () => {
+    const titles = undatedReminders([
+      event({ undated: true, title: 'פתוחה א', createdAt: 300 }),
+      undatedDone('בוצעה', 200),
+      event({ undated: true, title: 'פתוחה ב', createdAt: 100 }),
+    ]).map((i) => i.title);
+    expect(titles).toEqual(['פתוחה א', 'פתוחה ב', 'בוצעה']);
+  });
+
+  /* אחרת הבדיקה הייתה עוברת גם אם הדגל לא נקרא כלל */
+  it('הבוצעה אכן מסומנת', () => {
+    expect(undatedReminders([undatedDone('בוצעה', 1)])[0].done).toBe(true);
+  });
+
+  /* הסדר בין הפתוחות נקבע כבר, והחלוקה אסור שתערבב אותו */
+  it('הסדר בין הפתוחות נשמר', () => {
+    const items = [
+      event({ undated: true, title: 'א', createdAt: 300 }),
+      event({ undated: true, title: 'ב', createdAt: 200 }),
+      event({ undated: true, title: 'ג', createdAt: 100 }),
+    ];
+    expect(undatedReminders(items).map((i) => i.title)).toEqual(['א', 'ב', 'ג']);
+  });
+
+  it('יותר מאחת שבוצעה - כולן למטה, בסדר ביניהן', () => {
+    const titles = undatedReminders([
+      undatedDone('בוצעה א', 400),
+      event({ undated: true, title: 'פתוחה', createdAt: 300 }),
+      undatedDone('בוצעה ב', 200),
+    ]).map((i) => i.title);
+    expect(titles).toEqual(['פתוחה', 'בוצעה א', 'בוצעה ב']);
+  });
+});

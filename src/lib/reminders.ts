@@ -86,12 +86,30 @@ function itemFromEvent(ev: UserEvent): ReminderItem {
   };
 }
 
-/** התזכורות שאינן משויכות ליום, החדשות למעלה. */
+/**
+ * מה שסומן "בוצע" יורד לתחתית הקבוצה שלו.
+ *
+ * חלוקה יציבה ולא מיון: הסדר בין הפתוחות נקבע כבר - לפי שעה ביום, לפי
+ * זמן יצירה בקבוצה שאין לה תאריך - ומיון לפי `done` היה מערבב אותו.
+ * מה שנשאר לעשות מבקש את תשומת הלב, ומה שנגמר רק צריך להיות נגיש
+ * לביטול.
+ *
+ * מחזירה את המערך עצמו כשאין מה להזיז, כדי לא ליצור זהות חדשה בכל ציור.
+ */
+function sinkDone(items: ReminderItem[]): ReminderItem[] {
+  const open = items.filter((i) => !i.done);
+  if (open.length === items.length) return items;
+  return [...open, ...items.filter((i) => i.done)];
+}
+
+/** התזכורות שאינן משויכות ליום, החדשות למעלה והבוצעו בתחתית. */
 export function undatedReminders(events: UserEvent[]): ReminderItem[] {
-  return events
-    .filter((ev) => ev.undated && !ev.deleted)
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .map(itemFromEvent);
+  return sinkDone(
+    events
+      .filter((ev) => ev.undated && !ev.deleted)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(itemFromEvent),
+  );
 }
 
 /**
@@ -126,7 +144,7 @@ export function buildReminderGroups(
   for (let i = 0; i < horizon; i += 1) {
     const date = addDays(from, i);
     const key = dateKey(date);
-    const items = (occurrences.get(key) ?? []).map(itemFromOccurrence);
+    const items = sinkDone((occurrences.get(key) ?? []).map(itemFromOccurrence));
     if (!items.length && key !== todayKey) continue;
     groups.push({
       key,

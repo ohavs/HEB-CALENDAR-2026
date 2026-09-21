@@ -141,16 +141,44 @@ public class WidgetActionReceiver extends BroadcastReceiver {
                 JSONObject group = groups.optJSONObject(g);
                 JSONArray items = group == null ? null : group.optJSONArray("items");
                 if (items == null) continue;
+                boolean hit = false;
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject item = items.optJSONObject(i);
                     if (item == null || !ref.equals(item.optString("id"))) continue;
                     if (done) item.put("done", true);
                     else item.remove("done");
+                    hit = true;
+                }
+                if (hit) {
                     found = true;
+                    group.put("items", sinkDone(items));
                 }
             }
         }
         return found;
+    }
+
+    /**
+     * מה שסומן "בוצע" יורד לתחתית הקבוצה, בדיוק כמו במסך.
+     *
+     * הסידור נעשה כאן ולא רק באפליקציה, כי הוידג׳ט מצייר את תמונת המצב
+     * שלו מיד - ובלי זה הפריט היה נשאר במקומו עד הפעם הבאה שהאפליקציה
+     * עולה, בזמן שבמסך הוא כבר ירד.
+     *
+     * ביטול סימון מחזיר את הפריט לסוף הפתוחות ולא למקומו המקורי, שכבר
+     * אינו ידוע כאן. הפרסום הבא מהאפליקציה מיישר את זה.
+     */
+    private static JSONArray sinkDone(JSONArray items) {
+        JSONArray open = new JSONArray();
+        JSONArray done = new JSONArray();
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            if (item.optBoolean("done", false)) done.put(item);
+            else open.put(item);
+        }
+        for (int i = 0; i < done.length(); i++) open.put(done.optJSONObject(i));
+        return open;
     }
 
     /**

@@ -41,6 +41,8 @@ import { ListManagerSheet } from './ListManagerSheet';
 import { ConfirmDeleteSheet } from './ConfirmDeleteSheet';
 import { SharedItemSheet } from './SharedItemSheet';
 import { ListPickerSheet } from './ListPickerSheet';
+import { ComposeRow, useComposeRow } from './ui/ComposeRow';
+import { buildReminderDraft } from '@/lib/reminderCompose';
 import { PrimaryButton } from './ui/controls';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
@@ -70,10 +72,12 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
   const [pendingDelete, setPendingDelete] = useState<ReminderItem | null>(null);
   /** הפריט שפתוח לעריכה. שיבוץ התאריך קורה שם. */
   const [editing, setEditing] = useState<SharedItem | null>(null);
+  /** האם מה שפתוח הוא טיוטה שטרם נשמרה, שהגיעה מ"עוד" */
+  const [editingDraft, setEditingDraft] = useState(false);
   const [busy, setBusy] = useState(false);
-
   const now = useMemo(() => new Date(), []);
   const todayKey = dateKey(now);
+  const compose = useComposeRow(now);
   const range = useRangeData(startOfDay(now), addDays(now, 120));
 
   const allItems = useMemo(() => (list ? (itemsByList[list.id] ?? []) : []), [itemsByList, list]);
@@ -106,34 +110,72 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
     );
   }
 
-  const submit = async () => {
+  /**
+   * הפריט שייווצר, לפי אותם כללים של התזכורת האישית.
+   *
+   * `buildReminderDraft` הוא המקור: פריט משותף הוא `UserEvent` בתוספת
+   * שיוך, ולכן השאלה "יש יום? יש שעה?" נענית שם בדיוק אותו דבר. שני
+   * חישובים נפרדים היו נפרדים גם בתוצאה.
+   */
+  const draftItem = (): SharedItem | null => {
     const clean = title.trim();
-    if (!clean || !list || busy) return;
-    setBusy(true);
-    const item: SharedItem = {
-      id: newId(),
+    if (!clean || !list) return null;
+    const draft = buildReminderDraft({
       title: clean,
-      date: todayKey,
-      startTime: null,
-      endTime: null,
-      allDay: true,
       color: list.color ?? settings.defaultEventColor,
-      reminderMinutes: null,
-      repeat: 'none',
-      undated: true,
+      date: compose.targetDate,
+      time: compose.time,
+      now,
+    });
+    return {
+      ...draft,
+      id: newId(),
       categoryId: category && category !== 'none' ? category : undefined,
       createdBy: user.uid,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
+  };
+
+  const resetCompose = () => {
+    setTitle('');
+    compose.reset();
+  };
+
+  const submit = async () => {
+    const item = draftItem();
+    if (!item || !list || busy) return;
+    setBusy(true);
     try {
       await saveItem(list.id, item);
-      setTitle('');
+      resetCompose();
       void haptic('medium');
-      announce('נוסף לרשימה המשותפת');
+      announce(
+        item.undated
+          ? 'נוסף לרשימה המשותפת'
+          : item.startTime
+            ? `נוסף לרשימה המשותפת, ל-${item.startTime}`
+            : 'נוסף לרשימה המשותפת, עם תאריך',
+      );
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * מסירה לעורך המלא בלי לשמור קודם.
+   *
+   * הפריט עדיין אינו בענן, ולכן ביטול אינו משאיר אחריו כלום אצל שאר
+   * החברים - וזה חשוב כאן יותר מאשר ברשימה האישית: שם רק המשתמש עצמו
+   * היה רואה חצי פריט, כאן כולם.
+   */
+  const openMore = () => {
+    const item = draftItem();
+    if (!item) return;
+    resetCompose();
+    void haptic('light');
+    setEditingDraft(true);
+    setEditing(item);
   };
 
   const addList = async () => {
@@ -364,6 +406,13 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 )}
               </AnimatePresence>
             </div>
+
+            {/*
+              אותה שורה בדיוק כמו ברשימה האישית, ומאותו רכיב. קודם אפשר
+              היה להכניס כאן רק טקסט, וכל פריט נולד בלי תאריך - שיבוץ
+              ליום דרש לשמור, לפתוח את הפריט, ולערוך.
+            */}
+            {title.trim() && <ComposeRow state={compose} now={now} onMore={openMore} />}
           </div>
 
           {/* ---------------------------- הרשימה ---------------------------- */}
@@ -395,7 +444,11 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                                 )
                           }
                           onDelete={setPendingDelete}
-                          onOpen={setEditing}
+                          onOpen={(it) => {
+                            // פריט מהרשימה קיים בענן, ולכן אינו טיוטה
+                            setEditingDraft(false);
+                            setEditing(it);
+                          }}
                         />
                       ))}
                     </div>
@@ -431,9 +484,13 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
       {list && (
         <SharedItemSheet
           open={Boolean(editing)}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setEditingDraft(false);
+          }}
           list={list}
           item={editing}
+          draft={editingDraft}
         />
       )}
 
