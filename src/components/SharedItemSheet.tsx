@@ -12,7 +12,7 @@
  * 3. **מחיקה היא לכולם.** היא יושבת בשורה של הפריט ולא כאן, כי
  *    המרחק בינה לבין "הסתרה אצלי" חייב להיות ברור.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Clock, EyeOff, Tag, Users } from 'lucide-react';
 import type { EventColor } from '@/types';
@@ -29,9 +29,22 @@ import { DateField, SelectField, TextField, TimeField } from './ui/fields';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
+import { isDraftDirty } from '@/lib/draftDirty';
+import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
 
 /** ברירת מחדל לשעה, כשמדליקים שעה לפריט שלא הייתה לו */
 const DEFAULT_TIME = '09:00';
+
+/** מה שהטופס מחזיק, במקום אחד - כדי שיהיה מה להשוות בסגירה */
+type Form = {
+  title: string;
+  dated: boolean;
+  date: string;
+  timed: boolean;
+  time: string;
+  color: EventColor;
+  category: string;
+};
 
 export function SharedItemSheet({
   open,
@@ -53,18 +66,44 @@ export function SharedItemSheet({
   const [color, setColor] = useState<EventColor>('violet');
   const [category, setCategory] = useState('none');
   const [busy, setBusy] = useState(false);
+  /** השאלה לפני יציאה שמאבדת את מה שנערך */
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  /** הטופס כפי שנפתח, להשוואה. ראו `ConfirmDiscardSheet`. */
+  const baseline = useRef<Form | null>(null);
 
   useEffect(() => {
     if (!open || !item) return;
-    setTitle(item.title);
-    setDated(!item.undated);
-    setDate(item.date);
-    setTimed(Boolean(item.startTime));
-    setTime(item.startTime ?? DEFAULT_TIME);
-    setColor(item.color);
-    setCategory(item.categoryId ?? 'none');
+    const loaded: Form = {
+      title: item.title,
+      dated: !item.undated,
+      date: item.date,
+      timed: Boolean(item.startTime),
+      time: item.startTime ?? DEFAULT_TIME,
+      color: item.color,
+      category: item.categoryId ?? 'none',
+    };
+    setTitle(loaded.title);
+    setDated(loaded.dated);
+    setDate(loaded.date);
+    setTimed(loaded.timed);
+    setTime(loaded.time);
+    setColor(loaded.color);
+    setCategory(loaded.category);
     setBusy(false);
+    setConfirmDiscard(false);
+    baseline.current = loaded;
   }, [open, item]);
+
+  /*
+    שער היציאה. `Sheet` קורא לו בכל ארבעת המוצאים, ולכן די באחד.
+    השמירה אינה עוברת כאן - היא קוראת ל-`onClose` בעצמה.
+  */
+  const beforeClose = useCallback((): boolean => {
+    const current: Form = { title, dated, date, timed, time, color, category };
+    if (!baseline.current || !isDraftDirty(current, baseline.current)) return true;
+    setConfirmDiscard(true);
+    return false;
+  }, [title, dated, date, timed, time, color, category]);
 
   if (!item) return null;
 
@@ -109,6 +148,7 @@ export function SharedItemSheet({
     <Sheet
       open={open}
       onClose={onClose}
+      beforeClose={beforeClose}
       size="tall"
       title="פריט משותף"
       subtitle={list.name}
@@ -213,6 +253,16 @@ export function SharedItemSheet({
           </>
         )}
       </div>
+
+      <ConfirmDiscardSheet
+        open={confirmDiscard}
+        onKeepEditing={() => setConfirmDiscard(false)}
+        onDiscard={() => {
+          setConfirmDiscard(false);
+          onClose();
+        }}
+        hint="השינויים בפריט המשותף עוד לא נשמרו, ושאר החברים לא יראו אותם"
+      />
     </Sheet>
   );
 }

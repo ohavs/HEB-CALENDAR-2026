@@ -3,7 +3,7 @@
  * כל שדה שבוחרים בו ערך (תאריך, שעות, חזרה, תזכורת) פותח בורר משלנו
  * ולא פקד מובנה של הדפדפן, כדי לשמור על מראה אחיד בכל מכשיר.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bell,
@@ -25,10 +25,12 @@ import {
   type EventDraft,
 } from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
+import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
 import { LocationPicker } from './LocationPicker';
 import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { shiftEndWithStart } from '@/lib/reminderCompose';
+import { isDraftDirty } from '@/lib/draftDirty';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Segmented, Toggle } from './ui/controls';
@@ -148,6 +150,15 @@ export function EventEditor({
     emptyDraft(date, settings.defaultEventColor, startTime),
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** השאלה לפני יציאה שמאבדת את מה שמולא */
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  /**
+   * הטופס כפי שנפתח, להשוואה.
+   *
+   * ב-ref ולא ב-state: הוא נקבע פעם אחת בפתיחה ואינו משתתף בציור, ולכן
+   * `setState` עליו היה רק רינדור מיותר.
+   */
+  const baseline = useRef<EventDraft | null>(null);
   /** איזו שאלת היקף פתוחה, כשעורכים מופע בתוך סדרה חוזרת */
   const [askScope, setAskScope] = useState<'save' | 'delete' | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -166,9 +177,10 @@ export function EventEditor({
     setConfirmDelete(false);
     setAskScope(null);
     setLocationOpen(false);
+    setConfirmDiscard(false);
     if (editing) {
       const start = editing.startTime ?? DEFAULT_START;
-      setDraft({
+      const loaded: EventDraft = {
         title: editing.title,
         date: editing.date,
         /*
@@ -190,9 +202,21 @@ export function EventEditor({
         reminderMinutes: editing.reminderMinutes,
         repeat: editing.repeat,
         endDate: editing.endDate,
-      });
+      };
+      setDraft(loaded);
+      /*
+        על אירוע קיים הבסיס הוא מה שנטען, ולכן פתיחה וסגירה מיד אינה
+        נחשבת שינוי. השעות שהושלמו כאן (ראו למעלה) נכללות בבסיס בכוונה -
+        הן לא באו מהמשתמש, ואסור שהשלמה טכנית תעלה שאלה.
+      */
+      baseline.current = loaded;
     } else {
       setDraft(prefill ?? emptyDraft(date, settings.defaultEventColor, startTime));
+      /*
+        על אירוע חדש הבסיס הוא הטופס הריק - גם כשהגיעה טיוטה מוכנה
+        מההוספה המהירה. מה שהוקלד שם הוא בדיוק המידע שאסור לאבד בשקט.
+      */
+      baseline.current = emptyDraft(date, settings.defaultEventColor, startTime);
     }
   }, [open, editing, date, startTime, prefill, settings.defaultEventColor]);
 
@@ -304,6 +328,19 @@ export function EventEditor({
    * אירוע ב-22:00 באורך שלוש שעות היה מקבל סיום ב-01:00 - כלומר לפני
    * שהתחיל.
    */
+  /**
+   * שער היציאה.
+   *
+   * `Sheet` קורא לו בכל ארבעת המוצאים - גרירה למטה, הקשה על הרקע, Esc
+   * וכפתור החזרה - ולכן די בשער אחד. שמירה ומחיקה אינן עוברות כאן: הן
+   * קוראות ל-`onClose` ישירות, ואין להן מה לאבד.
+   */
+  const beforeClose = useCallback((): boolean => {
+    if (!baseline.current || !isDraftDirty(draft, baseline.current)) return true;
+    setConfirmDiscard(true);
+    return false;
+  }, [draft]);
+
   const onStartChange = (value: string) => {
     const from = draft.startTime ?? DEFAULT_START;
     const end = draft.endTime ?? defaultEndFor(from);
@@ -314,6 +351,7 @@ export function EventEditor({
     <Sheet
       open={open}
       onClose={onClose}
+      beforeClose={beforeClose}
       size="tall"
       title={editing ? 'עריכת אירוע' : 'אירוע חדש'}
       subtitle={`${dayTitleLabel(eventDate)} · ${hebrew.day} ב${hebrew.month}`}
@@ -559,6 +597,20 @@ export function EventEditor({
         occurrenceHint={`השינוי יחול רק על ${dayTitleLabel(eventDate)}`}
         seriesLabel="כל הסדרה"
         seriesHint="השינוי יחול על כל המופעים, כולל אלה שכבר עברו"
+      />
+
+      <ConfirmDiscardSheet
+        open={confirmDiscard}
+        onKeepEditing={() => setConfirmDiscard(false)}
+        onDiscard={() => {
+          setConfirmDiscard(false);
+          onClose();
+        }}
+        hint={
+          editing
+            ? 'השינויים שעשיתם באירוע הזה עוד לא נשמרו'
+            : 'האירוע הזה עוד לא נשמר'
+        }
       />
 
       <ScopeSheet

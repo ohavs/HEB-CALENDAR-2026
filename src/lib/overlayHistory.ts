@@ -18,7 +18,8 @@
  */
 import { useEffect, useRef } from 'react';
 
-type Entry = { id: number; close: () => void };
+/** `close` מחזירה false כששכבה סירבה להיסגר - למשל כי היא שאלה קודם */
+type Entry = { id: number; close: () => boolean };
 
 const stack: Entry[] = [];
 let nextId = 1;
@@ -31,7 +32,19 @@ function onPopState(): void {
     selfInitiated -= 1;
     return;
   }
-  stack.pop()?.close();
+  const entry = stack.pop();
+  if (!entry) return;
+  if (entry.close()) return;
+
+  /*
+    השכבה סירבה להיסגר - יש בה מה לאבד, והיא שאלה קודם. הרשומה חייבת
+    לחזור: ה"חזרה" כבר צרכה אותה מההיסטוריה, ובלי דחיפה מחדש הלחיצה
+    הבאה הייתה יוצאת מהאפליקציה בזמן שהגיליון עוד פתוח.
+
+    `pushState` אינו מפעיל popstate, ולכן אין כאן מה לספור ב-selfInitiated.
+  */
+  stack.push(entry);
+  window.history.pushState({ overlay: entry.id }, '');
 }
 
 function ensureListening(): void {
@@ -55,11 +68,12 @@ export function resetOverlayHistory(): void {
  * מחבר שכבה להיסטוריה.
  *
  * @param open   האם השכבה פתוחה כרגע
- * @param onClose מה לעשות כשכפתור החזרה נלחץ
+ * @param onClose מה לעשות כשכפתור החזרה נלחץ. `false` פירושו שהשכבה
+ *                בחרה להישאר פתוחה, והרשומה תידחף חזרה להיסטוריה.
  */
-export function useOverlayHistory(open: boolean, onClose: () => void): void {
+export function useOverlayHistory(open: boolean, onClose: () => boolean | void): void {
   // שומרים את הקולבק ב-ref כדי שהאפקט לא ייבנה מחדש בכל רינדור
-  const closeRef = useRef(onClose);
+  const closeRef = useRef<() => boolean | void>(onClose);
   closeRef.current = onClose;
   const activeRef = useRef<number | null>(null);
 
@@ -74,9 +88,11 @@ export function useOverlayHistory(open: boolean, onClose: () => void): void {
     stack.push({
       id,
       close: () => {
-        // מסמנים שהרשומה כבר ירדה מההיסטוריה, כדי שהניקוי לא יחזור אחורה שוב
-        activeRef.current = null;
-        closeRef.current();
+        const closed = closeRef.current() !== false;
+        // מסמנים שהרשומה ירדה מההיסטוריה רק אם באמת נסגרה. אחרת היא
+        // נדחפת חזרה ב-onPopState, והניקוי עוד יצטרך להסיר אותה.
+        if (closed) activeRef.current = null;
+        return closed;
       },
     });
     window.history.pushState({ overlay: id }, '');

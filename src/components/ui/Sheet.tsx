@@ -37,6 +37,15 @@ export type SheetProps = {
   size?: 'auto' | 'tall';
   /** תוכן נוסף בקו הכותרת (למשל כפתור עריכה) */
   headerAction?: ReactNode;
+  /**
+   * שער לפני סגירה. מחזיר `false` כדי לבטל אותה - אז על הרכיב להציג
+   * בעצמו את השאלה, ולקרוא ל-`onClose` כשתתקבל תשובה.
+   *
+   * למה כאן ולא בכל טופס בנפרד: לחלונית ארבעה מוצאים - גרירה למטה,
+   * הקשה על הרקע, Esc וכפתור החזרה של אנדרואיד - ושער שיושב על אחד
+   * מהם בלבד פשוט מעביר את אובדן המידע למוצא הבא.
+   */
+  beforeClose?: () => boolean;
   className?: string;
 };
 
@@ -50,8 +59,16 @@ export function Sheet({
   showCloseButton = true,
   size = 'auto',
   headerAction,
+  beforeClose,
   className = '',
 }: SheetProps) {
+  /** כל מוצא עובר כאן. מחזיר אם באמת נסגר, בשביל כפתור החזרה. */
+  const requestClose = useCallback((): boolean => {
+    if (beforeClose && !beforeClose()) return false;
+    onClose();
+    return true;
+  }, [beforeClose, onClose]);
+
   const controls = useDragControls();
   const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
   const reduceMotion = useReducedMotion();
@@ -85,21 +102,21 @@ export function Sheet({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') requestClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   // כפתור החזרה של אנדרואיד, והחלקת "חזרה" בדפדפן הנייד, סוגרים את
   // הגיליון במקום לצאת מהאפליקציה. כל גיליון באפליקציה עובר דרך כאן.
-  useOverlayHistory(open, onClose);
+  useOverlayHistory(open, requestClose);
 
   const onDragEnd = useCallback(
     (_: unknown, info: PanInfo) => {
-      if (info.offset.y > CLOSE_OFFSET || info.velocity.y > CLOSE_VELOCITY) onClose();
+      if (info.offset.y > CLOSE_OFFSET || info.velocity.y > CLOSE_VELOCITY) requestClose();
     },
-    [onClose],
+    [requestClose],
   );
 
   return createPortal(
@@ -115,7 +132,7 @@ export function Sheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            onClick={onClose}
+            onClick={requestClose}
           />
 
           <motion.div
@@ -151,7 +168,7 @@ export function Sheet({
                 {showCloseButton && (
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={requestClose}
                     onPointerDown={(e) => e.stopPropagation()}
                     aria-label="סגירה"
                     className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-muted transition-colors active:bg-hairline"

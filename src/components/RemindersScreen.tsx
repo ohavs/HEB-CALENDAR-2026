@@ -49,7 +49,6 @@ import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
 import { Segmented } from './ui/controls';
-import { ColorRow } from './ui/ColorRow';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
@@ -100,6 +99,10 @@ export function RemindersScreen({
 
   const [view, setView] = useState<RemindersView>(readRemindersView);
   const [title, setTitle] = useState('');
+  /*
+    הצבע אינו נבחר כאן יותר: שורת הצבעים לקחה שורה שלמה בשביל בחירה
+    שממילא יושבת ב"עוד". הוא עדיין נוסע בטיוטה, ומי שרוצה אחר בוחר שם.
+  */
   const [color, setColor] = useState<EventColor>(settings.defaultEventColor);
   const [slot, setSlot] = useState<Slot>('none');
   const [picked, setPicked] = useState<DateKey | null>(null);
@@ -288,15 +291,6 @@ export function RemindersScreen({
           className="overflow-hidden"
           aria-hidden={!composing}
         >
-          {/*
-            הצבע נבחר כאן ולא רק בעורך: תזכורת עם תאריך מופיעה על הלוח,
-            ובלי בחירה כל התזכורות היו מקבלות את אותו צבע ברירת מחדל -
-            כלומר הלוח היה חד-גוני בדיוק במקום שבו צבע הוא המידע.
-          */}
-          <div className="flex items-center justify-between gap-2 px-0.5 pt-2">
-            <ColorRow value={color} onChange={setColor} label="צבע התזכורת" />
-          </div>
-
           {/*
             אין כאן "בלי תאריך": זו ברירת המחדל ממילא, וצ׳יפ שמסמן את
             מצב המנוחה תפס רבע מהשורה כדי לומר מה שכבר נכון. במקומו יושב
