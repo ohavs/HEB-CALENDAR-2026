@@ -41,7 +41,13 @@ import type { SavedPlace } from '@/types';
 import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
 import { ICON, STROKE } from '@/lib/motion';
 import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appUpdate';
-import { isNative } from '@/lib/native';
+import {
+  geoPermission,
+  isNative,
+  openAppSettings,
+  requestGeoForeground,
+  type GeoPermission,
+} from '@/lib/native';
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
 type InstallPrompt = Event & { prompt: () => Promise<void> };
@@ -173,6 +179,25 @@ export function SettingsScreen({
 
   useEffect(() => {
     if (isNative()) void currentVersionLabel().then(setVersion);
+  }, []);
+
+  /*
+    הרשאת המיקום ברקע.
+
+    היא נבדקת ומוצגת במפורש כי הכשל שלה שקט לחלוטין: המקום נשמר, המתג
+    דלוק, וההתראה פשוט אינה מגיעה לעולם. נקראת מחדש גם בחזרה למסך, כי
+    המשתמש משנה אותה בהגדרות המערכת - מחוץ לאפליקציה.
+  */
+  const [geo, setGeo] = useState<GeoPermission | null>(null);
+  useEffect(() => {
+    if (!isNative()) return;
+    const read = () => void geoPermission().then(setGeo);
+    read();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') read();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   /** בדיקה יזומה. העדכון עצמו מוצג בגיליון שמנוהל ב-App. */
@@ -617,7 +642,7 @@ export function SettingsScreen({
       <SettingsGroup
         id="places"
         title="מקומות"
-        footer="בדפדפן הזיהוי פועל כשהאפליקציה פתוחה או פעילה ברקע. באפליקציית האנדרואיד הוא יעבוד גם כשהיא סגורה."
+        footer="באנדרואיד מערכת ההפעלה מנטרת את המקומות, ולכן ההתראה מגיעה גם כשהאפליקציה סגורה - בתנאי שהרשאת המיקום היא ״לאפשר תמיד״. בדפדפן הזיהוי פועל רק כשהאפליקציה פתוחה."
       >
         <SettingRow
           title="התראות הגעה ויציאה"
@@ -629,6 +654,38 @@ export function SettingsScreen({
             onChange={(v) => setValue('placeAlertsEnabled', v)}
           />
         </SettingRow>
+
+        {/*
+          האזהרה הזו היא כל ההבדל בין "לא עובד" לבין "אני יודע למה".
+          בלי "לאפשר תמיד" מערכת ההפעלה אינה מנטרת כשהאפליקציה סגורה,
+          וזה בדיוק הזמן שבו המשתמש בדרך - אבל שום דבר במסך לא הסגיר
+          את זה: המקום נשמר, המתג דלוק, וההתראה לא מגיעה.
+        */}
+        {settings.placeAlertsEnabled && geo && !geo.background && (
+          <SettingRow
+            title={geo.foreground ? 'צריך ״לאפשר תמיד״' : 'צריך הרשאת מיקום'}
+            hint={
+              geo.foreground
+                ? 'בהרשאת מיקום רגילה ההתראות יגיעו רק כשהאפליקציה פתוחה. בהגדרות המכשיר, תחת ״הרשאות״ ואז ״מיקום״, יש לבחור ״לאפשר תמיד״.'
+                : 'בלי הרשאת מיקום אי אפשר לזהות הגעה ויציאה.'
+            }
+            icon={<MapPinned size={ICON.lg} strokeWidth={2.1} className="text-brand" />}
+            onClick={() => {
+              /*
+                מ-API 30 אנדרואיד אינו מרשה לבקש "לאפשר תמיד" בדיאלוג -
+                רק המשתמש בוחר בה במסך ההגדרות. לכן הרשאה רגילה נשאלת
+                כאן, וההרשאה שברקע רק מופנית.
+              */
+              if (!geo.foreground) {
+                void requestGeoForeground().then(setGeo);
+                return;
+              }
+              void openAppSettings();
+            }}
+          >
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="text-faint" />
+          </SettingRow>
+        )}
 
         {settings.places.map((place) => (
           <SettingRow

@@ -61,6 +61,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    // גדרות גאוגרפיות שמערכת ההפעלה מנטרת, גם כשהאפליקציה סגורה
+    implementation "com.google.android.gms:play-services-location:21.3.0"
 }
 
 apply from: 'capacitor.build.gradle'

@@ -36,6 +36,11 @@
     <string name="widget_config_signin">התחברו באפליקציה כדי ליצור רשימה משותפת.</string>
     <string name="widget_config_pick_source">מה יוצג בוידג׳ט?</string>
 
+    <!-- ערוץ ההתראות של המקומות. חייב להיות כאן ולא רק בצד ה-web:
+         המקלט עלול לרוץ אחרי אתחול, לפני שהאפליקציה נפתחה בכלל. -->
+    <string name="channel_places">מקומות</string>
+    <string name="channel_places_desc">התראות בהגעה למקום שמור וביציאה ממנו</string>
+
     <plurals name="widget_open">
         <item quantity="one">פתוחה אחת</item>
         <item quantity="two">שתיים פתוחות</item>

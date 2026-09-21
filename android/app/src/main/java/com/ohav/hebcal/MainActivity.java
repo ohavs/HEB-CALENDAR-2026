@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(HebWidgetsPlugin.class);
         registerPlugin(HebUpdaterPlugin.class);
         registerPlugin(HebFilesPlugin.class);
+        registerPlugin(HebGeofencePlugin.class);
         super.onCreate(savedInstanceState);
 
         goEdgeToEdge();

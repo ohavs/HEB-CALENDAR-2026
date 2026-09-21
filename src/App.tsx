@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import type { DateKey, EventTemplate, UserEvent } from '@/types';
-import { eventsOnDay, type Occurrence } from '@/lib/recurrence';
+import { eventsOnDay, expandEvents, type Occurrence } from '@/lib/recurrence';
 import {
   addDays,
   addMonths,
@@ -22,7 +22,7 @@ import {
   refreshNativePermission,
   syncReminders,
 } from '@/lib/notifications';
-import { startGeofenceWatch } from '@/lib/geofence';
+import { FENCE_HORIZON_DAYS, buildFences, startGeofenceWatch } from '@/lib/geofence';
 import type { RemindersView } from '@/lib/remindersView';
 import { setCustomCity } from '@/lib/locations';
 import { initAnalytics } from '@/lib/firebase';
@@ -32,7 +32,13 @@ import { syncPushToken } from '@/lib/pushTokens';
 import { onPushOpened } from '@/lib/native';
 import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
-import { haptic, initNative, isNative, paintNativeChrome } from '@/lib/native';
+import {
+  haptic,
+  initNative,
+  isNative,
+  paintNativeChrome,
+  syncNativeGeofences,
+} from '@/lib/native';
 import {
   checkForUpdate,
   dismissUpdate,
@@ -264,7 +270,32 @@ export default function App() {
   const occurrencesRef = useRef(todayOccurrences);
   occurrencesRef.current = todayOccurrences;
 
+  /*
+    באנדרואיד מערכת ההפעלה היא שמנטרת.
+
+    `startGeofenceWatch` רץ בתוך הדף, ולכן הוא מת ברגע שהמשתמש עוזב את
+    האפליקציה - בדיוק הרגע שבו הוא יוצא לדרך. לכן שם רושמים גדרות
+    אמיתיות, שממשיכות לחיות גם כשהאפליקציה סגורה, ובדפדפן נשאר המעקב
+    בדף כי אין לו תחליף.
+
+    הרישום הוא החלפה מלאה בכל שינוי באירועים או במקומות, מאותו שיקול של
+    `scheduleNativeReminders`: הרשימה מחושבת מחדש ממילא, וניהול הפרשים
+    היה מצב נוסף שיכול להיפרד מהאמת.
+  */
+  const fences = useMemo(() => {
+    if (!settings.placeAlertsEnabled) return [];
+    const upcoming = expandEvents(events, today, addDays(today, FENCE_HORIZON_DAYS));
+    return buildFences(settings.places, [...upcoming.values()].flat(), today);
+  }, [settings.placeAlertsEnabled, settings.places, events, today]);
+
   useEffect(() => {
+    if (!isNative()) return;
+    void syncNativeGeofences(fences);
+  }, [fences]);
+
+  useEffect(() => {
+    // באנדרואיד הגדרות כבר רשומות במערכת, ומעקב בדף היה כפילות
+    if (isNative()) return;
     if (!settings.placeAlertsEnabled || settings.places.length === 0) return;
     return startGeofenceWatch({
       getPlaces: () => placesRef.current,

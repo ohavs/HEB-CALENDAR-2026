@@ -329,6 +329,79 @@ export async function watchNativePosition(
 }
 
 /* ==========================================================================
+   גדרות גאוגרפיות
+   ========================================================================== */
+
+/**
+ * מצב ההרשאות להתראות מקום.
+ *
+ * שתי שאלות ולא אחת, כי הן נכשלות אחרת: בלי `foreground` אי אפשר אפילו
+ * לשמור מקום לפי המיקום הנוכחי, ובלי `background` הכול נראה תקין -
+ * המקום נשמר, המתג דלוק, ההתראה פשוט לא מגיעה לעולם.
+ */
+export type GeoPermission = {
+  foreground: boolean;
+  background: boolean;
+  /** מ-API 30 "לאפשר תמיד" נבחרת רק במסך ההגדרות, לא בדיאלוג */
+  needsSettings: boolean;
+};
+
+const DENIED: GeoPermission = { foreground: false, background: false, needsSettings: false };
+
+async function geofencePlugin() {
+  const { registerPlugin } = await import('@capacitor/core');
+  return registerPlugin<{
+    sync(options: { fences: unknown[] }): Promise<{ registered: boolean; count: number }>;
+    check(): Promise<GeoPermission>;
+    requestForeground(): Promise<GeoPermission>;
+    openSettings(): Promise<void>;
+  }>('HebGeofence');
+}
+
+export async function geoPermission(): Promise<GeoPermission> {
+  if (!isNative()) return DENIED;
+  try {
+    return await (await geofencePlugin()).check();
+  } catch {
+    return DENIED;
+  }
+}
+
+export async function requestGeoForeground(): Promise<GeoPermission> {
+  if (!isNative()) return DENIED;
+  try {
+    return await (await geofencePlugin()).requestForeground();
+  } catch {
+    return DENIED;
+  }
+}
+
+export async function openAppSettings(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await (await geofencePlugin()).openSettings();
+  } catch {
+    /* אין מסך הגדרות - אין מה לעשות מכאן */
+  }
+}
+
+/**
+ * מוסר למערכת ההפעלה את הגדרות שיש לנטר.
+ *
+ * מחזיר אם הן באמת נרשמו. `false` פירושו שההרשאה חסרה - ואז המסך צריך
+ * להגיד את זה, כי שום דבר אחר לא יסגיר את הכשל.
+ */
+export async function syncNativeGeofences(fences: unknown[]): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const result = await (await geofencePlugin()).sync({ fences });
+    return result.registered;
+  } catch {
+    return false;
+  }
+}
+
+/* ==========================================================================
    התחברות גוגל
    ========================================================================== */
 

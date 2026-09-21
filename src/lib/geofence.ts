@@ -169,6 +169,84 @@ export function evaluatePosition(
 }
 
 /* ==========================================================================
+   גדרות שמערכת ההפעלה שומרת
+   ========================================================================== */
+
+/**
+ * גדר אחת כפי שהיא נמסרת לאנדרואיד.
+ *
+ * **הטקסט מגיע ערוך, בדיוק כמו בוידג׳ט.** מקבל הגדר הוא BroadcastReceiver
+ * שרץ כשהאפליקציה מתה לגמרי - אין שם React, אין hebcal, ואין דרך לגזור
+ * כותרת ממזהה. מה שלא נשלח כאן, לא יוצג.
+ *
+ * `date` נוסע איתה כדי שהמקלט יוכל להשוות מחרוזות ולוודא שהיום הנכון.
+ * בלי זה היינו צריכים לרשום מחדש כל בוקר, ומי שלא פתח את האפליקציה לא
+ * היה מקבל כלום.
+ */
+export type NativeFence = {
+  /** `<occurrenceId>|<kind>` - ייחודי, ומאפשר להסיר גדר בודדת */
+  id: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  kind: PlaceTrigger;
+  /** יום המופע, להשוואת מחרוזות במקלט */
+  date: string;
+  title: string;
+  body: string;
+  /** תג ההתראה, לקביעת הערוץ בצד הנייטיבי */
+  tag: string;
+};
+
+/** כמה ימים קדימה נרשמים מראש */
+export const FENCE_HORIZON_DAYS = 7;
+/** תקרה: אנדרואיד מגביל ל-100 גדרות לאפליקציה */
+const MAX_FENCES = 90;
+
+/**
+ * הגדרות שיש לרשום במערכת ההפעלה.
+ *
+ * רושמים קדימה ולא רק להיום, כי גדר נרשמת פעם אחת וחיה גם כשהאפליקציה
+ * סגורה - וזה כל העניין. המקלט מסנן לפי `date`.
+ */
+export function buildFences(
+  places: SavedPlace[],
+  occurrences: Occurrence[],
+  now = new Date(),
+): NativeFence[] {
+  const byId = new Map(places.map((p) => [p.id, p]));
+  const todayKey = dateKey(now);
+  const fences: NativeFence[] = [];
+
+  for (const occurrence of occurrences) {
+    if (!occurrence.placeId || !occurrence.placeTrigger) continue;
+    // באירוע רב־יומי דרוך רק היום הראשון, בדיוק כמו בתזכורת רגילה
+    if (occurrence.spanIndex > 0) continue;
+    if (occurrence.date < todayKey) continue;
+
+    const place = byId.get(occurrence.placeId);
+    // מקום שנמחק - האירוע נשאר, אבל אין לו על מה להצביע
+    if (!place) continue;
+
+    const kind = occurrence.placeTrigger;
+    fences.push({
+      id: `${occurrence.occurrenceId}|${kind}`,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      radius: place.radius,
+      kind,
+      date: occurrence.date,
+      title: occurrence.title,
+      body: kind === 'arrive' ? `הגעת ל${place.name}` : `יצאת מ${place.name}`,
+      tag: `place-${occurrence.occurrenceId}-${kind}`,
+    });
+    if (fences.length >= MAX_FENCES) break;
+  }
+
+  return fences;
+}
+
+/* ==========================================================================
    מעקב חי
    ========================================================================== */
 

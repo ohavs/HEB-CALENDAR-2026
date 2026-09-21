@@ -79,6 +79,28 @@
                 android:resource="@xml/widget_shared_info" />
         </receiver>
 
+        <!--
+            מקבל חציות גדר. exported=false: רק מערכת ההפעלה מפעילה אותו,
+            דרך ה-PendingIntent שנרשם איתה.
+        -->
+        <receiver
+            android:name=".GeofenceReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.ohav.hebcal.GEOFENCE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- אנדרואיד מוחק את הגדרות באתחול; כאן הן נרשמות מחדש -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".WidgetActionReceiver"
             android:exported="false">
@@ -153,6 +175,13 @@
     <!-- התראות מבוססות מקום -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!--
+      זו ההרשאה שמבדילה בין "עובד כשהאפליקציה פתוחה" לבין "עובד".
+      בלעדיה מערכת ההפעלה אינה מנטרת את הגדרות כשהאפליקציה סגורה, וזה
+      בדיוק הרגע שבו המשתמש בדרך למקום. מ-API 30 אי אפשר לבקש אותה
+      בדיאלוג - רק המשתמש בוחר "לאפשר תמיד" במסך ההגדרות.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- המיקום אינו חובה: בלעדיו הכול עובד חוץ מהתראות הגעה ויציאה -->
     <uses-feature android:name="android.hardware.location" android:required="false" />

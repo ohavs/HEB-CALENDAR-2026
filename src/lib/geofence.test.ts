@@ -6,7 +6,13 @@
  * היא נבדקת בלי דפדפן - רק עם אחסון מקומי מדומה.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { distanceMeters, evaluatePosition, isTriggerArmed, radiusLabel } from './geofence';
+import {
+  buildFences,
+  distanceMeters,
+  evaluatePosition,
+  isTriggerArmed,
+  radiusLabel,
+} from './geofence';
 import { eventsOnDay } from './recurrence';
 import { dateKey, keyToDate } from './dates';
 import type { PlaceTrigger, SavedPlace } from '@/types';
@@ -250,5 +256,62 @@ describe('radiusLabel', () => {
 
   it('כיתוב בעברית', () => {
     expect(radiusLabel(500)).toMatch(/[א-ת]/);
+  });
+});
+
+describe('buildFences', () => {
+  const TOMORROW = dateKey(new Date(2026, 8, 21, 12, 0));
+
+  it('גדר לכל מופע שמבקש התראת מקום', () => {
+    const fences = buildFences([HOME], [occurrenceAt('arrive')], NOW);
+    expect(fences).toHaveLength(1);
+    expect(fences[0]).toMatchObject({
+      latitude: HOME.latitude,
+      longitude: HOME.longitude,
+      radius: HOME.radius,
+      kind: 'arrive',
+      date: TODAY,
+      title: 'לקנות חלב',
+    });
+  });
+
+  /*
+    הטקסט נוסע ערוך כי המקלט רץ כשהאפליקציה מתה - אין שם דרך לגזור
+    שם מקום ממזהה, בדיוק כמו בוידג׳ט.
+  */
+  it('הגוף ערוך מראש, ושונה בין הגעה ליציאה', () => {
+    expect(buildFences([HOME], [occurrenceAt('arrive')], NOW)[0].body).toBe('הגעת לבית');
+    expect(buildFences([HOME], [occurrenceAt('leave')], NOW)[0].body).toBe('יצאת מבית');
+  });
+
+  it('מופע בלי התראת מקום אינו גדר', () => {
+    expect(buildFences([HOME], [occurrenceAt(undefined)], NOW)).toEqual([]);
+  });
+
+  /* רושמים קדימה: גדר חיה גם כשהאפליקציה סגורה, ולא נרשמת כל בוקר */
+  it('גם מחר נרשם מראש', () => {
+    const fences = buildFences([HOME], [occurrenceAt('arrive', { date: TOMORROW })], NOW);
+    expect(fences).toHaveLength(1);
+    expect(fences[0].date).toBe(TOMORROW);
+  });
+
+  it('יום שעבר אינו נרשם', () => {
+    const yesterday = dateKey(new Date(2026, 8, 19, 12, 0));
+    expect(buildFences([HOME], [occurrenceAt('arrive', { date: yesterday })], NOW)).toEqual([]);
+  });
+
+  /* המקום נמחק וההצבעה נשארה תלויה - אין על מה לגדר */
+  it('מקום שאינו קיים מדלג', () => {
+    expect(buildFences([], [occurrenceAt('arrive')], NOW)).toEqual([]);
+  });
+
+  it('המזהה ייחודי לכל מופע וסוג', () => {
+    const fences = buildFences(
+      [HOME],
+      [occurrenceAt('arrive'), occurrenceAt('leave', { id: 'other', title: 'אחר' })],
+      NOW,
+    );
+    expect(new Set(fences.map((f) => f.id)).size).toBe(fences.length);
+    expect(fences.every((f) => f.tag.startsWith('place-'))).toBe(true);
   });
 });
