@@ -6,7 +6,7 @@
  * מחזירה תזכורות "בלי תאריך" לתוך רשת החודש.
  */
 import { describe, expect, it } from 'vitest';
-import { buildReminderGroups, pendingCount, undatedReminders } from './reminders';
+import { buildReminderGroups, pendingCount, sweepDone, undatedReminders } from './reminders';
 import { expandEvents } from './recurrence';
 import { buildDays } from './hebrew';
 import { addDays, dateKey } from './dates';
@@ -167,5 +167,62 @@ describe('הבוצעו יורדות לתחתית', () => {
       undatedDone('בוצעה ב', 200),
     ]).map((i) => i.title);
     expect(titles).toEqual(['פתוחה', 'בוצעה א', 'בוצעה ב']);
+  });
+});
+
+describe('sweepDone', () => {
+  const NOW = new Date(2026, 8, 22, 12, 0).getTime();
+  const DAY = 24 * 60 * 60 * 1000;
+
+  /** תזכורת שסומנה כבוצעה לפני `agoMs` */
+  const marked = (agoMs: number, patch: Record<string, unknown> = {}) => {
+    const ev = event({ undated: true, title: 'בוצעה', ...patch });
+    return { ...ev, exceptions: { [ev.date]: { done: true, doneAt: NOW - agoMs } } };
+  };
+
+  it('אחרי יום נמחקת', () => {
+    expect(sweepDone([marked(DAY + 1000)], 1, NOW)).toHaveLength(1);
+  });
+
+  it('לפני שעבר יום נשארת', () => {
+    expect(sweepDone([marked(DAY / 2)], 1, NOW)).toEqual([]);
+  });
+
+  it('מה שלא סומן אינו נגוע', () => {
+    expect(sweepDone([event({ undated: true })], 1, NOW)).toEqual([]);
+  });
+
+  it('אפס ימים מכבה את הניקוי לגמרי', () => {
+    expect(sweepDone([marked(30 * DAY)], 0, NOW)).toEqual([]);
+  });
+
+  it('החלון נקבע לפי ההגדרה', () => {
+    const item = [marked(2 * DAY)];
+    expect(sweepDone(item, 1, NOW)).toHaveLength(1);
+    expect(sweepDone(item, 3, NOW)).toEqual([]);
+  });
+
+  /*
+    מחיקת סדרה בגלל מופע אחד שבוצע הייתה מוחקת גם את מה שעוד לא קרה.
+    זה הגבול החשוב ביותר כאן.
+  */
+  it('אירוע חוזר אינו נמחק', () => {
+    expect(sweepDone([marked(30 * DAY, { repeat: 'weekly' })], 1, NOW)).toEqual([]);
+  });
+
+  it('מה שכבר מסומן כמחוק אינו נספר שוב', () => {
+    expect(sweepDone([marked(30 * DAY, { deleted: true })], 1, NOW)).toEqual([]);
+  });
+
+  /* סימון שנעשה לפני שהשדה קיים - `updatedAt` הוא הקירוב */
+  it('בלי doneAt נופל ל-updatedAt', () => {
+    const ev = event({ undated: true, updatedAt: NOW - 5 * DAY });
+    const old = { ...ev, exceptions: { [ev.date]: { done: true } } };
+    expect(sweepDone([old], 1, NOW)).toEqual([ev.id]);
+  });
+
+  it('מחזיר מזהים, ולא אירועים', () => {
+    const item = marked(2 * DAY, { id: 'abc' });
+    expect(sweepDone([item], 1, NOW)).toEqual(['abc']);
   });
 });

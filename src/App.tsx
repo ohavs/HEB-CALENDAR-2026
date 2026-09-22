@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import type { DateKey, EventTemplate, UserEvent } from '@/types';
 import { eventsOnDay, expandEvents, type Occurrence } from '@/lib/recurrence';
+import { sweepDone } from '@/lib/reminders';
 import {
   addDays,
   addMonths,
@@ -254,6 +255,29 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [settings, events]);
+
+  /*
+    ניקוי מה שבוצע.
+
+    רץ בעלייה ובכל חזרה לחזית, ולא בטיימר: האפליקציה בטלפון אינה פתוחה
+    שעות, והחזרה אליה היא בדיוק הרגע שבו הרשימה נקראת. `sweepDone` הוא
+    שקובע מה נמחק, וכאן רק מיישמים.
+  */
+  const remove = useEventsStore((s) => s.remove);
+  useEffect(() => {
+    const sweep = () => {
+      const days = useSettingsStore.getState().settings.doneCleanupDays;
+      if (days <= 0) return;
+      const ids = sweepDone(Object.values(useEventsStore.getState().byId), days);
+      for (const id of ids) remove(id);
+    };
+    sweep();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') sweep();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [remove]);
 
   /* ------------------------ מיקום מדויק ומקומות ------------------------ */
   // המיקום המדויק נשמר בהגדרות; כאן רושמים אותו למודול המיקומים

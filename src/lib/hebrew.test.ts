@@ -19,6 +19,7 @@ import {
   hebrewDateAfterSunset,
   hebrewDateParts,
   hebrewMonthSpanLabel,
+  occasionLabels,
   upcomingShabbatot,
   yearHolidays,
 } from './hebrew';
@@ -421,5 +422,56 @@ describe('מטמון החישוב', () => {
     }
     // הישן ביותר נזרק, ולכן אותה בקשה תיבנה מחדש
     expect(buildDays(new Date(2020, 0, 1), new Date(2020, 0, 31), opts)).not.toBe(first);
+  });
+});
+
+/*
+  התאריכים כאן ידועים מראש ואינם פלט של הקוד: ראש השנה תשפ״ז נופל בשבת
+  ה-12 בספטמבר 2026, יום כיפור בשני ה-21 בו, וסוכות בשבת ה-26 בו.
+*/
+describe('occasionLabels', () => {
+  const from = new Date(2026, 8, 8);
+  const byStart = new Map(
+    upcomingShabbatot(from, 5, opts).map((e) => [e.startKey, e] as const),
+  );
+  const labels = (startKey: string) => {
+    const entry = byStart.get(startKey);
+    if (!entry) throw new Error(`אין רשומה שמתחילה ב-${startKey}`);
+    return occasionLabels(entry);
+  };
+
+  it('שבת רגילה - שבת בשני הצדדים', () => {
+    expect(labels('2026-09-18')).toEqual({ entry: 'כניסת השבת', exit: 'צאת השבת' });
+  });
+
+  /* יום כיפור תשפ״ז הוא יום שני, ואין בו שבת בכלל */
+  it('חג שאינו בשבת - חג בשני הצדדים', () => {
+    expect(labels('2026-09-20')).toEqual({ entry: 'כניסת החג', exit: 'צאת החג' });
+  });
+
+  /* סוכות א׳ תשפ״ז נופל בשבת: שניהם נכנסים ושניהם יוצאים יחד */
+  it('חג שנופל בשבת - שניהם, בשני הצדדים', () => {
+    expect(labels('2026-09-25')).toEqual({
+      entry: 'כניסת השבת והחג',
+      exit: 'צאת השבת והחג',
+    });
+  });
+
+  /*
+    זה המקרה שבשבילו קיים `endsHoliday`: ראש השנה תשפ״ז נכנס בערב שבת
+    ונמשך אל יום ראשון, ולכן היציאה אינה יציאת שבת. בלי ההבחנה הזו
+    הכרטיס היה אומר "צאת השבת" על מוצאי יום ראשון.
+  */
+  it('חג שנכנס בשבת ונמשך אחריה - היציאה של החג בלבד', () => {
+    expect(labels('2026-09-11')).toEqual({ entry: 'כניסת השבת והחג', exit: 'צאת החג' });
+  });
+
+  it('endsHoliday נפרד מ-isHoliday', () => {
+    const rosh = byStart.get('2026-09-11');
+    expect(rosh?.isHoliday).toBe(true);
+    expect(rosh?.endsHoliday).toBe(true);
+    const shabbat = byStart.get('2026-09-18');
+    expect(shabbat?.isHoliday).toBe(false);
+    expect(shabbat?.endsHoliday).toBe(false);
   });
 });

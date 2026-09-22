@@ -14,10 +14,10 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, EyeOff, Tag, Users } from 'lucide-react';
+import { CalendarDays, Clock, EyeOff, Tag, UserRound, Users } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
-import { isHiddenFor } from '@/lib/sharedLists';
+import { isHiddenFor, memberLabel } from '@/lib/sharedLists';
 import { saveItem, setItemHiddenForMe } from '@/lib/sharedSync';
 import { useAuthStore } from '@/store/auth';
 import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
@@ -179,6 +179,25 @@ export function SharedItemSheet({
         </p>
 
         <TextField label="שם" value={title} onChange={setTitle} placeholder="מה צריך" />
+
+        {/*
+          מי הוסיף. ברשימה שיש בה יותר מאדם אחד זו השאלה הראשונה שנשאלת
+          על פריט שלא מזהים - ועד עכשיו התשובה הייתה קיימת בנתונים
+          (`createdBy`) ולא מוצגת בשום מקום.
+
+          לא מוצג בטיוטה: פריט שטרם נוסף הוסף על ידי מי שמסתכל בו.
+        */}
+        {!draft && item.createdBy && (
+          <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-3">
+            <span className="shrink-0 text-muted">
+              <UserRound size={ICON.md} strokeWidth={STROKE} />
+            </span>
+            <span className="flex-1 text-label font-medium text-ink">נוסף על ידי</span>
+            <span className="min-w-0 truncate text-label text-muted">
+              {item.createdBy === uid ? 'אני' : memberLabel(list, item.createdBy)}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">
           <span className="shrink-0 text-label font-medium text-ink">צבע</span>

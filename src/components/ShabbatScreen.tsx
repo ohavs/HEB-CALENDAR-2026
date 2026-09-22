@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Moon, Sunset } from 'lucide-react';
-import { upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
+import { occasionLabels, upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
 import { GREG_MONTHS_HE, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
@@ -62,6 +62,11 @@ export function ShabbatScreen({
   );
 
   const [next, ...rest] = entries;
+  /*
+    הניסוח נגזר מהמועד עצמו ולא קבוע: "הדלקת נרות" ו"צאת השבת" נכתבו
+    כאן תמיד, גם על יום כיפור. ראו `occasionLabels`.
+  */
+  const nextLabels = next ? occasionLabels(next) : { entry: '', exit: '' };
 
   return (
     <div
@@ -111,7 +116,7 @@ export function ShabbatScreen({
             <div className="px-5 py-6 text-center">
               <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
                 <Sunset size={ICON.sm} strokeWidth={STROKE} className="text-[rgb(var(--c-shabbat))]" />
-                הדלקת נרות
+                {nextLabels.entry}
               </p>
               <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
                 {next.candles?.time ?? '—'}
@@ -121,7 +126,7 @@ export function ShabbatScreen({
             <div className="px-5 py-6 text-center">
               <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
                 <Moon size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
-                צאת השבת
+                {nextLabels.exit}
               </p>
               <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
                 {next.havdalah?.time ?? '—'}
@@ -183,7 +188,7 @@ export function ShabbatScreen({
                   size={ICON.sm}
                   strokeWidth={STROKE}
                   className="text-[rgb(var(--c-shabbat))]"
-                  aria-label="הדלקת נרות"
+                  aria-label={occasionLabels(entry).entry}
                 />
               </p>
               <p className="mt-1 flex items-center justify-end gap-1.5">
@@ -194,7 +199,7 @@ export function ShabbatScreen({
                   size={ICON.sm}
                   strokeWidth={STROKE}
                   className="text-brand"
-                  aria-label="יציאה והבדלה"
+                  aria-label={occasionLabels(entry).exit}
                 />
               </p>
             </div>

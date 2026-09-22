@@ -89,6 +89,14 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.sh_day, dayLine(next));
         views.setTextViewText(R.id.sh_candles, orDash(next.optString("candles")));
         views.setTextViewText(R.id.sh_havdalah, orDash(next.optString("havdalah")));
+        /*
+          התוויות מגיעות מהמטען, כי הן תלויות במועד: "כניסת השבת" מול
+          "כניסת החג". קודם היו כאן שתי מחרוזות קבועות מהפריסה, והן
+          נכתבו גם על יום כיפור. חבילה ישנה אינה שולחת אותן, ואז
+          הפריסה נשארת עם מה שכתוב בה.
+        */
+        label(views, R.id.sh_candles_label, next.optString("entryLabel"));
+        label(views, R.id.sh_havdalah_label, next.optString("exitLabel"));
         views.setTextViewText(R.id.sh_city, data.optString("city"));
         views.setOnClickPendingIntent(R.id.sh_root, CalendarWidgetProvider.openTab(context, "shabbat"));
 
@@ -152,6 +160,12 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         if (day.isEmpty()) return sub;
         if (sub.isEmpty()) return day;
         return day + " · " + sub;
+    }
+
+    /** תווית מהמטען, או מה שהפריסה קובעת כשהמטען ישן ואין בו שדה כזה. */
+    private static void label(RemoteViews views, int id, String text) {
+        if (text == null || text.isEmpty()) return;
+        views.setTextViewText(id, text);
     }
 
     private static String orDash(String value) {

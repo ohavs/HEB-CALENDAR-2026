@@ -155,8 +155,14 @@ export const useEventsStore = create<EventsStore>()(
           const existing = s.byId[id];
           if (!existing) return s;
           const next: EventException = { ...existing.exceptions?.[sourceKey] };
-          if (done) next.done = true;
-          else delete next.done;
+          if (done) {
+            next.done = true;
+            // החותמת היא מה שמאפשר לניקוי האוטומטי לדעת שעבר יום
+            next.doneAt = Date.now();
+          } else {
+            delete next.done;
+            delete next.doneAt;
+          }
 
           const exceptions = { ...existing.exceptions };
           if (Object.keys(next).length) exceptions[sourceKey] = next;

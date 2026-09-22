@@ -37,8 +37,14 @@ import { PlaceEditor } from './PlaceEditor';
 import { Avatar } from './ui/Avatar';
 import { BackupRows } from './BackupRows';
 import { radiusLabel } from '@/lib/geofence';
+import { CLEANUP_CHOICES } from '@/lib/reminders';
 import type { SavedPlace } from '@/types';
-import { NumberPickerSheet, TimePickerSheet, ValueButton } from './ui/Picker';
+import {
+  NumberPickerSheet,
+  OptionPickerSheet,
+  TimePickerSheet,
+  ValueButton,
+} from './ui/Picker';
 import { ICON, STROKE } from '@/lib/motion';
 import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appUpdate';
 import {
@@ -188,6 +194,7 @@ export function SettingsScreen({
     דלוק, וההתראה פשוט אינה מגיעה לעולם. נקראת מחדש גם בחזרה למסך, כי
     המשתמש משנה אותה בהגדרות המערכת - מחוץ לאפליקציה.
   */
+  const [cleanupOpen, setCleanupOpen] = useState(false);
   const [geo, setGeo] = useState<GeoPermission | null>(null);
   useEffect(() => {
     if (!isNative()) return;
@@ -625,6 +632,26 @@ export function SettingsScreen({
           />
         </SettingRow>
 
+        {/*
+          מחיקה אוטומטית היא פעולה שאין ממנה דרך חזרה במסך, ולכן היא
+          מוצהרת ולא שקטה. היא חלה על תזכורות שאינן חוזרות בלבד: מחיקת
+          סדרה בגלל מופע אחד שבוצע הייתה מוחקת גם את מה שעוד לא קרה.
+        */}
+        <SettingRow
+          title="מחיקת מה שבוצע"
+          hint={
+            settings.doneCleanupDays > 0
+              ? 'תזכורת שסומנה כבוצעה נמחקת מעצמה. סדרה חוזרת לא נמחקת.'
+              : 'מה שסומן כבוצע נשאר ברשימה'
+          }
+        >
+          <ValueButton
+            ariaLabel="אחרי כמה זמן למחוק"
+            value={cleanupLabel(settings.doneCleanupDays)}
+            onClick={() => setCleanupOpen(true)}
+          />
+        </SettingRow>
+
         <SettingRow
           title={testSent ? 'נשלחה התראת בדיקה' : 'שליחת התראת בדיקה'}
           icon={
@@ -778,6 +805,16 @@ export function SettingsScreen({
         </div>
       </SettingsGroup>
 
+      <OptionPickerSheet<number>
+        open={cleanupOpen}
+        onClose={() => setCleanupOpen(false)}
+        title="מחיקת מה שבוצע"
+        subtitle="אחרי כמה זמן תזכורת שסומנה נמחקת מעצמה"
+        value={settings.doneCleanupDays}
+        onChange={(v) => setValue('doneCleanupDays', v)}
+        options={CLEANUP_CHOICES.map((d) => ({ value: d, label: cleanupLabel(d) }))}
+      />
+
       <PlaceEditor
         open={placeEditor.open}
         onClose={() => setPlaceEditor((p) => ({ ...p, open: false }))}
@@ -787,6 +824,14 @@ export function SettingsScreen({
       />
     </div>
   );
+}
+
+/** "אחרי יום" / "לא למחוק" - התווית של חלון הניקוי */
+function cleanupLabel(days: number): string {
+  if (days <= 0) return 'לא למחוק';
+  if (days === 1) return 'אחרי יום';
+  if (days === 7) return 'אחרי שבוע';
+  return `אחרי ${days} ימים`;
 }
 
 /** סמל גוגל - וקטור, כדי לא לטעון תמונה חיצונית. */

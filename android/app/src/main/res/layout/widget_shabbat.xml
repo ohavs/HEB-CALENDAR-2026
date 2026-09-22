@@ -35,6 +35,7 @@
             android:paddingEnd="6dp">
 
             <TextView
+                android:id="@+id/sh_candles_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_candles"
@@ -67,6 +68,7 @@
             android:paddingEnd="6dp">
 
             <TextView
+                android:id="@+id/sh_havdalah_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/widget_havdalah"

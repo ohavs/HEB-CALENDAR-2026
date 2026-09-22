@@ -182,3 +182,45 @@ export function pendingCount(
   }
   return { undated, today };
 }
+
+/* ==========================================================================
+   ניקוי אוטומטי של מה שבוצע
+   ========================================================================== */
+
+/** כמה ימים אחרי הסימון הפריט נמחק. 0 מכבה את הניקוי. */
+export const CLEANUP_CHOICES = [0, 1, 3, 7] as const;
+export type CleanupDays = (typeof CLEANUP_CHOICES)[number];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * אילו תזכורות אפשר למחוק, אחרי שסומנו ועבר זמן.
+ *
+ * מה שבוצע לפני יומיים אינו מידע, הוא רק אורך רשימה - אבל מחיקה היא
+ * פעולה שאין ממנה דרך חזרה במסך, ולכן היא מצומצמת בכוונה:
+ *
+ * - **רק אירוע שאינו חוזר.** מחיקת סדרה בגלל שמופע אחד בוצע הייתה
+ *   מוחקת גם את כל מה שעוד לא קרה. מופע בסדרה נושר מהרשימה מעצמו
+ *   כשהיום עובר.
+ * - **רק מה שיש לו `doneAt`.** אבל סימון שנעשה לפני שהשדה קיים אינו
+ *   מאבד את תורו: `updatedAt` של האירוע הוא קירוב סביר במקרה הזה, כי
+ *   הסימון היה השינוי האחרון בו.
+ *
+ * המחיקה עצמה היא `remove` הרגיל, כלומר סימון מחיקה שמסתנכרן - ולא
+ * הסרה מקומית שהענן יחזיר.
+ */
+export function sweepDone(events: UserEvent[], days: number, now = Date.now()): string[] {
+  if (days <= 0) return [];
+  const cutoff = now - days * DAY_MS;
+  const ids: string[] = [];
+
+  for (const ev of events) {
+    if (ev.deleted || ev.repeat !== 'none') continue;
+    const exception = ev.exceptions?.[ev.date];
+    if (!exception?.done) continue;
+    const at = exception.doneAt ?? ev.updatedAt;
+    if (at <= cutoff) ids.push(ev.id);
+  }
+
+  return ids;
+}

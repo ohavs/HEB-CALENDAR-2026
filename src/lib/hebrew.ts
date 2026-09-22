@@ -413,9 +413,52 @@ export type ShabbatEntry = {
   holidays: string[];
   candles?: TimedItem;
   havdalah?: TimedItem;
-  /** יו"ט רצוף שבת (למשל שבת שהיא גם יום טוב) */
+  /** היום הראשון בטווח הוא יום טוב */
   isHoliday: boolean;
+  /**
+   * היום האחרון בטווח הוא יום טוב.
+   *
+   * נפרד מ-`isHoliday` כי הטווח יכול להיכנס כחג ולצאת כשבת, או להפך:
+   * ראש השנה תשפ״ז נכנס בערב שבת ויוצא במוצאי יום ראשון. בלי ההבחנה
+   * הזו "צאת השבת" היה מוצג על יציאה שאינה של שבת.
+   */
+  endsHoliday: boolean;
 };
+
+/** מסנן את מה שאינו יום טוב בפני עצמו: ערבי חג, ראש חודש, שבתות מיוחדות. */
+function yomTovOnly(names: string[]): string[] {
+  return names.filter(
+    (h) => !h.startsWith('ערב ') && !h.includes('ראש חודש') && !h.startsWith('שבת '),
+  );
+}
+
+/**
+ * איך קוראים לכניסה וליציאה של הטווח.
+ *
+ * עד עכשיו הכרטיס אמר "הדלקת נרות" ו"צאת השבת" תמיד - גם על יום כיפור
+ * וגם על סוכות, כלומר על רוב המועדים הוא היה שקר קטן. הניסוח נגזר ממה
+ * שבאמת נכנס באותו ערב וממה שבאמת יוצא בערב האחרון, ואלה לא בהכרח
+ * אותו דבר.
+ *
+ * זמן הכניסה נשאר זמן הדלקת הנרות, כי זה גם זמן הכניסה הנהוג, ומה
+ * שהשתנה הוא המילים. גם ביום טוב שנכנס במוצאי שבת hebcal נותן זמן
+ * הדלקה - ושם הוא זמן הכניסה.
+ */
+export function occasionLabels(entry: ShabbatEntry): { entry: string; exit: string } {
+  // הנרות נדלקים בערב, ולכן היום שנכנס הוא זה שאחרי `startDate`
+  const entersShabbat = entry.startDate.getDay() === 5;
+  const exitsShabbat = entry.endDate.getDay() === 6;
+  return {
+    entry: occasionName('כניסת', entersShabbat, entry.isHoliday),
+    exit: occasionName('צאת', exitsShabbat, entry.endsHoliday),
+  };
+}
+
+function occasionName(verb: string, shabbat: boolean, holiday: boolean): string {
+  if (shabbat && holiday) return `${verb} השבת והחג`;
+  if (holiday) return `${verb} החג`;
+  return `${verb} השבת`;
+}
 
 /**
  * מחזיר את רשימת "כניסות ויציאות" הקרובות - שבתות וימים טובים גם יחד,
@@ -481,6 +524,7 @@ export function upcomingShabbatot(
         candles: item,
         holidays: [...(holidayByKey.get(key) ?? [])],
         isHoliday: false,
+        endsHoliday: false,
       };
       entries.push(current);
     } else if (current) {
@@ -503,6 +547,8 @@ export function upcomingShabbatot(
     const opening = (holidayByKey.get(openingDayKey) ?? []).filter(
       (h) => !h.startsWith('ערב ') && !h.includes('ראש חודש'),
     );
+    // היום שבו מבדילים הוא היום האחרון בטווח, וממנו נגזר ניסוח היציאה
+    const closing = yomTovOnly(holidayByKey.get(e.endKey) ?? []);
 
     const all: string[] = [];
     for (let d = addDays(e.startDate, 1); d <= e.endDate; d = addDays(d, 1)) {
@@ -514,6 +560,7 @@ export function upcomingShabbatot(
 
     const yomTov = opening.find((h) => !h.startsWith('שבת '));
     e.isHoliday = Boolean(yomTov);
+    e.endsHoliday = closing.length > 0;
     if (yomTov) e.title = prettifyTitle(yomTov);
     else if (e.parsha) e.title = `שבת פרשת ${e.parsha}`;
     else e.title = 'שבת';

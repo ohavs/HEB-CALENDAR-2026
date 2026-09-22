@@ -27,7 +27,12 @@ import {
   GREG_MONTHS_HE,
   WEEKDAYS_HE,
 } from './dates';
-import { hebrewDateParts, hebrewMonthSpanLabel, type ShabbatEntry } from './hebrew';
+import {
+  hebrewDateParts,
+  hebrewMonthSpanLabel,
+  occasionLabels,
+  type ShabbatEntry,
+} from './hebrew';
 import { buildReminderGroups } from './reminders';
 
 /** כמה ימים קדימה נאספות תזכורות */
@@ -393,7 +398,16 @@ export type ShabbatWidgetEntry = {
    * פירושה שכל שינוי בניסוח מחייב התקנה.
    */
   sub: string;
-  /** שעת הדלקת הנרות */
+  /**
+   * איך קוראים לכניסה וליציאה של המועד הזה.
+   *
+   * נוסע ערוך מ-`occasionLabels` ולא נגזר בצד הנייטיבי: שם היו שתי
+   * מחרוזות קבועות, "הדלקת נרות" ו"צאת השבת", והן נכתבו גם על יום
+   * כיפור. מעטפת ישנה שאינה מכירה את השדות נופלת חזרה אליהן.
+   */
+  entryLabel: string;
+  exitLabel: string;
+  /** שעת הדלקת הנרות, שהיא גם זמן הכניסה */
   candles: string;
   /** שעת ההבדלה */
   havdalah: string;
@@ -411,6 +425,12 @@ export type ShabbatWidgetData = {
   city: string;
   entries: ShabbatWidgetEntry[];
 };
+
+/** התוויות בשמות שהמטען מצפה להם */
+function occasionLabelsFor(entry: ShabbatEntry): { entryLabel: string; exitLabel: string } {
+  const labels = occasionLabels(entry);
+  return { entryLabel: labels.entry, exitLabel: labels.exit };
+}
 
 /** "י״ז באלול" - התאריך העברי של ערב הכניסה */
 function hebrewLabel(date: Date): string {
@@ -465,6 +485,7 @@ export function buildShabbatWidget(
       day: dayName(entry.startDate, now),
       hebrew: hebrewLabel(entry.startDate),
       sub: `${gregorianLabel(entry.startDate)} · ${hebrewLabel(entry.startDate)}`,
+      ...occasionLabelsFor(entry),
       candles: entry.candles?.time ?? '',
       havdalah: entry.havdalah?.time ?? '',
       endDay: relativeDayLabel(entry.endDate, now),

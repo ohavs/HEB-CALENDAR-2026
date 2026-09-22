@@ -43,6 +43,7 @@ export function defaultSettings(): Settings {
     places: [],
     templates: [],
     placeAlertsEnabled: false,
+    doneCleanupDays: 1,
   };
 }
 
