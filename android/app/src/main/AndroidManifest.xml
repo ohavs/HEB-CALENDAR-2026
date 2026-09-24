@@ -33,6 +33,27 @@
                 <data android:scheme="hebcal" />
             </intent-filter>
 
+            <!-- "הוסף ליומן" מאפליקציות אחרות. באנדרואיד אין לוח ברירת מחדל
+                 אחד: המשתמש בוחר אותנו כאן, עם "תמיד". MainActivity מתרגמת
+                 את הכוונה לקישור hebcal:// - ראו src/lib/externalEvent.ts -->
+            <intent-filter>
+                <action android:name="android.intent.action.INSERT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/event" />
+            </intent-filter>
+
+            <!-- קובץ הזמנה (.ics) שנפתח ממייל או מהקבצים -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="text/calendar" />
+                <data android:mimeType="text/x-vcalendar" />
+                <data android:mimeType="application/ics" />
+            </intent-filter>
+
         </activity>
 
         <receiver

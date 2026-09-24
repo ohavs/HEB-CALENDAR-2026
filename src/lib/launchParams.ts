@@ -13,6 +13,7 @@ import type { TabId } from '@/components/TabBar';
 import type { DateKey } from '@/types';
 import type { RemindersView } from './remindersView';
 import { dateKey, keyToDate, startOfDay } from './dates';
+import { parseExternalEvent, type ExternalEvent } from './externalEvent';
 
 export type LaunchIntent = {
   /** לשונית לפתוח בה */
@@ -23,6 +24,10 @@ export type LaunchIntent = {
   compose?: DateKey;
   /** איזו לשונית פנימית במסך התזכורות. רק `tab=reminders` מתייחס אליה */
   view?: RemindersView;
+  /** "הוסף ליומן" מאפליקציה אחרת - לפתוח את העורך מולא */
+  external?: ExternalEvent;
+  /** קובץ הזמנה שנפתח באפליקציה. התוכן עצמו ממתין בצד הנייטיבי */
+  ics?: true;
 };
 
 const TABS: TabId[] = ['calendar', 'reminders', 'shabbat', 'settings'];
@@ -65,6 +70,10 @@ export function parseLaunch(search: string): LaunchIntent {
   } else if (compose && validKey(compose)) {
     out.compose = compose;
   }
+
+  const external = parseExternalEvent(params);
+  if (external) out.external = external;
+  if (params.get('ext') === 'ics') out.ics = true;
 
   return out;
 }

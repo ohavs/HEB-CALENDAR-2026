@@ -30,7 +30,10 @@ import { initAnalytics } from '@/lib/firebase';
 import { startSync } from '@/lib/sync';
 import { saveItem as saveSharedItem, startShared, stopShared } from '@/lib/sharedSync';
 import { syncPushToken } from '@/lib/pushTokens';
-import { onPushOpened } from '@/lib/native';
+import { onPushOpened, takeIncomingCalendar } from '@/lib/native';
+import { externalToDraft } from '@/lib/externalEvent';
+import { fromICS } from '@/lib/ics';
+import { importEvents } from '@/store/importEvents';
 import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
 import { applyTheme, useSettings, useSettingsStore } from '@/store/settings';
 import {
@@ -350,6 +353,61 @@ export default function App() {
       // במסך התזכורות "כתיבה" היא שדה ההוספה שבראשו, ולא עורך אירוע
       if (intent.compose && intent.tab === 'reminders') setComposeReminder(true);
       else if (intent.compose) openEditor(intent.compose);
+      /*
+        "הוסף ליומן" מאפליקציה אחרת פותח את העורך מולא ולא שומר: הנתונים
+        הגיעו ממישהו אחר, והמשתמש הוא שמאשר אותם. ביטול לא משאיר דבר.
+      */
+      if (intent.external) {
+        const color = useSettingsStore.getState().settings.defaultEventColor;
+        const draft = externalToDraft(intent.external, color, new Date());
+        setTab('calendar');
+        goToDate(keyToDate(draft.date));
+        openEditorWith(draft);
+      }
+      if (intent.ics) void openIncomingCalendar();
+    };
+
+    /*
+      קובץ הזמנה. אירוע אחד נפתח בעורך, כמו "הוסף ליומן" - זה המקרה של
+      הזמנה במייל. קובץ עם כמה אירועים הוא ייבוא, ומקבל ביטול אחד לכולם.
+    */
+    const openIncomingCalendar = async () => {
+      const text = await takeIncomingCalendar();
+      if (!text) {
+        toast('לא הצלחנו לקרוא את הקובץ');
+        return;
+      }
+      const { events } = fromICS(text);
+      if (!events.length) {
+        toast('לא נמצאו אירועים בקובץ');
+        return;
+      }
+      setTab('calendar');
+      goToDate(keyToDate(events[0].date));
+      if (events.length === 1 && !events[0].exceptions) {
+        openEditorWith(events[0] as EventDraft);
+        return;
+      }
+      const { ids, duplicates } = importEvents(events);
+      const message =
+        ids.length > 1
+          ? `נוספו ${ids.length} אירועים`
+          : ids.length === 1
+            ? 'נוסף אירוע אחד'
+            : `כל ${duplicates} האירועים כבר קיימים`;
+      announce(message);
+      toast(
+        message,
+        ids.length
+          ? {
+              label: 'ביטול',
+              run: () => {
+                const remove = useEventsStore.getState().remove;
+                for (const id of ids) remove(id);
+              },
+            }
+          : undefined,
+      );
     };
     apply(consumeLaunch());
 

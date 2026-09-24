@@ -1,6 +1,8 @@
 package com.ohav.hebcal;
 
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -21,10 +23,22 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(HebUpdaterPlugin.class);
         registerPlugin(HebFilesPlugin.class);
         registerPlugin(HebGeofencePlugin.class);
+        /*
+          התרגום קודם ל-super: הגשר קורא את הכוונה כבר בבנייה, ומשם היא
+          נמסרת לדף כ-appUrlOpen. בשחזור אחרי שהמערכת הרגה את התהליך
+          הכוונה היא עדיין המקורית, ותרגום שני היה פותח את העורך שוב.
+        */
+        if (savedInstanceState == null) setIntent(ExternalIntents.translate(this, getIntent()));
+        else if (ExternalIntents.isExternal(getIntent())) setIntent(new Intent(Intent.ACTION_MAIN));
         super.onCreate(savedInstanceState);
 
         goEdgeToEdge();
         publishInsets();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(ExternalIntents.translate(this, intent));
     }
 
     /**

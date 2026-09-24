@@ -485,6 +485,26 @@ export async function paintNativeChrome(dark: boolean): Promise<void> {
    ========================================================================== */
 
 /**
+ * התוכן של קובץ הזמנה שנפתח באפליקציה מבחוץ, פעם אחת.
+ *
+ * הקובץ מגיע כ-`content://` שרק ל-Activity שקיבלה אותו יש הרשאה לקרוא,
+ * ולכן `MainActivity` קוראת אותו מיד ושומרת עותק; כאן הוא נלקח ונמחק.
+ */
+export async function takeIncomingCalendar(): Promise<string | null> {
+  if (!isNative()) return null;
+  try {
+    const { registerPlugin } = await import('@capacitor/core');
+    const HebFiles = registerPlugin<{
+      takeIncoming(): Promise<{ text?: string }>;
+    }>('HebFiles');
+    const { text } = await HebFiles.takeIncoming();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * שומר קובץ טקסט ופותח את גיליון השיתוף של המערכת.
  *
  * בדפדפן זו הורדה רגילה. באנדרואיד `<a download>` על Blob לא עושה כלום -

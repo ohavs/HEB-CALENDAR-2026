@@ -5,6 +5,7 @@ import android.net.Uri;
 
 import androidx.core.content.FileProvider;
 
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -74,5 +75,14 @@ public class HebFilesPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("share-failed: " + e.getMessage());
         }
+    }
+
+    /** קובץ הזמנה שנפתח מבחוץ. נלקח פעם אחת - ראו ExternalIntents. */
+    @PluginMethod
+    public void takeIncoming(PluginCall call) {
+        JSObject out = new JSObject();
+        String text = ExternalIntents.takeIncoming(getContext());
+        if (text != null) out.put("text", text);
+        call.resolve(out);
     }
 }
