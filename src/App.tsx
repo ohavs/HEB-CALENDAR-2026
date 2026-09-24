@@ -95,6 +95,11 @@ export default function App() {
   const move = useEventsStore((s) => s.move);
   const moveOccurrence = useEventsStore((s) => s.moveOccurrence);
   const authUser = useAuthStore((s) => s.user);
+  /*
+    לתצוגה בלבד: הזהות האחרונה שנראתה, עד ש-Firebase מאשר. ראו `profile`
+    ב-store/auth - כל מה שמדבר עם הענן ממשיך לקרוא את `authUser`.
+  */
+  const shownUser = useAuthStore((s) => s.user ?? s.profile);
   const initAuth = useAuthStore((s) => s.init);
 
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -736,7 +741,8 @@ export default function App() {
                   setYearOpen(true);
                 }}
                 onPickView={cycleView}
-                photoURL={authUser?.photoURL ?? null}
+                photoURL={shownUser?.photoURL ?? null}
+                userName={shownUser?.name ?? shownUser?.email ?? null}
                 onPlaceTemplate={placeTemplate}
                 bottomInset={bottomInset}
               />

@@ -26,7 +26,21 @@ export type AuthUser = {
 export type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'unavailable';
 
 type AuthStore = {
+  /** המשתמש כפי ש-Firebase אישר. זה מה שמניע סנכרון וכל מאזין לענן. */
   user: AuthUser | null;
+  /**
+   * הזהות האחרונה שנראתה, לתצוגה בלבד.
+   *
+   * בכניסה קרה - למשל מהוידג׳ט - עוברות שניות עד ש-Firebase משחזר את
+   * החיבור, ובזמן הזה הכותרת הייתה ריקה ומסך ההגדרות הציע "התחברות".
+   * המשתמש כבר מחובר; רק האפליקציה עוד לא יודעת. כאן נשמר מה שהיא ידעה
+   * בפעם הקודמת, כדי שהתמונה והשם יופיעו מיד.
+   *
+   * **אסור שמשהו שמדבר עם הענן יקרא את זה.** סנכרון שמתחיל לפני ש-Firebase
+   * מחזיק אסימון נכשל בהרשאות. `user` הוא האמת; `profile` הוא רק מה
+   * שמציירים עד שהיא מגיעה.
+   */
+  profile: AuthUser | null;
   status: AuthStatus;
   error: string | null;
   busy: boolean;
@@ -53,6 +67,35 @@ function rememberSignedIn(value: boolean) {
   }
 }
 
+/** הזהות האחרונה, לתצוגה בכניסה קרה. ראו `profile`. */
+const PROFILE_KEY = 'heb-cal:profile';
+
+function readProfile(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<AuthUser>;
+    if (typeof p.uid !== 'string') return null;
+    return {
+      uid: p.uid,
+      name: p.name ?? null,
+      email: p.email ?? null,
+      photoURL: p.photoURL ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeProfile(user: AuthUser | null): void {
+  try {
+    if (user) localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(PROFILE_KEY);
+  } catch {
+    /* מצב פרטי */
+  }
+}
+
 export function wasSignedIn(): boolean {
   try {
     return localStorage.getItem(SIGNED_IN_FLAG) === '1';
@@ -65,6 +108,8 @@ let initialized = false;
 
 export const useAuthStore = create<AuthStore>()((setState) => ({
   user: null,
+  // רק מי שהיה מחובר - אחרת תמונה ישנה הייתה מופיעה אחרי יציאה
+  profile: isFirebaseConfigured && wasSignedIn() ? readProfile() : null,
   status: !isFirebaseConfigured ? 'unavailable' : wasSignedIn() ? 'loading' : 'signed-out',
   error: null,
   busy: false,
@@ -80,16 +125,20 @@ export const useAuthStore = create<AuthStore>()((setState) => ({
     try {
       const { auth } = await getFirebase();
       const { onAuthStateChanged, getRedirectResult } = await import('firebase/auth');
-      // מסיימים זרימת redirect אם חזרנו ממנה
-      getRedirectResult(auth).catch(() => undefined);
+      /*
+        מסיימים זרימת redirect אם חזרנו ממנה - אבל רק בדפדפן. באנדרואיד
+        אין redirect (ההתחברות היא Credential Manager), והקריאה הזו היא
+        שמעירה את טעינת ה-iframe מהדומיין של Firebase: שניות של המתנה
+        בכל כניסה קרה, בשביל תשובה שידועה מראש.
+      */
+      if (!isNative()) getRedirectResult(auth).catch(() => undefined);
       onAuthStateChanged(auth, (u) => {
         rememberSignedIn(Boolean(u));
-        setState({
-          user: u
-            ? { uid: u.uid, name: u.displayName, email: u.email, photoURL: u.photoURL }
-            : null,
-          status: u ? 'signed-in' : 'signed-out',
-        });
+        const user: AuthUser | null = u
+          ? { uid: u.uid, name: u.displayName, email: u.email, photoURL: u.photoURL }
+          : null;
+        writeProfile(user);
+        setState({ user, profile: user, status: u ? 'signed-in' : 'signed-out' });
       });
     } catch {
       setState({ status: 'unavailable' });
@@ -169,6 +218,13 @@ export const useAuthStore = create<AuthStore>()((setState) => ({
 
   signOut: async () => {
     rememberSignedIn(false);
+    /*
+      הזהות השמורה יורדת מיד, ולא כשהענן יאשר: מי שיצא לא אמור לראות את
+      התמונה שלו בכותרת גם שנייה אחרי - ואם היציאה קרתה עוד לפני ש-Firebase
+      סיים לעלות, האישור הזה אולי לא יגיע בכלל.
+    */
+    writeProfile(null);
+    setState({ profile: null });
     if (!isFirebaseConfigured) return;
     setState({ busy: true });
     try {

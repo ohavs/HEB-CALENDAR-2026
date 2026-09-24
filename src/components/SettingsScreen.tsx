@@ -154,7 +154,14 @@ export function SettingsScreen({
   const settings = useSettings();
   const conflictCount = useEventsStore((s) => s.conflicts.length);
   const setValue = useSettingsStore((s) => s.set);
-  const { user, status, busy, error, signInWithGoogle, signOut, clearError } = useAuthStore();
+  const { status, busy, error, signInWithGoogle, signOut, clearError } = useAuthStore();
+  /*
+    בזמן ש-Firebase עוד משחזר את החיבור, המסך הציע "התחברות עם גוגל" למי
+    שכבר מחובר - והקשה עליו הייתה פותחת זרימת התחברות מיותרת. השורה
+    מציגה את הזהות האחרונה עד שמגיע אישור. כלום כאן אינו כותב לענן לפי
+    הזהות הזו.
+  */
+  const user = useAuthStore((s) => s.user ?? s.profile);
   const sync = useSyncState();
 
   const [permission, setPermission] = useState<PermissionState>(() => notificationState());

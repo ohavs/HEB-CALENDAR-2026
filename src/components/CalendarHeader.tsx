@@ -29,6 +29,7 @@ export function CalendarHeader({
   onPickView,
   canSwitchViews = true,
   photoURL,
+  userName,
   onProfile,
   onToday,
   onTitle,
@@ -42,6 +43,8 @@ export function CalendarHeader({
   /** כשנשארה תצוגה אחת בלבד אין מה להחליף, והכפתור יורד */
   canSwitchViews?: boolean;
   photoURL: string | null;
+  /** לאות שמוצגת כשהתמונה לא עלתה */
+  userName?: string | null;
   onProfile: () => void;
   onToday: () => void;
   onTitle: () => void;
@@ -59,7 +62,7 @@ export function CalendarHeader({
           aria-label="חשבון והגדרות"
           className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-well ring-1 ring-hairline lg:h-[52px] lg:w-[52px]"
         >
-          <Avatar photoURL={photoURL} />
+          <Avatar photoURL={photoURL} name={userName} />
         </motion.button>
 
         <button

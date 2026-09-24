@@ -95,6 +95,7 @@ export function CalendarScreen({
   onOpenYear,
   onPickView,
   photoURL,
+  userName,
   onPlaceTemplate,
   bottomInset,
 }: {
@@ -118,6 +119,7 @@ export function CalendarScreen({
   onOpenYear: () => void;
   onPickView: () => void;
   photoURL: string | null;
+  userName?: string | null;
   bottomInset: number;
 }) {
   const settings = useSettings();
@@ -318,6 +320,7 @@ export function CalendarScreen({
               onPickView={onPickView}
               canSwitchViews={canSwitchViews(views)}
               photoURL={photoURL}
+              userName={userName}
               onProfile={onProfile}
               onToday={goToToday}
               onTitle={onOpenYear}

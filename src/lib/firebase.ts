@@ -35,15 +35,38 @@ export function getFirebase(): Promise<Services> {
     return Promise.reject(new Error('firebase-not-configured'));
   }
   servicesPromise ??= (async () => {
-    const [{ initializeApp, getApps, getApp }, { getAuth }, { getFirestore }] = await Promise.all([
+    const [{ initializeApp, getApps, getApp }, authModule, { getFirestore }] = await Promise.all([
       import('firebase/app'),
       import('firebase/auth'),
       import('firebase/firestore'),
     ]);
     const app = getApps().length ? getApp() : initializeApp(config as Required<typeof config>);
-    return { app, auth: getAuth(app), db: getFirestore(app) };
+    return { app, auth: createAuth(app, authModule), db: getFirestore(app) };
   })();
   return servicesPromise;
+}
+
+/**
+ * יצירת Auth, בלי מה שאנדרואיד אינו צריך.
+ *
+ * `getAuth` של web מצרף `browserPopupRedirectResolver`, וזה מה שהאט כל
+ * כניסה קרה לאפליקציה - למשל מהוידג׳ט - בכמה שניות: בעלייה הוא טוען
+ * iframe מהדומיין של Firebase כדי לבדוק אם חזרנו מהפניה, ו-
+ * `onAuthStateChanged` אינו יורה עד שהבדיקה נגמרת. באנדרואיד אין הפניות
+ * בכלל - ההתחברות היא Credential Manager ו-`signInWithCredential` - ולכן
+ * כל הזמן הזה הלך על בדיקה שהתשובה לה ידועה מראש.
+ *
+ * ההתמדה נשארת IndexedDB, כי שם `getAuth` שמר את החיבור עד עכשיו.
+ * החלפה שלה הייתה מנתקת כל מי שכבר מחובר.
+ */
+function createAuth(app: FirebaseApp, mod: typeof import('firebase/auth')): Auth {
+  if (!isNative()) return mod.getAuth(app);
+  try {
+    return mod.initializeAuth(app, { persistence: mod.indexedDBLocalPersistence });
+  } catch {
+    // כבר אותחל (למשל בטעינה חוזרת של מודול בפיתוח) - משתמשים במה שיש
+    return mod.getAuth(app);
+  }
 }
 
 /** אנליטיקס - רק בפרודקשן וכשיש measurementId. נכשל בשקט. */
