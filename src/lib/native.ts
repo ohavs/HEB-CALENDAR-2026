@@ -15,6 +15,7 @@
  */
 
 import type { SystemEvent } from './systemCalendar';
+import type { DeviceInstance, DeviceRow } from './deviceImport';
 
 type Bridge = { isNativePlatform?: () => boolean; getPlatform?: () => string };
 
@@ -502,6 +503,10 @@ type HebCalendarPlugin = {
   request(): Promise<{ granted: boolean }>;
   sync(options: { events: SystemEvent[] }): Promise<{ count: number; written: boolean }>;
   clear(): Promise<void>;
+  readDevice(options: { from: number; to: number }): Promise<{
+    rows: DeviceRow[];
+    instances: DeviceInstance[];
+  }>;
 };
 
 /** עטוף באובייקט - ראו את ההערה מעל `geofencePlugin`. */
@@ -532,6 +537,22 @@ export async function syncSystemCalendar(events: SystemEvent[]): Promise<void> {
     await (await calendarPlugin())?.plugin.sync({ events });
   } catch {
     // בלי הרשאה, או מעטפת ישנה. המתג בהגדרות הוא שמסביר את זה
+  }
+}
+
+/**
+ * האירועים מהלוחות האחרים במכשיר, כפי שהם. `null` כשאין הרשאה או
+ * כשהמעטפת ישנה - המסך מבחין בין זה לבין "אין אירועים".
+ */
+export async function readDeviceCalendar(
+  from: number,
+  to: number,
+): Promise<{ rows: DeviceRow[]; instances: DeviceInstance[] } | null> {
+  try {
+    const loaded = await calendarPlugin();
+    return loaded ? await loaded.plugin.readDevice({ from, to }) : null;
+  } catch {
+    return null;
   }
 }
 

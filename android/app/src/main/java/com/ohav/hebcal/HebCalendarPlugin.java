@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CalendarContract;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -54,6 +55,8 @@ public class HebCalendarPlugin extends Plugin {
     private static final String PREFS = "heb-system-calendar";
     /** מעבר לזה עסקה אחת עלולה לחרוג ממגבלת ה-Binder */
     private static final int BATCH = 300;
+    /** גבול לקריאה: יומן של שנים לא נכנס בשיחה אחת עם ה-WebView */
+    private static final int MAX_READ = 5000;
 
     @PluginMethod
     public void check(PluginCall call) {
@@ -107,6 +110,123 @@ public class HebCalendarPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("sync-failed: " + e.getMessage());
         }
+    }
+
+    /**
+     * האירועים שהמשתמש כתב בלוחות אחרים במכשיר, להעתקה חד־פעמית.
+     *
+     * רק לוחות שמותר לכתוב אליהם: לוחות לקריאה בלבד הם חגים, ימי הולדת
+     * מאנשי הקשר ומנויים - והחגים כבר אצלנו, מדויקים יותר. גם הלוח שלנו
+     * לקריאה בלבד, כך שהוא לא חוזר אלינו בסיבוב.
+     *
+     * שתי רשימות, כי סדרה נשמרת בשתי צורות: `rows` מ-Events, כולל שורות
+     * החריגים, ו-`instances` - המופעים שהספק כבר חישב, לסדרות שאין להן
+     * מקבילה אצלנו. ההחלטה איזו צורה לקחת היא ב-`deviceImport.ts`.
+     */
+    @PluginMethod
+    public void readDevice(PluginCall call) {
+        if (!granted()) {
+            call.reject("no-permission");
+            return;
+        }
+        long from = call.getLong("from", System.currentTimeMillis());
+        long to = call.getLong("to", from + 400L * 24 * 60 * 60 * 1000);
+        // גם הלוח שלנו נרשם לקריאה בלבד, ולכן התנאי הזה מוציא אותו מעצמו
+        String writable = CalendarContract.Events.CALENDAR_ACCESS_LEVEL + ">="
+            + CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR;
+        try {
+            ContentResolver resolver = getContext().getContentResolver();
+            JSArray rows = new JSArray();
+            try (Cursor c = resolver.query(
+                CalendarContract.Events.CONTENT_URI,
+                new String[] {
+                    CalendarContract.Events._ID,
+                    CalendarContract.Events.ORIGINAL_ID,
+                    CalendarContract.Events.ORIGINAL_INSTANCE_TIME,
+                    CalendarContract.Events.STATUS,
+                    CalendarContract.Events.TITLE,
+                    CalendarContract.Events.DTSTART,
+                    CalendarContract.Events.DTEND,
+                    CalendarContract.Events.DURATION,
+                    CalendarContract.Events.ALL_DAY,
+                    CalendarContract.Events.EVENT_LOCATION,
+                    CalendarContract.Events.DESCRIPTION,
+                    CalendarContract.Events.RRULE,
+                },
+                CalendarContract.Events.DELETED + "=0 AND " + writable + " AND ("
+                    + CalendarContract.Events.LAST_DATE + " IS NULL OR "
+                    + CalendarContract.Events.LAST_DATE + ">=?)",
+                new String[] {Long.toString(from)},
+                null)) {
+                while (c != null && c.moveToNext() && rows.length() < MAX_READ) {
+                    JSObject r = new JSObject();
+                    r.put("id", c.getLong(0));
+                    if (!c.isNull(1)) r.put("originalId", c.getLong(1));
+                    if (!c.isNull(2)) r.put("originalInstanceTime", c.getLong(2));
+                    r.put("cancelled",
+                        !c.isNull(3) && c.getInt(3) == CalendarContract.Events.STATUS_CANCELED);
+                    r.put("title", text(c, 4));
+                    r.put("begin", c.getLong(5));
+                    if (!c.isNull(6)) r.put("end", c.getLong(6));
+                    putIfPresent(r, "duration", text(c, 7));
+                    r.put("allDay", c.getInt(8) == 1);
+                    putIfPresent(r, "location", text(c, 9));
+                    putIfPresent(r, "notes", text(c, 10));
+                    putIfPresent(r, "rrule", text(c, 11));
+                    rows.put(r);
+                }
+            }
+
+            JSArray instances = new JSArray();
+            Uri.Builder range = CalendarContract.Instances.CONTENT_URI.buildUpon();
+            ContentUris.appendId(range, from);
+            ContentUris.appendId(range, to);
+            try (Cursor c = resolver.query(
+                range.build(),
+                new String[] {
+                    CalendarContract.Instances.EVENT_ID,
+                    CalendarContract.Instances.ORIGINAL_ID,
+                    CalendarContract.Instances.TITLE,
+                    CalendarContract.Instances.BEGIN,
+                    CalendarContract.Instances.END,
+                    CalendarContract.Instances.ALL_DAY,
+                    CalendarContract.Instances.EVENT_LOCATION,
+                    CalendarContract.Instances.DESCRIPTION,
+                },
+                "(" + CalendarContract.Instances.RRULE + " IS NOT NULL OR "
+                    + CalendarContract.Instances.ORIGINAL_ID + " IS NOT NULL) AND " + writable,
+                null,
+                null)) {
+                while (c != null && c.moveToNext() && instances.length() < MAX_READ) {
+                    JSObject r = new JSObject();
+                    r.put("eventId", c.getLong(0));
+                    if (!c.isNull(1)) r.put("originalId", c.getLong(1));
+                    r.put("title", text(c, 2));
+                    r.put("begin", c.getLong(3));
+                    r.put("end", c.getLong(4));
+                    r.put("allDay", c.getInt(5) == 1);
+                    putIfPresent(r, "location", text(c, 6));
+                    putIfPresent(r, "notes", text(c, 7));
+                    instances.put(r);
+                }
+            }
+
+            JSObject out = new JSObject();
+            out.put("rows", rows);
+            out.put("instances", instances);
+            call.resolve(out);
+        } catch (Exception e) {
+            call.reject("read-failed: " + e.getMessage());
+        }
+    }
+
+    private static String text(Cursor c, int column) {
+        String value = c.isNull(column) ? null : c.getString(column);
+        return value == null ? "" : value;
+    }
+
+    private static void putIfPresent(JSObject target, String key, String value) {
+        if (!value.isEmpty()) target.put(key, value);
     }
 
     /** מוחק את הלוח ואת כל האירועים שבו. */
