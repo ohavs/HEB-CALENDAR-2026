@@ -69,3 +69,51 @@ export const ELEVATION = {
   floating: 'shadow-floating',
   overlay: 'shadow-overlay',
 } as const;
+
+/* ==========================================================================
+   כותרת שלא נכנסת בשורה
+   ========================================================================== */
+
+/**
+ * גלילה איטית של כותרת ארוכה, במקום שלוש נקודות.
+ *
+ * שורה שנייה ושלישית היו משנות את גובה הכרטיס והופכות רשימה אחידה
+ * לגבשושית, והקטנת הגופן הייתה מוותרת על מה שהכרטיס בא להגיד. כאן
+ * הכותרת נשארת שורה אחת בגודלה, ונחשפת עד סופה בקצב קריאה.
+ *
+ * העצירות ארוכות מהתנועה בכוונה: עין שמתחילה לקרוא צריכה זמן לפני
+ * שהטקסט זז, וזמן בסוף כדי לסיים את המילה האחרונה.
+ */
+export const MARQUEE = {
+  /** פיקסלים בשנייה - קצב קריאה, לא אנימציה */
+  speed: 34,
+  /** עצירה בתחילה, לפני שהטקסט זז */
+  holdStart: 1800,
+  /** עצירה בסוף, על המילה האחרונה */
+  holdEnd: 1600,
+  /** החזרה להתחלה מהירה יותר - אין בה מה לקרוא */
+  returnFactor: 3,
+  /** רוחב הדהייה בקצוות, במקום חיתוך חד */
+  fade: 14,
+} as const;
+
+/** ציר הזמן של גלילה אחת הלוך וחזור, למרחק נתון בפיקסלים. */
+export function marqueeTimeline(distance: number): {
+  duration: number;
+  keyframes: { offset: number; shift: number }[];
+} {
+  const travel = (distance / MARQUEE.speed) * 1000;
+  const back = travel / MARQUEE.returnFactor;
+  const duration = MARQUEE.holdStart + travel + MARQUEE.holdEnd + back;
+  const at = (ms: number) => ms / duration;
+  return {
+    duration,
+    keyframes: [
+      { offset: 0, shift: 0 },
+      { offset: at(MARQUEE.holdStart), shift: 0 },
+      { offset: at(MARQUEE.holdStart + travel), shift: distance },
+      { offset: at(MARQUEE.holdStart + travel + MARQUEE.holdEnd), shift: distance },
+      { offset: 1, shift: 0 },
+    ],
+  };
+}

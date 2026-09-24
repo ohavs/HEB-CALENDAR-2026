@@ -12,6 +12,7 @@ import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
 import { haptic } from '@/lib/native';
 import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
+import { MarqueeText } from './ui/MarqueeText';
 
 /**
  * ייצוג האירוע בתוך תא בלוח, בשתי צורות לפי מה שהאירוע *הוא*:
@@ -205,13 +206,13 @@ export function EventCard({
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span
-            className={`truncate text-title font-semibold leading-snug ${
+          {/* כותרת ארוכה נגללת לאט במקום להיחתך - ראו `MARQUEE` */}
+          <MarqueeText
+            text={occurrence.title}
+            className={`min-w-0 text-title font-semibold leading-snug ${
               occurrence.done ? 'line-through' : ''
             }`}
-          >
-            {occurrence.title}
-          </span>
+          />
           {occurrence.repeat !== 'none' && (
             <Repeat size={ICON.sm} className="shrink-0 opacity-60" strokeWidth={STROKE} />
           )}
