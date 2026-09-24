@@ -350,20 +350,31 @@ export type GeoPermission = {
 
 const DENIED: GeoPermission = { foreground: false, background: false, needsSettings: false };
 
-async function geofencePlugin() {
+/*
+  פלאגין נמסר עטוף באובייקט, ולעולם לא מוחזר ישירות מפונקציה אסינכרונית.
+
+  הפלאגין של Capacitor הוא Proxy שכל מאפיין בו - גם `then` - הוא קריאה
+  לצד הנייטיבי. `await` על ערך כזה קורא ל-`then` שלו כאילו היה הבטחה, וזו
+  קריאה לשיטה שאינה קיימת: היא נדחית בלי לקרוא לאף אחד מהכיוונים, וה-`await`
+  ממתין לנצח. בלי שגיאה ובלי רמז - כך הגדרות המקום לא נרשמו מעולם, ומתג
+  היומן לא הופיע. `pluginProxy.test.ts` סורק את הקוד ותופס חזרה של זה.
+*/
+type GeofencePlugin = {
+  sync(options: { fences: unknown[] }): Promise<{ registered: boolean; count: number }>;
+  check(): Promise<GeoPermission>;
+  requestForeground(): Promise<GeoPermission>;
+  openSettings(): Promise<void>;
+};
+
+async function geofencePlugin(): Promise<{ plugin: GeofencePlugin }> {
   const { registerPlugin } = await import('@capacitor/core');
-  return registerPlugin<{
-    sync(options: { fences: unknown[] }): Promise<{ registered: boolean; count: number }>;
-    check(): Promise<GeoPermission>;
-    requestForeground(): Promise<GeoPermission>;
-    openSettings(): Promise<void>;
-  }>('HebGeofence');
+  return { plugin: registerPlugin<GeofencePlugin>('HebGeofence') };
 }
 
 export async function geoPermission(): Promise<GeoPermission> {
   if (!isNative()) return DENIED;
   try {
-    return await (await geofencePlugin()).check();
+    return await (await geofencePlugin()).plugin.check();
   } catch {
     return DENIED;
   }
@@ -372,7 +383,7 @@ export async function geoPermission(): Promise<GeoPermission> {
 export async function requestGeoForeground(): Promise<GeoPermission> {
   if (!isNative()) return DENIED;
   try {
-    return await (await geofencePlugin()).requestForeground();
+    return await (await geofencePlugin()).plugin.requestForeground();
   } catch {
     return DENIED;
   }
@@ -381,7 +392,7 @@ export async function requestGeoForeground(): Promise<GeoPermission> {
 export async function openAppSettings(): Promise<void> {
   if (!isNative()) return;
   try {
-    await (await geofencePlugin()).openSettings();
+    await (await geofencePlugin()).plugin.openSettings();
   } catch {
     /* אין מסך הגדרות - אין מה לעשות מכאן */
   }
@@ -396,7 +407,7 @@ export async function openAppSettings(): Promise<void> {
 export async function syncNativeGeofences(fences: unknown[]): Promise<boolean> {
   if (!isNative()) return false;
   try {
-    const result = await (await geofencePlugin()).sync({ fences });
+    const result = await (await geofencePlugin()).plugin.sync({ fences });
     return result.registered;
   } catch {
     return false;
@@ -493,10 +504,11 @@ type HebCalendarPlugin = {
   clear(): Promise<void>;
 };
 
-async function calendarPlugin(): Promise<HebCalendarPlugin | null> {
+/** עטוף באובייקט - ראו את ההערה מעל `geofencePlugin`. */
+async function calendarPlugin(): Promise<{ plugin: HebCalendarPlugin } | null> {
   if (!isNative()) return null;
   const { registerPlugin } = await import('@capacitor/core');
-  return registerPlugin<HebCalendarPlugin>('HebCalendar');
+  return { plugin: registerPlugin<HebCalendarPlugin>('HebCalendar') };
 }
 
 /**
@@ -505,9 +517,9 @@ async function calendarPlugin(): Promise<HebCalendarPlugin | null> {
  */
 export async function systemCalendarPermission(request = false): Promise<boolean | null> {
   try {
-    const plugin = await calendarPlugin();
-    if (!plugin) return null;
-    const { granted } = request ? await plugin.request() : await plugin.check();
+    const loaded = await calendarPlugin();
+    if (!loaded) return null;
+    const { granted } = request ? await loaded.plugin.request() : await loaded.plugin.check();
     return granted;
   } catch {
     return null;
@@ -517,8 +529,7 @@ export async function systemCalendarPermission(request = false): Promise<boolean
 /** מחליף את כל האירועים בלוח "לוח עברי" של המכשיר. */
 export async function syncSystemCalendar(events: SystemEvent[]): Promise<void> {
   try {
-    const plugin = await calendarPlugin();
-    await plugin?.sync({ events });
+    await (await calendarPlugin())?.plugin.sync({ events });
   } catch {
     // בלי הרשאה, או מעטפת ישנה. המתג בהגדרות הוא שמסביר את זה
   }
@@ -526,8 +537,7 @@ export async function syncSystemCalendar(events: SystemEvent[]): Promise<void> {
 
 export async function clearSystemCalendar(): Promise<void> {
   try {
-    const plugin = await calendarPlugin();
-    await plugin?.clear();
+    await (await calendarPlugin())?.plugin.clear();
   } catch {
     // אין מה לנקות
   }
