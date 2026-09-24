@@ -14,6 +14,8 @@
  *   חסום בתוך WebView.
  */
 
+import type { SystemEvent } from './systemCalendar';
+
 type Bridge = { isNativePlatform?: () => boolean; getPlatform?: () => string };
 
 /** האם אנחנו רצים בתוך העטיפה הנייטיבית. בטוח לקריאה גם ב-node. */
@@ -477,6 +479,57 @@ export async function paintNativeChrome(dark: boolean): Promise<void> {
     await StatusBar.setBackgroundColor({ color: dark ? '#09090F' : '#F6F6FA' });
   } catch {
     /* לא קריטי */
+  }
+}
+
+/* ==========================================================================
+   לוח השנה של המכשיר
+   ========================================================================== */
+
+type HebCalendarPlugin = {
+  check(): Promise<{ granted: boolean }>;
+  request(): Promise<{ granted: boolean }>;
+  sync(options: { events: SystemEvent[] }): Promise<{ count: number; written: boolean }>;
+  clear(): Promise<void>;
+};
+
+async function calendarPlugin(): Promise<HebCalendarPlugin | null> {
+  if (!isNative()) return null;
+  const { registerPlugin } = await import('@capacitor/core');
+  return registerPlugin<HebCalendarPlugin>('HebCalendar');
+}
+
+/**
+ * האם מותר לכתוב ליומן של המכשיר. `null` כשאין פלאגין - מעטפת ישנה
+ * שעוד לא הותקנה מחדש, ושם אין מה להציע.
+ */
+export async function systemCalendarPermission(request = false): Promise<boolean | null> {
+  try {
+    const plugin = await calendarPlugin();
+    if (!plugin) return null;
+    const { granted } = request ? await plugin.request() : await plugin.check();
+    return granted;
+  } catch {
+    return null;
+  }
+}
+
+/** מחליף את כל האירועים בלוח "לוח עברי" של המכשיר. */
+export async function syncSystemCalendar(events: SystemEvent[]): Promise<void> {
+  try {
+    const plugin = await calendarPlugin();
+    await plugin?.sync({ events });
+  } catch {
+    // בלי הרשאה, או מעטפת ישנה. המתג בהגדרות הוא שמסביר את זה
+  }
+}
+
+export async function clearSystemCalendar(): Promise<void> {
+  try {
+    const plugin = await calendarPlugin();
+    await plugin?.clear();
+  } catch {
+    // אין מה לנקות
   }
 }
 

@@ -204,6 +204,11 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
+    <!-- פרסום האירועים ללוח של המכשיר, כדי שוידג׳טים ולוחות אחרים יראו
+         אותם. כיוון אחד בלבד, ורק אחרי שהמשתמש הפעיל - ראו HebCalendarPlugin -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
     <!-- המיקום אינו חובה: בלעדיו הכול עובד חוץ מהתראות הגעה ויציאה -->
     <uses-feature android:name="android.hardware.location" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />

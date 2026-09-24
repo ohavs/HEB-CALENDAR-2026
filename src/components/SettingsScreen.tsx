@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bell,
+  CalendarDays,
   BellRing,
   Check,
   ChevronLeft,
@@ -48,8 +49,10 @@ import {
 import { ICON, STROKE } from '@/lib/motion';
 import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appUpdate';
 import {
+  clearSystemCalendar,
   geoPermission,
   isNative,
+  systemCalendarPermission,
   openAppSettings,
   requestGeoForeground,
   type GeoPermission,
@@ -213,6 +216,35 @@ export function SettingsScreen({
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+
+  /*
+    הרשאת היומן. `null` במעטפת ישנה שאין בה את הפלאגין - שם המתג לא
+    מוצג בכלל, כי אין לו מה לעשות עד ההתקנה הבאה. נקראת מחדש בחזרה
+    למסך, כי המשתמש יכול לשלול אותה בהגדרות המערכת.
+  */
+  const [calendarAccess, setCalendarAccess] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isNative()) return;
+    const read = () => void systemCalendarPermission().then(setCalendarAccess);
+    read();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') read();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  const toggleSystemCalendar = async (on: boolean) => {
+    if (!on) {
+      setValue('systemCalendar', false);
+      // כיבוי מוחק את הלוח, ולא רק מפסיק לעדכן: לוח קפוא היה מציג אירועים שכבר זזו
+      void clearSystemCalendar();
+      return;
+    }
+    const granted = await systemCalendarPermission(true);
+    setCalendarAccess(granted);
+    if (granted) setValue('systemCalendar', true);
+  };
 
   /** בדיקה יזומה. העדכון עצמו מוצג בגיליון שמנוהל ב-App. */
   const checkUpdateNow = async () => {
@@ -763,6 +795,39 @@ export function SettingsScreen({
             }}
           />
         )}
+        {/*
+          וידג׳טים ולוחות של אפליקציות אחרות קוראים רק את יומן המכשיר.
+          בחירה ב"הוסף ליומן" לא רושמת אותנו שם - רק הפרסום הזה.
+        */}
+        {calendarAccess !== null && (
+          <SettingRow
+            title="הצגה ביומן של המכשיר"
+            hint="לוח בשם ״לוח עברי״ שמופיע בוידג׳טים ובלוחות אחרים. לקריאה בלבד, ונשאר במכשיר."
+          >
+            <Toggle
+              label="הצגה ביומן של המכשיר"
+              checked={settings.systemCalendar && calendarAccess}
+              onChange={(v) => void toggleSystemCalendar(v)}
+            />
+          </SettingRow>
+        )}
+        {settings.systemCalendar && calendarAccess === false && (
+          <SettingRow
+            title="צריך הרשאת יומן"
+            hint="בלי ההרשאה הלוח לא מתעדכן. אם החלון לא נפתח, ההרשאה נמצאת בהגדרות המכשיר תחת ״הרשאות״."
+            icon={<CalendarDays size={ICON.lg} strokeWidth={2.1} className="text-brand" />}
+            onClick={() => {
+              void systemCalendarPermission(true).then((granted) => {
+                setCalendarAccess(granted);
+                // אנדרואיד מפסיק להציג את החלון אחרי שני סירובים
+                if (!granted) void openAppSettings();
+              });
+            }}
+          >
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="text-faint" />
+          </SettingRow>
+        )}
+
         {isNative() && (
           <SettingRow
             title="גרסת האפליקציה"

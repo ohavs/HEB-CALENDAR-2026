@@ -56,6 +56,7 @@ import { useAuthStore, wasSignedIn } from '@/store/auth';
 import { useSharedStore } from '@/store/shared';
 import { useDayData } from '@/hooks/useMonthData';
 import { useWidgets } from '@/hooks/useWidgets';
+import { useSystemCalendar } from '@/hooks/useSystemCalendar';
 import { CalendarScreen } from '@/components/CalendarScreen';
 import { VIEW_LABEL } from '@/components/CalendarHeader';
 import type { PanelDetent } from '@/components/EventsPanel';
@@ -146,6 +147,7 @@ export default function App() {
 
   // הוידג׳טים במסך הבית, ומה שנעשה בהם בזמן שהאפליקציה הייתה סגורה
   useWidgets();
+  useSystemCalendar();
 
   /* ------------------------------ ערכת נושא ------------------------------ */
   useEffect(() => {

@@ -23,6 +23,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(HebUpdaterPlugin.class);
         registerPlugin(HebFilesPlugin.class);
         registerPlugin(HebGeofencePlugin.class);
+        registerPlugin(HebCalendarPlugin.class);
         /*
           התרגום קודם ל-super: הגשר קורא את הכוונה כבר בבנייה, ומשם היא
           נמסרת לדף כ-appUrlOpen. בשחזור אחרי שהמערכת הרגה את התהליך

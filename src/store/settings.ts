@@ -44,6 +44,7 @@ export function defaultSettings(): Settings {
     templates: [],
     placeAlertsEnabled: false,
     doneCleanupDays: 1,
+    systemCalendar: false,
   };
 }
 
