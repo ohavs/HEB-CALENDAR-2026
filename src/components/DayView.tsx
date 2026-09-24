@@ -1,16 +1,16 @@
 /** תצוגת יום מורחבת - נפתחת בלחיצה על יום בלוח. */
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus, Sun } from 'lucide-react';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { ZMANIM_LABELS, dayZmanim, hebrewDateAfterSunset } from '@/lib/hebrew';
-import { addDays, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
+import { GREG_MONTHS_HE, WEEKDAYS_HE, addDays, formatTime, relativeDayLabel, timeToMinutes } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
-import { EventCard } from './EventChip';
+import { DayEventDetail, NowMarker } from './DayEventDetail';
 import { ICON, SNAP, STROKE } from '@/lib/motion';
 
 export function DayView({
@@ -47,6 +47,21 @@ export function DayView({
 
   if (!day) return null;
 
+  /*
+    קו "עכשיו" - רק ביום של היום, ולפני האירוע הראשון שעוד לא התחיל.
+    אירועים של כל היום אינם בציר השעות, ולכן הקו תמיד אחריהם.
+  */
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowIndex = !day.isToday
+    ? -1
+    : (() => {
+        const i = occurrences.findIndex(
+          (o) => !o.allDay && o.startTime !== null && timeToMinutes(o.startTime) > nowMinutes,
+        );
+        return i < 0 ? occurrences.length : i;
+      })();
+
   const candles = day.times.find((t) => t.kind === 'candles');
   const havdalah = day.times.find((t) => t.kind === 'havdalah');
   const fastBegins = day.times.find((t) => t.kind === 'fast-begins');
@@ -56,8 +71,13 @@ export function DayView({
     <Sheet
       open={open}
       onClose={onClose}
-      title={dayTitleLabel(day.date)}
-      subtitle={`${day.hebrewFull}${day.isToday ? ' · היום' : ''}`}
+      /*
+        היום בשבוע יורד לשורת המשנה: "יום חמישי, 24 בספטמבר" לא נכנס
+        לצד שני חיצי הניווט ונחתך באמצע שם החודש. ביום של היום "היום"
+        תופס את מקומו - שניהם יחד כבר לא נכנסו גם בשורת המשנה.
+      */
+      title={`${day.date.getDate()} ב${GREG_MONTHS_HE[day.date.getMonth()]}`}
+      subtitle={`${day.isToday ? 'היום' : `יום ${WEEKDAYS_HE[day.date.getDay()]}`} · ${day.hebrewFull}`}
       headerAction={
         <div className="flex items-center gap-1">
           <button
@@ -155,14 +175,17 @@ export function DayView({
         </h3>
         {occurrences.length ? (
           <div className="space-y-2">
-            {occurrences.map((occ) => (
-              <EventCard
-                key={occ.occurrenceId}
-                occurrence={occ}
-                onClick={() => onEditEvent(occ)}
-                onToggleDone={(done) => toggleDone(occ, done)}
-              />
+            {occurrences.map((occ, i) => (
+              <Fragment key={occ.occurrenceId}>
+                {i === nowIndex && <NowMarker time={formatTime(now)} />}
+                <DayEventDetail
+                  occurrence={occ}
+                  onClick={() => onEditEvent(occ)}
+                  onToggleDone={(done) => toggleDone(occ, done)}
+                />
+              </Fragment>
             ))}
+            {nowIndex === occurrences.length && <NowMarker time={formatTime(now)} />}
           </div>
         ) : (
           <p className="rounded-2xl border border-dashed border-hairline px-4 py-7 text-center text-body text-muted">
