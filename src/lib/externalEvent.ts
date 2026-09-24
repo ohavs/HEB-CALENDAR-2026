@@ -76,7 +76,7 @@ function hhmm(d: Date): string {
  * חצות UTC מדויקת נקראת ברכיבי UTC; כל ערך אחר הוא שעה מקומית של שולח
  * שלא הקפיד, ונקרא כמקומי.
  */
-function allDayKey(ms: number): DateKey {
+export function allDayKey(ms: number): DateKey {
   if (ms % DAY_MS !== 0) return dateKey(new Date(ms));
   const d = new Date(ms);
   return dateKey(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));

@@ -13,7 +13,7 @@ import type { TabId } from '@/components/TabBar';
 import type { DateKey } from '@/types';
 import type { RemindersView } from './remindersView';
 import { dateKey, keyToDate, startOfDay } from './dates';
-import { parseExternalEvent, type ExternalEvent } from './externalEvent';
+import { allDayKey, parseExternalEvent, type ExternalEvent } from './externalEvent';
 
 export type LaunchIntent = {
   /** לשונית לפתוח בה */
@@ -60,6 +60,14 @@ export function parseLaunch(search: string): LaunchIntent {
 
   // ?go=today או ?date=YYYY-MM-DD
   if (params.get('go') === 'today') out.date = startOfDay(new Date());
+  /*
+    ?at=<ms> - לחיצה על אירוע או על יום בוידג׳ט של אפליקציה אחרת, דרך
+    היומן של המכשיר. הזמן מגיע כמילישניות, ו"כל היום" שמור שם בחצות UTC.
+  */
+  const at = Number(params.get('at'));
+  if (Number.isFinite(at) && at > 0) {
+    out.date = keyToDate(params.get('allDay') === '1' ? allDayKey(at) : dateKey(new Date(at)));
+  }
   const date = params.get('date');
   if (date && validKey(date)) out.date = keyToDate(date);
 

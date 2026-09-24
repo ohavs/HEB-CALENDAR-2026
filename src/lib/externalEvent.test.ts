@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { externalToDraft, parseExternalEvent } from './externalEvent';
 import { parseExternalUrl } from './launchParams';
+import { dateKey } from './dates';
+
+const dateKeyOf = (d: Date | undefined) => (d ? dateKey(d) : undefined);
 
 // הבדיקות נעולות ל-Asia/Jerusalem. ספטמבר 2026 הוא שעון קיץ, UTC+3.
 const now = new Date(2026, 8, 24, 10, 10);
@@ -105,5 +108,22 @@ describe('externalToDraft', () => {
     const draft = externalToDraft({ title: 'a'.repeat(400), notes: 'b'.repeat(5000) }, 'sky', now);
     expect(draft.title).toHaveLength(300);
     expect(draft.notes).toHaveLength(4000);
+  });
+});
+
+describe('opening a day from the device calendar', () => {
+  it('lands on the local day of a timed event', () => {
+    // 21 בספטמבר 2026, 23:30 בישראל = 20:30 UTC
+    const at = Date.UTC(2026, 8, 21, 20, 30);
+    expect(dateKeyOf(parseExternalUrl(`hebcal://open?tab=calendar&at=${at}`).date)).toBe('2026-09-21');
+  });
+
+  it('lands on the stored day of an all-day event', () => {
+    const at = Date.UTC(2026, 8, 26);
+    expect(dateKeyOf(parseExternalUrl(`hebcal://open?at=${at}&allDay=1`).date)).toBe('2026-09-26');
+  });
+
+  it('ignores a broken time', () => {
+    expect(parseExternalUrl('hebcal://open?at=abc').date).toBeUndefined();
   });
 });

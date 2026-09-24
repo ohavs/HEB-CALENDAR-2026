@@ -24,6 +24,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- "אפליקציית לוח השנה" של המכשיר: מי שפותח לוח שנה בלי לנקוב
+                 בשם, כמו חלק מהמשגרים והוידג׳טים, מקבל אותנו כאפשרות -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.APP_CALENDAR" />
+            </intent-filter>
+
+            <!-- לחיצה על אירוע או על יום בוידג׳ט של אפליקציה אחרת. הוידג׳ט
+                 פותח את היומן של המכשיר, ומשם אנחנו רק עוד אפשרות. אותם
+                 מסננים של אפליקציית היומן של אנדרואיד עצמה -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/event" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:host="com.android.calendar" />
+                <data android:mimeType="time/epoch" />
+            </intent-filter>
+
             <!-- לחיצה על יום בוידג׳ט פותחת את אותו יום. הקישור נקרא
                  באותו קוד שקורא קיצורי דרך: src/lib/launchParams.ts -->
             <intent-filter>
