@@ -83,6 +83,7 @@ export function EventFields({
   draft,
   patch,
   personal = true,
+  scheduled = true,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -91,6 +92,12 @@ export function EventFields({
    * לפי האירועים האישיים בלבד, ובפריט משותף הן היו נשמרות ולא מצלצלות.
    */
   personal?: boolean;
+  /**
+   * האם יש "מתי". בלעדיו נשארים רק המקום וההערות - פריט ברשימה משותפת
+   * יכול להיות בלי יום ("לקנות סוללות") ועדיין עם מקום ("בסופר ליד
+   * הבית"). קודם שניהם הסתתרו מאחורי "משויך ליום".
+   */
+  scheduled?: boolean;
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -119,6 +126,8 @@ export function EventFields({
 
   return (
     <>
+      {scheduled && (
+        <>
           <DateField
             label={multiDay ? 'מתאריך' : 'תאריך'}
             value={draft.date}
@@ -200,73 +209,77 @@ export function EventFields({
               />
             </div>
           </div>
+        </>
+      )}
 
-          <PickerField
-            label="מקום"
-            display={draft.location || 'לא הוגדר'}
-            icon={<MapPin size={ICON.md} strokeWidth={STROKE} />}
-            hint={savedPlace ? 'מקום שמור' : undefined}
-            onOpen={() => setLocationOpen(true)}
-            variant="row"
+      <PickerField
+        label="מקום"
+        display={draft.location || 'לא הוגדר'}
+        icon={<MapPin size={ICON.md} strokeWidth={STROKE} />}
+        hint={savedPlace ? 'מקום שמור' : undefined}
+        onOpen={() => setLocationOpen(true)}
+        variant="row"
+      />
+
+      {/*
+        התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
+        ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
+      */}
+      {personal && scheduled && savedPlace && (
+        <div className="rounded-2xl bg-well px-4 py-3.5">
+          <span className="mb-3 flex items-center gap-2 text-caption font-medium text-muted">
+            <Navigation size={ICON.xs} strokeWidth={STROKE} />
+            תזכורת כשאני
+          </span>
+          <Segmented<'none' | PlaceTrigger>
+            value={draft.placeTrigger ?? 'none'}
+            onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
+            options={[
+              { value: 'none', label: 'בלי' },
+              { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
+              { value: 'leave', label: `יוצא מ${savedPlace.name}` },
+            ]}
           />
-
-          {/*
-            התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
-            ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
-          */}
-          {personal && savedPlace && (
-            <div className="rounded-2xl bg-well px-4 py-3.5">
-              <span className="mb-3 flex items-center gap-2 text-caption font-medium text-muted">
-                <Navigation size={ICON.xs} strokeWidth={STROKE} />
-                תזכורת כשאני
-              </span>
-              <Segmented<'none' | PlaceTrigger>
-                value={draft.placeTrigger ?? 'none'}
-                onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
-                options={[
-                  { value: 'none', label: 'בלי' },
-                  { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
-                  { value: 'leave', label: `יוצא מ${savedPlace.name}` },
-                ]}
-              />
-              {draft.placeTrigger && (
-                <p className="mt-3 text-caption leading-relaxed text-muted">
-                  ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.
-                </p>
-              )}
-            </div>
+          {draft.placeTrigger && (
+            <p className="mt-3 text-caption leading-relaxed text-muted">
+              ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.
+            </p>
           )}
+        </div>
+      )}
 
-          <SelectField<UserEvent['repeat']>
-            label="חזרה"
-            value={draft.repeat}
-            onChange={(repeat) => patch({ repeat })}
-            icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
-            options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
-              value: r,
-              label: REPEAT_LABELS[r],
-            }))}
-            variant="row"
-          />
+      {scheduled && (
+        <SelectField<UserEvent['repeat']>
+          label="חזרה"
+          value={draft.repeat}
+          onChange={(repeat) => patch({ repeat })}
+          icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
+          options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
+            value: r,
+            label: REPEAT_LABELS[r],
+          }))}
+          variant="row"
+        />
+      )}
 
-          {personal && (
-            <SelectField<string>
-              label="תזכורת"
-              value={String(draft.reminderMinutes)}
-              onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-              icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
-              options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
-              variant="row"
-            />
-          )}
+      {personal && (
+        <SelectField<string>
+          label="תזכורת"
+          value={String(draft.reminderMinutes)}
+          onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
+          icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
+          options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+          variant="row"
+        />
+      )}
 
-          <TextArea
-            label="הערות"
-            value={draft.notes ?? ''}
-            onChange={(notes) => patch({ notes })}
-            placeholder="פרטים נוספים"
-            rows={2}
-          />
+      <TextArea
+        label="הערות"
+        value={draft.notes ?? ''}
+        onChange={(notes) => patch({ notes })}
+        placeholder="פרטים נוספים"
+        rows={2}
+      />
 
         <LocationPicker
           open={locationOpen}
