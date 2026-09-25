@@ -3,44 +3,21 @@
  * כל שדה שבוחרים בו ערך (תאריך, שעות, חזרה, תזכורת) פותח בורר משלנו
  * ולא פקד מובנה של הדפדפן, כדי לשמור על מראה אחיד בכל מכשיר.
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Bell,
-  CalendarDays,
-  CalendarRange,
-  Clock,
-  MapPin,
-  Navigation,
-  Repeat,
-  Trash2,
-} from 'lucide-react';
-import type { DateKey, EventColor, EventException, PlaceTrigger, UserEvent } from '@/types';
-import { REPEAT_LABELS, spanLengthOf, type Occurrence } from '@/lib/recurrence';
-import {
-  EVENT_COLORS,
-  REMINDER_OPTIONS,
-  useEvents,
-  useEventsStore,
-  type EventDraft,
-} from '@/store/events';
+import { Trash2 } from 'lucide-react';
+import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
+import type { Occurrence } from '@/lib/recurrence';
+import { EVENT_COLORS, useEventsStore, type EventDraft } from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
-import { LocationPicker } from './LocationPicker';
-import { addDays, dateKey, keyToDate, dayTitleLabel, minutesToTime, timeToMinutes } from '@/lib/dates';
+import { DEFAULT_START, EventFields, defaultEndFor } from './EventFields';
+import { keyToDate, dayTitleLabel } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
-import { shiftEndWithStart } from '@/lib/reminderCompose';
 import { isDraftDirty } from '@/lib/draftDirty';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
-import { PrimaryButton, Segmented, Toggle } from './ui/controls';
-import {
-  DateField,
-  PickerField,
-  SelectField,
-  TextArea,
-  TimeField,
-} from './ui/fields';
+import { PrimaryButton } from './ui/controls';
 import { ICON, STROKE } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
@@ -53,47 +30,6 @@ const COLOR_SWATCH: Record<EventColor, string> = {
   sky: 'ev-sky',
   slate: 'ev-slate',
 };
-
-/**
- * שורת מתג. קודם כל בוליאני ישב בכרטיס בגובה 60px, ושני מתגים לקחו
- * חמישית מהמסך בשביל שתי מילים.
- */
-function ToggleRow({
-  icon,
-  label,
-  checked,
-  onChange,
-}: {
-  icon: ReactNode;
-  label: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2">
-      <span className="shrink-0 text-muted">{icon}</span>
-      <span className="flex-1 text-label font-medium text-ink">{label}</span>
-      <Toggle label={label} checked={checked} onChange={onChange} />
-    </div>
-  );
-}
-
-/** ברירת המחדל, כשאיש לא אמר שעה */
-const DEFAULT_START = '09:00';
-/** משך האירוע החדש, בדקות */
-const DEFAULT_LENGTH = 60;
-/** הדקה האחרונה ביממה. סיום אינו גולש ליום הבא. */
-const LAST_MINUTE = 23 * 60 + 59;
-
-/**
- * הסיום שנגזר מהתחלה.
- *
- * מקור אחד, כי קודם היה כאן `'10:00'` כתוב ביד בתוך ה-JSX - ולכן אירוע
- * שהתחיל ב-14:00 הציג סיום ב-10:00, שעות לפני שהתחיל.
- */
-function defaultEndFor(start: string): string {
-  return minutesToTime(Math.min(LAST_MINUTE, timeToMinutes(start) + DEFAULT_LENGTH));
-}
 
 function emptyDraft(date: DateKey, color: EventColor, startTime?: string): EventDraft {
   const start = startTime ?? DEFAULT_START;
@@ -144,7 +80,6 @@ export function EventEditor({
   editing: Occurrence | UserEvent | null;
 }) {
   const settings = useSettings();
-  const places = settings.places;
   const { add, update, remove, updateOccurrence, cancelOccurrence } = useEventsStore();
   const [draft, setDraft] = useState<EventDraft>(() =>
     emptyDraft(date, settings.defaultEventColor, startTime),
@@ -161,8 +96,6 @@ export function EventEditor({
   const baseline = useRef<EventDraft | null>(null);
   /** איזו שאלת היקף פתוחה, כשעורכים מופע בתוך סדרה חוזרת */
   const [askScope, setAskScope] = useState<'save' | 'delete' | null>(null);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const allEvents = useEvents();
 
   /**
    * עריכה של מופע בתוך סדרה חוזרת חייבת לשאול על מה היא חלה. אירוע
@@ -176,7 +109,6 @@ export function EventEditor({
     if (!open) return;
     setConfirmDelete(false);
     setAskScope(null);
-    setLocationOpen(false);
     setConfirmDiscard(false);
     if (editing) {
       const start = editing.startTime ?? DEFAULT_START;
@@ -314,20 +246,7 @@ export function EventEditor({
 
   const eventDate = keyToDate(draft.date);
   const hebrew = hebrewDateParts(eventDate);
-  /** המקום השמור שנבחר, אם נבחר כזה */
-  const savedPlace = draft.placeId ? places.find((pl) => pl.id === draft.placeId) : undefined;
-  const multiDay = Boolean(draft.endDate && draft.endDate > draft.date);
-  const spanDays = spanLengthOf({ date: draft.date, endDate: draft.endDate });
-  const spanHint = multiDay ? `${spanDays} ימים` : '';
 
-  /**
-   * שינוי שעת ההתחלה מזיז גם את שעת הסיום, כדי לשמור על המשך.
-   *
-   * הנפילה לאחור היא בדיוק זו של השדות, כדי שהחישוב ייעשה על מה
-   * שהמשתמש רואה. `minutesToTime` מגלגל מודולו יממה, ולכן בלי התקרה
-   * אירוע ב-22:00 באורך שלוש שעות היה מקבל סיום ב-01:00 - כלומר לפני
-   * שהתחיל.
-   */
   /**
    * שער היציאה.
    *
@@ -341,11 +260,6 @@ export function EventEditor({
     return false;
   }, [draft]);
 
-  const onStartChange = (value: string) => {
-    const from = draft.startTime ?? DEFAULT_START;
-    const end = draft.endTime ?? defaultEndFor(from);
-    patch({ startTime: value, endTime: shiftEndWithStart(from, end, value) });
-  };
 
   return (
     <Sheet
@@ -431,162 +345,8 @@ export function EventEditor({
           </div>
         </div>
 
-        <DateField
-          label={multiDay ? 'מתאריך' : 'תאריך'}
-          value={draft.date}
-          onChange={(d) =>
-            // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
-            patch({ date: d, endDate: draft.endDate && draft.endDate < d ? d : draft.endDate })
-          }
-          icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-          hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-          variant="row"
-        />
-
-        {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
-        <ToggleRow
-          icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
-          label="נמשך כמה ימים"
-          checked={multiDay}
-          onChange={(on) =>
-            patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined })
-          }
-        />
-
-        {multiDay && (
-          <DateField
-            label="עד תאריך"
-            value={draft.endDate ?? draft.date}
-            onChange={(endDate) => patch({ endDate })}
-            icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
-            hint={spanHint}
-            min={draft.date}
-            variant="row"
-          />
-        )}
-
-        <ToggleRow
-          icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
-          label="כל היום"
-          checked={draft.allDay}
-          onChange={(allDay) => {
-            // כיבוי המתג הופך את מה שהשדות הראו לערך אמיתי בטיוטה
-            if (allDay) {
-              patch({ allDay });
-              return;
-            }
-            const start = draft.startTime ?? DEFAULT_START;
-            patch({ allDay, startTime: start, endTime: draft.endTime ?? defaultEndFor(start) });
-          }}
-        />
-
-        {/*
-          שדות השעה נשארים על המסך גם כש"כל היום" דלוק, מעומעמים ולא
-          לחיצים. קודם הם נעלמו לגמרי, והמסך קפץ מהמתג ישר ל"מקום" - מי
-          שפתח תזכורת (שהיא אירוע של כל היום) לא ראה שום רמז לכך שיש
-          בכלל שעות, ולא היה לו איך לנחש שהמתג הוא מה שחושף אותן.
-
-          aria-hidden ולא disabled על השדות עצמם: הם עדיין מציגים ערך
-          אמיתי, והם פשוט אינם חלק מהטופס במצב הזה.
-        */}
-        <div
-          className={`flex gap-2.5 transition-opacity ${
-            draft.allDay ? 'pointer-events-none opacity-40' : ''
-          }`}
-          aria-hidden={draft.allDay}
-        >
-          <div className="flex-1">
-            <TimeField
-              label="התחלה"
-              value={draft.startTime ?? DEFAULT_START}
-              onChange={onStartChange}
-              variant="row"
-            />
-          </div>
-          <div className="flex-1">
-            <TimeField
-              label="סיום"
-              value={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
-              onChange={(endTime: string) => patch({ endTime })}
-              variant="row"
-            />
-          </div>
-        </div>
-
-        <PickerField
-          label="מקום"
-          display={draft.location || 'לא הוגדר'}
-          icon={<MapPin size={ICON.md} strokeWidth={STROKE} />}
-          hint={savedPlace ? 'מקום שמור' : undefined}
-          onOpen={() => setLocationOpen(true)}
-          variant="row"
-        />
-
-        {/*
-          התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
-          ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
-        */}
-        {savedPlace && (
-          <div className="rounded-2xl bg-well px-4 py-3.5">
-            <span className="mb-3 flex items-center gap-2 text-caption font-medium text-muted">
-              <Navigation size={ICON.xs} strokeWidth={STROKE} />
-              תזכורת כשאני
-            </span>
-            <Segmented<'none' | PlaceTrigger>
-              value={draft.placeTrigger ?? 'none'}
-              onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
-              options={[
-                { value: 'none', label: 'בלי' },
-                { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
-                { value: 'leave', label: `יוצא מ${savedPlace.name}` },
-              ]}
-            />
-            {draft.placeTrigger && (
-              <p className="mt-3 text-caption leading-relaxed text-muted">
-                ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.
-              </p>
-            )}
-          </div>
-        )}
-
-        <SelectField<UserEvent['repeat']>
-          label="חזרה"
-          value={draft.repeat}
-          onChange={(repeat) => patch({ repeat })}
-          icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
-          options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
-            value: r,
-            label: REPEAT_LABELS[r],
-          }))}
-          variant="row"
-        />
-
-        <SelectField<string>
-          label="תזכורת"
-          value={String(draft.reminderMinutes)}
-          onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-          icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
-          options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
-          variant="row"
-        />
-
-        <TextArea
-          label="הערות"
-          value={draft.notes ?? ''}
-          onChange={(notes) => patch({ notes })}
-          placeholder="פרטים נוספים"
-          rows={2}
-        />
+        <EventFields draft={draft} patch={patch} />
       </div>
-
-      <LocationPicker
-        open={locationOpen}
-        onClose={() => setLocationOpen(false)}
-        value={{ location: draft.location, placeId: draft.placeId }}
-        onChange={(next) => patch({ location: next.location ?? '', placeId: next.placeId })}
-        events={allEvents}
-        places={places}
-      />
 
       <ScopeSheet
         open={askScope === 'save'}

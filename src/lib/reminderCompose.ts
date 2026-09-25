@@ -7,7 +7,7 @@
  */
 import type { DateKey, EventColor } from '@/types';
 import type { EventDraft } from '@/store/events';
-import { dateKey, minutesToTime, timeToMinutes } from './dates';
+import { addDays, dateKey, minutesToTime, timeToMinutes } from './dates';
 
 /** השעה שמוצעת לתזכורת שנקבעת ליום אחר. בוקר, ולא "עכשיו" של אתמול. */
 export const DEFAULT_REMINDER_TIME = '09:00';
@@ -89,4 +89,16 @@ export function buildReminderDraft(input: ReminderComposeInput): EventDraft {
 export function shiftEndWithStart(from: string, end: string, to: string): string {
   const length = Math.max(0, timeToMinutes(end) - timeToMinutes(from));
   return minutesToTime(Math.min(23 * 60 + 59, timeToMinutes(to) + length));
+}
+
+/**
+ * היום של שעה שנבחרה בלי יום.
+ *
+ * "20:00" בשש בערב היא היום, ו"08:00" בשש בערב היא מחר - אף אחד לא
+ * מתכוון לשעה שכבר עברה. שעה שהיא בדיוק עכשיו נחשבת עברה: תזכורת לרגע
+ * הזה לא הייתה מספיקה לצלצל.
+ */
+export function dayForTime(time: string, now: Date): DateKey {
+  const passed = timeToMinutes(time) <= now.getHours() * 60 + now.getMinutes();
+  return dateKey(passed ? addDays(now, 1) : now);
 }

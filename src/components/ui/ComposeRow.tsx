@@ -5,88 +5,122 @@
  * ופריט משותף נבדלים במקום שבו הם חיים, לא בשאלה "מתי", ושתי שורות
  * נפרדות היו נפרדות גם בהתנהגות ברגע שאחת מהן תשתנה.
  */
-import { useState } from 'react';
-import { CalendarPlus, Clock, SlidersHorizontal, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { CalendarDays, Clock, SlidersHorizontal, X } from 'lucide-react';
 import type { DateKey } from '@/types';
 import { addDays, dateKey } from '@/lib/dates';
-import { suggestReminderTime } from '@/lib/reminderCompose';
+import { dayForTime, suggestReminderTime } from '@/lib/reminderCompose';
 import { ICON, STROKE } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { DatePickerSheet, TimePickerSheet } from './Picker';
 
-/** מה נבחר: בלי תאריך, היום, מחר, או יום מהבורר */
-export type Slot = 'none' | 'today' | 'tomorrow' | 'pick';
-
 export type ComposeState = {
-  slot: Slot;
-  time: string | null;
   /** היום שנבחר, או null כשאין */
   targetDate: DateKey | null;
-  setSlot: (next: Slot, date: DateKey | null) => void;
-  setPicked: (key: DateKey) => void;
+  time: string | null;
+  setDate: (next: DateKey | null) => void;
   setTime: (next: string | null) => void;
   reset: () => void;
-  picked: DateKey | null;
 };
 
 /**
  * המצב של השורה.
  *
- * הוק ולא state במסך, כי הכלל "יום שנבחר מקבל שעה" הוא חלק מהשורה ולא
- * מהמסך שמכיל אותה.
+ * הוק ולא state במסך, כי שני הכללים כאן שייכים לשורה ולא למסך שמכיל
+ * אותה: יום שנבחר מקבל שעה מוצעת, ושעה שנבחרה בלי יום מקבלת את היום
+ * הקרוב שבו היא עוד לפנינו.
  */
 export function useComposeRow(now: Date): ComposeState {
-  const [slot, setSlotRaw] = useState<Slot>('none');
-  const [picked, setPicked] = useState<DateKey | null>(null);
-  const [time, setTime] = useState<string | null>(null);
-
-  const targetDate =
-    slot === 'none'
-      ? null
-      : slot === 'today'
-        ? dateKey(now)
-        : slot === 'tomorrow'
-          ? dateKey(addDays(now, 1))
-          : picked;
-
-  /**
-   * מעבר בין ימים.
-   *
-   * יום שנבחר מקבל שעה מיד, כי תזכורת לשעה מסוימת היא המקרה הרגיל -
-   * וקודם כל תזכורת נולדה "כל היום" והמשתמש היה צריך לפתוח את העורך
-   * ולכבות מתג כדי לקבוע שעה. "בלי תאריך" מאפס אותה: שעה בלי יום אינה
-   * שעה. הבחירה הידנית גוברת - מרגע שנקבעה שעה היא אינה נדרסת במעבר
-   * בין "היום" ל"מחר".
-   */
-  const setSlot = (next: Slot, date: DateKey | null) => {
-    setSlotRaw(next);
-    if (next === 'none') {
-      setTime(null);
-      return;
-    }
-    if (time === null) setTime(suggestReminderTime(now, date === dateKey(now)));
-  };
+  const [targetDate, setTargetDate] = useState<DateKey | null>(null);
+  const [time, setTimeRaw] = useState<string | null>(null);
 
   return {
-    slot,
-    time,
-    picked,
     targetDate,
-    setSlot,
-    setPicked,
-    setTime,
+    time,
+    /**
+     * יום שנבחר מקבל שעה מיד, כי תזכורת לשעה מסוימת היא המקרה הרגיל.
+     * ניקוי היום מנקה גם את השעה: שעה בלי יום אינה שעה. שעה שכבר נקבעה
+     * ביד אינה נדרסת במעבר בין ימים.
+     */
+    setDate: (next) => {
+      setTargetDate(next);
+      if (next === null) setTimeRaw(null);
+      else if (time === null) setTimeRaw(suggestReminderTime(now, next === dateKey(now)));
+    },
+    /** שעה בלי יום מקבלת את היום הקרוב שבו היא עוד לפנינו */
+    setTime: (next) => {
+      setTimeRaw(next);
+      if (next === null || targetDate !== null) return;
+      setTargetDate(dayForTime(next, now));
+    },
     reset: () => {
-      setSlotRaw('none');
-      setPicked(null);
-      setTime(null);
+      setTargetDate(null);
+      setTimeRaw(null);
     },
   };
 }
 
-/** תווית קצרה ליום שנבחר בבורר: "21.9" */
-function shortDate(key: DateKey): string {
+/** "היום", "מחר", או "21.9" */
+function dayChipLabel(key: DateKey, now: Date): string {
+  if (key === dateKey(now)) return 'היום';
+  if (key === dateKey(addDays(now, 1))) return 'מחר';
   const [, m, d] = key.split('-');
   return `${Number(d)}.${Number(m)}`;
+}
+
+/**
+ * צ׳יפ עם ערך: הקשה פותחת בורר, ו-× מנקה. בלעדי ה-× לא הייתה דרך לוותר
+ * על יום או על שעה בלי לפתוח את העורך המלא.
+ */
+function ValueChip({
+  icon,
+  empty,
+  value,
+  onOpen,
+  onClear,
+  clearLabel,
+}: {
+  icon: ReactNode;
+  empty: string;
+  value: string | null;
+  onOpen: () => void;
+  onClear: () => void;
+  clearLabel: string;
+}) {
+  return (
+    <div
+      className={`flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg transition-colors ${
+        value ? 'bg-brand text-white' : 'bg-well text-muted'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          void haptic('light');
+          onOpen();
+        }}
+        className={`focus-ring flex min-w-0 items-center gap-1.5 py-1.5 text-caption font-medium ${
+          value ? 'ps-2.5 pe-1' : 'px-2.5'
+        }`}
+      >
+        {icon}
+        <span className="tnum truncate">{value ?? empty}</span>
+      </button>
+      {value && (
+        <button
+          type="button"
+          onClick={() => {
+            void haptic('light');
+            onClear();
+          }}
+          aria-label={clearLabel}
+          className="focus-ring py-1.5 pe-2.5 ps-1"
+        >
+          <X size={ICON.xs} strokeWidth={2.6} />
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function ComposeRow({
@@ -99,131 +133,58 @@ export function ComposeRow({
   /** פתיחת העורך המלא על מה שכבר הוקלד */
   onMore: () => void;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
-  const { slot, time, picked, targetDate } = state;
+  const { targetDate, time } = state;
 
   return (
     <>
       {/*
-        אין כאן "בלי תאריך": זו ברירת המחדל ממילא, וצ׳יפ שמסמן את מצב
-        המנוחה תפס רבע מהשורה כדי לומר מה שכבר נכון. במקומו יושב המוצא
-        לעורך המלא. ההקשה על הצ׳יפ הנבחר מבטלת אותו וחוזרת לבלי תאריך -
-        בלעדיה לא הייתה שום דרך לחזור.
+        שלושה צ׳יפים: יום, שעה, ומוצא לעורך המלא. קודם היו כאן "היום"
+        ו"מחר" כצ׳יפים נפרדים, והשעה הופיעה רק בשורה שנייה אחרי שנבחר
+        יום - כלומר את מה שבאמת משתנה בין תזכורת לתזכורת, השעה, היה הכי
+        רחוק להגיע אליו. "היום" ו"מחר" עדיין נאמרים, כתווית של היום שנבחר.
       */}
       <div className="flex items-center gap-1.5 px-0.5 pt-2">
-        {(
-          [
-            ['today', 'היום'],
-            ['tomorrow', 'מחר'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              void haptic('light');
-              if (slot === id) {
-                state.setSlot('none', null);
-                return;
-              }
-              state.setSlot(id, id === 'today' ? dateKey(now) : dateKey(addDays(now, 1)));
-            }}
-            aria-pressed={slot === id}
-            className={`focus-ring flex-1 whitespace-nowrap rounded-lg py-1.5 text-caption font-medium transition-colors ${
-              slot === id ? 'bg-brand text-white' : 'bg-well text-muted'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => {
-            void haptic('light');
-            if (slot === 'pick') {
-              state.setSlot('none', null);
-              return;
-            }
-            setPickerOpen(true);
-          }}
-          aria-pressed={slot === 'pick'}
-          aria-label={slot === 'pick' ? 'ביטול התאריך' : 'בחירת תאריך'}
-          className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption font-medium transition-colors ${
-            slot === 'pick' ? 'bg-brand text-white' : 'bg-well text-muted'
-          }`}
-        >
-          <CalendarPlus size={ICON.xs} strokeWidth={STROKE} />
-          {slot === 'pick' && picked ? shortDate(picked) : ''}
-        </button>
-
+        <ValueChip
+          icon={<CalendarDays size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
+          empty="יום"
+          value={targetDate ? dayChipLabel(targetDate, now) : null}
+          onOpen={() => setDateOpen(true)}
+          onClear={() => state.setDate(null)}
+          clearLabel="בלי יום"
+        />
+        <ValueChip
+          icon={<Clock size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
+          empty="שעה"
+          value={time}
+          onOpen={() => setTimeOpen(true)}
+          onClear={() => state.setTime(null)}
+          clearLabel="בלי שעה"
+        />
         <button
           type="button"
           onClick={onMore}
           className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg bg-well px-2.5 py-1.5 text-caption font-medium text-muted"
         >
           <SlidersHorizontal size={ICON.xs} strokeWidth={STROKE} />
-          עוד
+          כל האפשרויות
         </button>
       </div>
 
-      {/*
-        שורת השעה מופיעה רק כשיש יום לתלות אותה בו. "בלי תאריך" עם שעה
-        הוא סתירה, ולהראות שם שדה מעומעם זה להזמין ניסיון.
-      */}
-      {slot !== 'none' && (
-        <div className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-1.5">
-          <div
-            className={`flex items-center overflow-hidden rounded-lg ${
-              time ? 'bg-brand text-white' : 'bg-well text-muted'
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                void haptic('light');
-                if (time) setTimeOpen(true);
-                else state.setTime(suggestReminderTime(now, targetDate === dateKey(now)));
-              }}
-              className="focus-ring flex items-center gap-1.5 py-1.5 ps-2.5 pe-2 text-caption font-medium"
-            >
-              <Clock size={ICON.xs} strokeWidth={STROKE} />
-              {time ?? 'כל היום'}
-            </button>
-            {/* ניקוי חוזר ל"כל היום" - בלי זה אי אפשר היה לוותר על השעה */}
-            {time && (
-              <button
-                type="button"
-                onClick={() => {
-                  void haptic('light');
-                  state.setTime(null);
-                }}
-                aria-label="בלי שעה"
-                className="focus-ring py-1.5 pe-2.5 ps-1"
-              >
-                <X size={ICON.xs} strokeWidth={2.6} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       <DatePickerSheet
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        title="תאריך לתזכורת"
-        value={picked ?? dateKey(now)}
-        onChange={(next) => {
-          state.setPicked(next);
-          state.setSlot('pick', next);
-        }}
+        open={dateOpen}
+        onClose={() => setDateOpen(false)}
+        title="איזה יום"
+        value={targetDate ?? dateKey(now)}
+        onChange={state.setDate}
       />
 
       <TimePickerSheet
         open={timeOpen}
         onClose={() => setTimeOpen(false)}
-        title="שעה לתזכורת"
-        value={time ?? suggestReminderTime(now, targetDate === dateKey(now))}
+        title="באיזו שעה"
+        value={time ?? suggestReminderTime(now, (targetDate ?? dateKey(now)) === dateKey(now))}
         onChange={state.setTime}
       />
     </>

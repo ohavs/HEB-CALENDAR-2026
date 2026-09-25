@@ -14,37 +14,54 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, EyeOff, Tag, UserRound, Users } from 'lucide-react';
+import { CalendarDays, EyeOff, Tag, UserRound, Users } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel } from '@/lib/sharedLists';
 import { saveItem, setItemHiddenForMe } from '@/lib/sharedSync';
 import { useAuthStore } from '@/store/auth';
 import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
-import { hebrewDateParts } from '@/lib/hebrew';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, Toggle } from './ui/controls';
 import { ColorRow } from './ui/ColorRow';
-import { DateField, SelectField, TextField, TimeField } from './ui/fields';
+import { SelectField, TextField } from './ui/fields';
+import { DEFAULT_START, EventFields, defaultEndFor, type TimingDraft } from './EventFields';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { isDraftDirty } from '@/lib/draftDirty';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
 
-/** ברירת מחדל לשעה, כשמדליקים שעה לפריט שלא הייתה לו */
-const DEFAULT_TIME = '09:00';
-
 /** מה שהטופס מחזיק, במקום אחד - כדי שיהיה מה להשוות בסגירה */
 type Form = {
   title: string;
   dated: boolean;
-  date: string;
-  timed: boolean;
-  time: string;
+  timing: TimingDraft;
   color: EventColor;
   category: string;
 };
+
+/**
+ * ה"מתי" של הפריט, בצורה שהשדות של האירוע מבינים.
+ *
+ * פריט שנשמר בלי שעה מקבל כאן שעות אמיתיות מאחורי "כל היום" - אותו כלל
+ * של העורך: מה שהשדה מציג חייב להיות מה שהטיוטה מחזיקה, אחרת כיבוי
+ * המתג חושף שעות שאף חישוב אינו מכיר.
+ */
+function timingOf(item: SharedItem): TimingDraft {
+  const start = item.startTime ?? DEFAULT_START;
+  return {
+    date: item.date || dateKey(new Date()),
+    endDate: item.endDate,
+    allDay: !item.startTime,
+    startTime: start,
+    endTime: item.endTime ?? defaultEndFor(start),
+    location: item.location ?? '',
+    repeat: item.repeat ?? 'none',
+    reminderMinutes: item.reminderMinutes ?? null,
+    notes: item.notes ?? '',
+  };
+}
 
 export function SharedItemSheet({
   open,
@@ -69,9 +86,15 @@ export function SharedItemSheet({
   const uid = useAuthStore((s) => s.user?.uid ?? null);
   const [title, setTitle] = useState('');
   const [dated, setDated] = useState(false);
-  const [date, setDate] = useState(() => dateKey(new Date()));
-  const [timed, setTimed] = useState(false);
-  const [time, setTime] = useState(DEFAULT_TIME);
+  const [timing, setTiming] = useState<TimingDraft>(() => ({
+    date: dateKey(new Date()),
+    allDay: true,
+    startTime: DEFAULT_START,
+    endTime: defaultEndFor(DEFAULT_START),
+    repeat: 'none',
+    reminderMinutes: null,
+  }));
+  const patchTiming = (values: Partial<TimingDraft>) => setTiming((t) => ({ ...t, ...values }));
   const [color, setColor] = useState<EventColor>('violet');
   const [category, setCategory] = useState('none');
   const [busy, setBusy] = useState(false);
@@ -85,17 +108,13 @@ export function SharedItemSheet({
     const loaded: Form = {
       title: item.title,
       dated: !item.undated,
-      date: item.date,
-      timed: Boolean(item.startTime),
-      time: item.startTime ?? DEFAULT_TIME,
+      timing: timingOf(item),
       color: item.color,
       category: item.categoryId ?? 'none',
     };
     setTitle(loaded.title);
     setDated(loaded.dated);
-    setDate(loaded.date);
-    setTimed(loaded.timed);
-    setTime(loaded.time);
+    setTiming(loaded.timing);
     setColor(loaded.color);
     setCategory(loaded.category);
     setBusy(false);
@@ -108,11 +127,11 @@ export function SharedItemSheet({
     השמירה אינה עוברת כאן - היא קוראת ל-`onClose` בעצמה.
   */
   const beforeClose = useCallback((): boolean => {
-    const current: Form = { title, dated, date, timed, time, color, category };
+    const current: Form = { title, dated, timing, color, category };
     if (!baseline.current || !isDraftDirty(current, baseline.current)) return true;
     setConfirmDiscard(true);
     return false;
-  }, [title, dated, date, timed, time, color, category]);
+  }, [title, dated, timing, color, category]);
 
   if (!item) return null;
 
@@ -132,14 +151,20 @@ export function SharedItemSheet({
         התאריך נשמר גם כשהפריט חסר תאריך, וזה מה שמאפשר להחזיר אותו
         למקום שממנו הגיע במקום לנחש היום.
       */
-      date: dated ? date : item.date,
+      date: dated ? timing.date : item.date,
       undated: dated ? undefined : true,
-      allDay: !timed,
-      startTime: dated && timed ? time : null,
-      endTime: null,
+      endDate: dated && timing.endDate && timing.endDate > timing.date ? timing.endDate : undefined,
+      allDay: !dated || timing.allDay,
+      startTime: dated && !timing.allDay ? timing.startTime : null,
+      endTime: dated && !timing.allDay ? timing.endTime : null,
+      location: timing.location?.trim() || undefined,
+      notes: timing.notes?.trim() || undefined,
+      repeat: dated ? timing.repeat : 'none',
     })
       .then(() => {
-        announce(dated ? `"${clean}" שובץ ל${dayTitleLabel(keyToDate(date))}` : `"${clean}" נשמר`);
+        announce(
+          dated ? `"${clean}" שובץ ל${dayTitleLabel(keyToDate(timing.date))}` : `"${clean}" נשמר`,
+        );
         onClose();
       })
       .finally(() => setBusy(false));
@@ -150,8 +175,6 @@ export function SharedItemSheet({
     void setItemHiddenForMe(list.id, item.id, !hidden);
     announce(hidden ? 'הפריט יופיע בלוח שלכם' : 'הפריט לא יופיע בלוח שלכם');
   };
-
-  const hebrew = hebrewDateParts(keyToDate(date));
 
   return (
     <Sheet
@@ -229,30 +252,12 @@ export function SharedItemSheet({
 
         {dated && (
           <>
-            <DateField
-              label="תאריך"
-              value={date}
-              onChange={setDate}
-              hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-              icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-            />
-
-            <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2">
-              <span className="shrink-0 text-muted">
-                <Clock size={ICON.md} strokeWidth={STROKE} />
-              </span>
-              <span className="flex-1 text-label font-medium text-ink">בשעה מסוימת</span>
-              <Toggle label="בשעה מסוימת" checked={timed} onChange={setTimed} />
-            </div>
-
-            {timed && (
-              <TimeField
-                label="שעה"
-                value={time}
-                onChange={setTime}
-                icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
-              />
-            )}
+            {/*
+              אותם שדות בדיוק כמו באירוע: פרישה, שעות התחלה וסיום, מקום,
+              חזרה והערות. בלי תזכורת ובלי התראת מקום - הן נקבעות במכשיר
+              לפי האירועים האישיים בלבד, ובפריט משותף לא היו מצלצלות.
+            */}
+            <EventFields draft={timing} patch={patchTiming} personal={false} />
 
             {/*
               הפעולה האישית היחידה במסך, ולכן היא מופרדת ומנוסחת בגוף

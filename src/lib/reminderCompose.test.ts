@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_REMINDER_TIME,
   buildReminderDraft,
+  dayForTime,
   reminderEndTime,
   shiftEndWithStart,
   suggestReminderTime,
@@ -137,5 +138,19 @@ describe('shiftEndWithStart', () => {
 
   it('משך שלילי אינו מכווץ עוד', () => {
     expect(shiftEndWithStart('12:00', '09:00', '15:00')).toBe('15:00');
+  });
+});
+
+describe('dayForTime', () => {
+  // יום חמישי 24 בספטמבר 2026, שש בערב
+  const evening = new Date(2026, 8, 24, 18, 0);
+
+  it('keeps today for a time still ahead', () => {
+    expect(dayForTime('20:00', evening)).toBe('2026-09-24');
+  });
+
+  it('moves to tomorrow for a time already gone', () => {
+    expect(dayForTime('08:00', evening)).toBe('2026-09-25');
+    expect(dayForTime('18:00', evening)).toBe('2026-09-25');
   });
 });
