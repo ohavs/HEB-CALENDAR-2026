@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, EyeOff, Tag, UserRound, Users } from 'lucide-react';
+import { CalendarDays, EyeOff, Tag, UserRound } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel } from '@/lib/sharedLists';
@@ -22,10 +22,16 @@ import { saveItem, setItemHiddenForMe } from '@/lib/sharedSync';
 import { useAuthStore } from '@/store/auth';
 import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
-import { PrimaryButton, Toggle } from './ui/controls';
+import { PrimaryButton } from './ui/controls';
 import { ColorRow } from './ui/ColorRow';
-import { SelectField, TextField } from './ui/fields';
-import { DEFAULT_START, EventFields, defaultEndFor, type TimingDraft } from './EventFields';
+import { FieldGroup, SelectField } from './ui/fields';
+import {
+  DEFAULT_START,
+  EventFields,
+  ToggleRow,
+  defaultEndFor,
+  type TimingDraft,
+} from './EventFields';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
@@ -183,7 +189,11 @@ export function SharedItemSheet({
       beforeClose={beforeClose}
       size="tall"
       title="פריט משותף"
-      subtitle={list.name}
+      /*
+        כל שינוי כאן נראה מיד אצל כל חברי הרשימה - זה ההבדל היחיד בין
+        המסך הזה לעריכת אירוע, ולכן הוא בכותרת ולא בהערת שוליים.
+      */
+      subtitle={`${list.name} · נראה לכל החברים`}
       footer={
         <PrimaryButton onClick={save} disabled={busy || !title.trim()}>
           {!title.trim() ? 'צריך שם לפריט' : draft ? 'הוספה לרשימה' : 'שמירה'}
@@ -191,36 +201,18 @@ export function SharedItemSheet({
       }
     >
       <div className="space-y-2.5 pb-2">
-        {/*
-          אזהרה ראשונה ולא הערת שוליים: כל מה שנשמר כאן נראה מיד אצל
-          כל חברי הרשימה, וזה ההבדל היחיד שמשנה בין המסך הזה לעריכת
-          אירוע רגיל.
-        */}
-        <p className="flex items-start gap-2.5 rounded-2xl bg-brand-soft px-4 py-3 text-caption leading-relaxed text-brand-ink">
-          <Users size={ICON.md} strokeWidth={STROKE} className="mt-0.5 shrink-0" />
-          מה שתשנו כאן - כולל התאריך - יופיע אצל כל חברי "{list.name}".
-        </p>
-
-        <TextField label="שם" value={title} onChange={setTitle} placeholder="מה צריך" />
-
-        {/*
-          מי הוסיף. ברשימה שיש בה יותר מאדם אחד זו השאלה הראשונה שנשאלת
-          על פריט שלא מזהים - ועד עכשיו התשובה הייתה קיימת בנתונים
-          (`createdBy`) ולא מוצגת בשום מקום.
-
-          לא מוצג בטיוטה: פריט שטרם נוסף הוסף על ידי מי שמסתכל בו.
-        */}
-        {!draft && item.createdBy && (
-          <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-3">
-            <span className="shrink-0 text-muted">
-              <UserRound size={ICON.md} strokeWidth={STROKE} />
-            </span>
-            <span className="flex-1 text-label font-medium text-ink">נוסף על ידי</span>
-            <span className="min-w-0 truncate text-label text-muted">
-              {item.createdBy === uid ? 'אני' : memberLabel(list, item.createdBy)}
-            </span>
-          </div>
-        )}
+        {/* אותו שדה כותרת כמו בעורך האירוע, כדי ששני הטפסים ייראו אחד */}
+        <div className="field-shell rounded-2xl bg-well px-4">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="מה צריך"
+            autoComplete="off"
+            aria-label="שם הפריט"
+            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
+          />
+        </div>
 
         <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">
           <span className="shrink-0 text-label font-medium text-ink">צבע</span>
@@ -229,26 +221,39 @@ export function SharedItemSheet({
           </div>
         </div>
 
-        {list.categories.length > 0 && (
-          <SelectField
-            label="קטגוריה"
-            value={category}
-            onChange={setCategory}
-            icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
-            options={[
-              { value: 'none', label: 'בלי קטגוריה' },
-              ...list.categories.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-          />
+        {/*
+          מי הוסיף ובאיזו קטגוריה - שתי עובדות על מקומו של הפריט ברשימה,
+          ולכן קופסה אחת. "נוסף על ידי" אינו מוצג בטיוטה: פריט שטרם נוסף
+          הוסף על ידי מי שמסתכל בו.
+        */}
+        {((!draft && item.createdBy) || list.categories.length > 0) && (
+          <FieldGroup>
+            {!draft && item.createdBy && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <span className="shrink-0 text-muted">
+                  <UserRound size={ICON.md} strokeWidth={STROKE} />
+                </span>
+                <span className="flex-1 text-label font-medium text-ink">נוסף על ידי</span>
+                <span className="min-w-0 truncate text-label text-muted">
+                  {item.createdBy === uid ? 'אני' : memberLabel(list, item.createdBy)}
+                </span>
+              </div>
+            )}
+            {list.categories.length > 0 && (
+              <SelectField
+                label="קטגוריה"
+                value={category}
+                onChange={setCategory}
+                icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
+                variant="grouped"
+                options={[
+                  { value: 'none', label: 'בלי קטגוריה' },
+                  ...list.categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+            )}
+          </FieldGroup>
         )}
-
-        <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2">
-          <span className="shrink-0 text-muted">
-            <CalendarDays size={ICON.md} strokeWidth={STROKE} />
-          </span>
-          <span className="flex-1 text-label font-medium text-ink">משויך ליום</span>
-          <Toggle label="משויך ליום" checked={dated} onChange={setDated} />
-        </div>
 
         {/*
           אותם שדות בדיוק כמו באירוע: פרישה, שעות התחלה וסיום, מקום,
@@ -256,7 +261,21 @@ export function SharedItemSheet({
           התראת מקום - הן נקבעות במכשיר לפי האירועים האישיים בלבד,
           ובפריט משותף לא היו מצלצלות.
         */}
-        <EventFields draft={timing} patch={patchTiming} personal={false} scheduled={dated} />
+        <EventFields
+          draft={timing}
+          patch={patchTiming}
+          personal={false}
+          scheduled={dated}
+          whenToggle={
+            <ToggleRow
+              grouped
+              icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
+              label="משויך ליום"
+              checked={dated}
+              onChange={setDated}
+            />
+          }
+        />
 
         {dated && (
           <>

@@ -50,6 +50,100 @@ export function Field({
   );
 }
 
+/* ------------------------------ קבוצות ------------------------------ */
+
+/**
+ * 'card'    - תווית מעל, ערך מתחת. קריא, ועולה כ-68px.
+ * 'row'     - תווית וערך באותה שורה, בקופסה משלה, כ-50px.
+ * 'grouped' - אותה שורה בלי קופסה, בתוך `FieldGroup`.
+ */
+export type FieldVariant = 'card' | 'row' | 'grouped';
+
+/**
+ * כמה שורות שעונות על שאלה אחת - "מתי", "איפה" - בקופסה אחת עם קווים
+ * דקים ביניהן.
+ *
+ * טופס שבו כל שדה הוא קופסה משלו נקרא כמו רשימה של עשרה דברים שווים,
+ * והרווחים ביניהן לבד אכלו מסך שלם. הקבוצה אומרת מה שייך למה, וחוסכת
+ * את הרווחים בלי להקטין אף שורה.
+ */
+export function FieldGroup({ children }: { children: ReactNode }) {
+  return (
+    <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">{children}</div>
+  );
+}
+
+/**
+ * התחלה וסיום בשורה אחת: "09:00 – 10:00".
+ *
+ * שתי שורות נפרדות אמרו פעמיים "שעה", וכל אחת לקחה גובה של שורה מלאה
+ * בשביל חמישה תווים. כאן שני הערכים נלחצים כל אחד לבד.
+ */
+export function TimeRangeRow({
+  icon,
+  label,
+  start,
+  end,
+  onStart,
+  onEnd,
+  disabled = false,
+}: {
+  icon?: ReactNode;
+  label: string;
+  start: string;
+  end: string;
+  onStart: (next: string) => void;
+  onEnd: (next: string) => void;
+  /** "כל היום": השעות נשארות על המסך, מעומעמות, כרמז שהן קיימות */
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState<'start' | 'end' | null>(null);
+  const value = (which: 'start' | 'end', text: string, aria: string) => (
+    <button
+      type="button"
+      onClick={() => setOpen(which)}
+      aria-label={`${aria} ${text}`}
+      className="tnum focus-ring rounded-lg px-2 py-1 text-label font-semibold text-ink active:bg-hairline"
+    >
+      {text}
+    </button>
+  );
+  return (
+    <>
+      <div
+        className={`flex items-center gap-3 px-4 py-2 transition-opacity ${
+          disabled ? 'pointer-events-none opacity-40' : ''
+        }`}
+        aria-hidden={disabled}
+      >
+        {icon && <span className="shrink-0 text-muted">{icon}</span>}
+        <span className="flex-1 text-label font-medium text-ink">{label}</span>
+        <span className="flex items-center gap-0.5">
+          {value('start', start, 'התחלה')}
+          <span className="text-faint">–</span>
+          {value('end', end, 'סיום')}
+        </span>
+      </div>
+      <TimePickerSheet
+        open={open === 'start'}
+        onClose={() => setOpen(null)}
+        title="התחלה"
+        value={start}
+        onChange={onStart}
+        minuteStep={5}
+      />
+      <TimePickerSheet
+        open={open === 'end'}
+        onClose={() => setOpen(null)}
+        title="סיום"
+        value={end}
+        onChange={onEnd}
+        minuteStep={5}
+      />
+    </>
+  );
+}
+
 /* -------------------------- שדה שפותח בורר -------------------------- */
 
 /** שורה שנראית כמו שדה, אבל פותחת גיליון בחירה במקום לקבל הקלדה. */
@@ -67,21 +161,19 @@ export function PickerField({
   icon?: ReactNode;
   hint?: ReactNode;
   onOpen: () => void;
-  /**
-   * 'card' - תווית מעל, ערך מתחת. קריא, ועולה כ-68px.
-   * 'row'  - תווית וערך באותה שורה, כ-50px. לטופס עם הרבה שדות,
-   *          שבו הגובה של הכרטיס המוערם דוחף את רובם אל מחוץ למסך.
-   */
-  variant?: 'card' | 'row';
+  /** ראו `FieldVariant` */
+  variant?: FieldVariant;
 }) {
-  if (variant === 'row') {
+  if (variant === 'row' || variant === 'grouped') {
     return (
       <motion.button
         type="button"
         onClick={onOpen}
-        whileTap={{ scale: 0.99 }}
+        whileTap={variant === 'row' ? { scale: 0.99 } : undefined}
         transition={TAP}
-        className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-3 text-right transition-colors active:bg-hairline"
+        className={`flex w-full items-center gap-3 px-4 py-3 text-right transition-colors active:bg-hairline ${
+          variant === 'row' ? 'rounded-2xl bg-well' : ''
+        }`}
       >
         {icon && <span className="shrink-0 text-muted">{icon}</span>}
         <span className="shrink-0 text-label font-medium text-ink">{label}</span>
@@ -203,7 +295,7 @@ export function SelectField<T extends string | number>({
   onChange: (next: T) => void;
   icon?: ReactNode;
   hint?: ReactNode;
-  variant?: 'card' | 'row';
+  variant?: FieldVariant;
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
@@ -255,7 +347,7 @@ export function DateField({
   hint?: ReactNode;
   /** התאריך המוקדם ביותר שאפשר לבחור */
   min?: string;
-  variant?: 'card' | 'row';
+  variant?: FieldVariant;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -296,7 +388,7 @@ export function TimeField({
   onChange: (next: string) => void;
   icon?: ReactNode;
   minuteStep?: number;
-  variant?: 'card' | 'row';
+  variant?: FieldVariant;
 }) {
   const [open, setOpen] = useState(false);
   return (
