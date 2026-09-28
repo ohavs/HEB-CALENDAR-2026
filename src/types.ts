@@ -36,6 +36,12 @@ export type UserEvent = {
   placeTrigger?: PlaceTrigger;
   notes?: string;
   color: EventColor;
+  /**
+   * קטגוריה של תזכורת אישית - מזהה מתוך `settings.reminderCategories`.
+   * אותו שם שדה כמו בפריט משותף, כדי ששני המסכים יקבצו באותו קוד.
+   * מזהה שהקטגוריה שלו נמחקה נקרא כ"בלי קטגוריה".
+   */
+  categoryId?: string;
   /** דקות לפני האירוע לתזכורת; null = בלי תזכורת */
   reminderMinutes: number | null;
   /** חזרתיות בסיסית */
@@ -329,6 +335,17 @@ export type Settings = {
    * אחרות יראו אותם. באנדרואיד בלבד, ורק אחרי הרשאת יומן.
    */
   systemCalendar: boolean;
+  /**
+   * קטגוריות לתזכורות האישיות. בהגדרות ולא בחנות משלהן, מאותו שיקול של
+   * מקומות שמורים ותבניות: מעטות, מתוארות פעם אחת, וצריכות להסתנכרן.
+   */
+  reminderCategories: ReminderCategory[];
+};
+
+/** קטגוריה של תזכורות אישיות */
+export type ReminderCategory = {
+  id: string;
+  name: string;
 };
 
 /** תת-קבוצה מההגדרות שמשמשת את מנוע הלוח העברי. */

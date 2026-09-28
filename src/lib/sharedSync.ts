@@ -28,6 +28,7 @@ import {
 import type { EventColor, UserEvent } from '@/types';
 import {
   inviteId,
+  memberNeedsRefresh,
   newId,
   normalizeEmail,
   type ListCategory,
@@ -169,6 +170,7 @@ export async function startShared(): Promise<void> {
       });
       lists.sort((a, b) => a.createdAt - b.createdAt);
       useSharedStore.setState({ lists, live: true, loaded: true, error: null });
+      refreshMyMember(lists);
       // הרשימה שנבחרה אולי נמחקה או נעזבה
       const { selectedId } = useSharedStore.getState();
       if (selectedId && !lists.some((l) => l.id === selectedId)) {
@@ -247,6 +249,31 @@ export function watchItems(): void {
   );
 }
 
+/** רשימות שכבר עודכנו בהפעלה הזו, כדי שעדכון שנכשל לא יחזור בלולאה */
+const refreshed = new Set<string>();
+
+/**
+ * מעדכן את השם והתמונה שלי ברשימות שבהן הם מיושנים.
+ *
+ * התמונה נשמרת על הרשימה ולא נקראת מחשבון הגוגל של החבר, כי אין לנו
+ * דרך לקרוא חשבון של מישהו אחר - רק את מה שהוא עצמו כתב. לכן כל חבר
+ * מרענן את הרישום של עצמו, וזה מה שהכלל מרשה לו לשנות.
+ */
+function refreshMyMember(lists: SharedList[]): void {
+  const user = useAuthStore.getState().user;
+  if (!user || !db) return;
+  for (const list of lists) {
+    if (refreshed.has(list.id) || !memberNeedsRefresh(list, user)) continue;
+    refreshed.add(list.id);
+    const patch: Record<string, unknown> = {
+      [`members.${user.uid}.name`]: user.name ?? '',
+      updatedAt: Date.now(),
+    };
+    patch[`members.${user.uid}.photo`] = user.photoURL ? user.photoURL : deleteField();
+    void updateDoc(doc(db, 'lists', list.id), patch).catch(() => undefined);
+  }
+}
+
 export function stopShared(): void {
   stopLists?.();
   stopInvites?.();
@@ -281,6 +308,7 @@ export async function createList(name: string, color: EventColor): Promise<strin
         uid: user.uid,
         name: user.name ?? '',
         email: normalizeEmail(user.email ?? ''),
+        ...(user.photoURL ? { photo: user.photoURL } : {}),
         role: 'owner',
         joinedAt: now,
       },
@@ -341,6 +369,7 @@ export async function acceptInvite(inv: ListInvite): Promise<void> {
       uid: user.uid,
       name: user.name ?? '',
       email: normalizeEmail(user.email ?? ''),
+      ...(user.photoURL ? { photo: user.photoURL } : {}),
       role: 'member',
       joinedAt: Date.now(),
     },

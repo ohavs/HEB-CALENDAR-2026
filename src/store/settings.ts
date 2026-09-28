@@ -45,6 +45,7 @@ export function defaultSettings(): Settings {
     placeAlertsEnabled: false,
     doneCleanupDays: 1,
     systemCalendar: false,
+    reminderCategories: [],
   };
 }
 

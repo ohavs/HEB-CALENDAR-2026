@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  memberNeedsRefresh,
   calendarItems,
   countByCategory,
   findCategory,
@@ -252,5 +253,32 @@ describe('isHiddenFor', () => {
   /* false מפורש נשאר גלוי, כדי שהחזרה תעבוד גם אם נכתב כך במקום נמחק */
   it('false מפורש אינו מסתיר', () => {
     expect(isHiddenFor({ hiddenBy: { uidA: false } } as unknown as SharedItem, 'uidA')).toBe(false);
+  });
+});
+
+describe('memberNeedsRefresh', () => {
+  const base = {
+    id: 'l',
+    name: 'בית',
+    color: 'violet' as const,
+    ownerUid: 'a',
+    memberUids: ['a'],
+    categories: [],
+    createdAt: 0,
+    updatedAt: 0,
+  };
+  const member = { uid: 'a', name: 'אוהב', email: 'a@x', role: 'owner' as const, joinedAt: 0 };
+
+  it('asks for a refresh when my photo is missing or changed', () => {
+    const list = { ...base, members: { a: member } };
+    expect(memberNeedsRefresh(list, { uid: 'a', name: 'אוהב', photoURL: 'https://p/1' })).toBe(true);
+    const withPhoto = { ...base, members: { a: { ...member, photo: 'https://p/1' } } };
+    expect(memberNeedsRefresh(withPhoto, { uid: 'a', name: 'אוהב', photoURL: 'https://p/1' })).toBe(false);
+    expect(memberNeedsRefresh(withPhoto, { uid: 'a', name: 'אוהב', photoURL: 'https://p/2' })).toBe(true);
+  });
+
+  it('never touches a list I am not in', () => {
+    const list = { ...base, members: { a: member } };
+    expect(memberNeedsRefresh(list, { uid: 'b', name: 'x', photoURL: 'y' })).toBe(false);
   });
 });

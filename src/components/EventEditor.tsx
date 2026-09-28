@@ -134,6 +134,7 @@ export function EventEditor({
         reminderMinutes: editing.reminderMinutes,
         repeat: editing.repeat,
         endDate: editing.endDate,
+        categoryId: editing.categoryId,
       };
       setDraft(loaded);
       /*
@@ -345,7 +346,22 @@ export function EventEditor({
           </div>
         </div>
 
-        <EventFields draft={draft} patch={patch} />
+        <EventFields
+          draft={draft}
+          patch={patch}
+          category={
+            settings.reminderCategories.length > 0
+              ? {
+                  value: draft.categoryId ?? 'none',
+                  onChange: (v) => patch({ categoryId: v === 'none' ? undefined : v }),
+                  options: [
+                    { value: 'none', label: 'בלי קטגוריה' },
+                    ...settings.reminderCategories.map((c) => ({ value: c.id, label: c.name })),
+                  ],
+                }
+              : undefined
+          }
+        />
       </div>
 
       <ScopeSheet

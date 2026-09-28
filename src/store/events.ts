@@ -40,6 +40,8 @@ export type EventDraft = {
   repeat: UserEvent['repeat'];
   /** תזכורת בלי תאריך - חיה רק במסך התזכורות */
   undated?: true;
+  /** קטגוריה של תזכורת, מתוך `settings.reminderCategories` */
+  categoryId?: string;
 };
 
 function newId(): string {

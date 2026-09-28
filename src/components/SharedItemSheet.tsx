@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, EyeOff, Tag, UserRound } from 'lucide-react';
+import { CalendarDays, EyeOff } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel } from '@/lib/sharedLists';
@@ -24,7 +24,7 @@ import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { ColorRow } from './ui/ColorRow';
-import { FieldGroup, SelectField } from './ui/fields';
+import { Avatar } from './ui/Avatar';
 import {
   DEFAULT_START,
   EventFields,
@@ -194,6 +194,16 @@ export function SharedItemSheet({
         המסך הזה לעריכת אירוע, ולכן הוא בכותרת ולא בהערת שוליים.
       */
       subtitle={`${list.name} · נראה לכל החברים`}
+      /*
+        מי הוסיף - תמונה ולא שורה. זו העובדה הראשונה שנשאלת על פריט
+        שלא מזהים, והיא לא צריכה שורה שלמה בטופס כדי להיענות. לא מוצג
+        בטיוטה: פריט שטרם נוסף הוסף על ידי מי שמסתכל בו.
+      */
+      headerAction={
+        !draft && item.createdBy ? (
+          <CreatorBadge list={list} uid={item.createdBy} me={uid} />
+        ) : undefined
+      }
       footer={
         <PrimaryButton onClick={save} disabled={busy || !title.trim()}>
           {!title.trim() ? 'צריך שם לפריט' : draft ? 'הוספה לרשימה' : 'שמירה'}
@@ -222,40 +232,6 @@ export function SharedItemSheet({
         </div>
 
         {/*
-          מי הוסיף ובאיזו קטגוריה - שתי עובדות על מקומו של הפריט ברשימה,
-          ולכן קופסה אחת. "נוסף על ידי" אינו מוצג בטיוטה: פריט שטרם נוסף
-          הוסף על ידי מי שמסתכל בו.
-        */}
-        {((!draft && item.createdBy) || list.categories.length > 0) && (
-          <FieldGroup>
-            {!draft && item.createdBy && (
-              <div className="flex items-center gap-3 px-4 py-3">
-                <span className="shrink-0 text-muted">
-                  <UserRound size={ICON.md} strokeWidth={STROKE} />
-                </span>
-                <span className="flex-1 text-label font-medium text-ink">נוסף על ידי</span>
-                <span className="min-w-0 truncate text-label text-muted">
-                  {item.createdBy === uid ? 'אני' : memberLabel(list, item.createdBy)}
-                </span>
-              </div>
-            )}
-            {list.categories.length > 0 && (
-              <SelectField
-                label="קטגוריה"
-                value={category}
-                onChange={setCategory}
-                icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
-                variant="grouped"
-                options={[
-                  { value: 'none', label: 'בלי קטגוריה' },
-                  ...list.categories.map((c) => ({ value: c.id, label: c.name })),
-                ]}
-              />
-            )}
-          </FieldGroup>
-        )}
-
-        {/*
           אותם שדות בדיוק כמו באירוע: פרישה, שעות התחלה וסיום, מקום,
           חזרה והערות. מקום והערות מוצגים גם בלי יום. בלי תזכורת ובלי
           התראת מקום - הן נקבעות במכשיר לפי האירועים האישיים בלבד,
@@ -266,6 +242,18 @@ export function SharedItemSheet({
           patch={patchTiming}
           personal={false}
           scheduled={dated}
+          category={
+            list.categories.length > 0
+              ? {
+                  value: category,
+                  onChange: setCategory,
+                  options: [
+                    { value: 'none', label: 'בלי קטגוריה' },
+                    ...list.categories.map((c) => ({ value: c.id, label: c.name })),
+                  ],
+                }
+              : undefined
+          }
           whenToggle={
             <ToggleRow
               grouped
@@ -323,5 +311,26 @@ export function SharedItemSheet({
         }
       />
     </Sheet>
+  );
+}
+
+/**
+ * התמונה של מי שהוסיף את הפריט, בפינת הכותרת.
+ *
+ * השם נאמר לקורא מסך ובלחיצה ארוכה (`title`), כי תמונה לבדה אינה אומרת
+ * כלום למי שאינו רואה אותה - וגם מי שרואה לא תמיד מזהה פנים קטנות.
+ */
+function CreatorBadge({ list, uid, me }: { list: SharedList; uid: string; me: string | null }) {
+  const member = list.members[uid];
+  const name = uid === me ? 'אני' : memberLabel(list, uid);
+  return (
+    <span
+      role="img"
+      aria-label={`נוסף על ידי ${name}`}
+      title={`נוסף על ידי ${name}`}
+      className="mt-0.5 block h-10 w-10 overflow-hidden rounded-full bg-well ring-1 ring-hairline"
+    >
+      <Avatar photoURL={member?.photo ?? null} name={member?.name || member?.email || name} />
+    </span>
   );
 }

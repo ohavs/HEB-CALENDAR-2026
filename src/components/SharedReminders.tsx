@@ -9,10 +9,11 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronDown, Plus, Settings2, Trash2, UserPlus, Users } from 'lucide-react';
+import { ChevronDown, Plus, Settings2, UserPlus, Users } from 'lucide-react';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
-import { buildReminderGroups, type ReminderItem } from '@/lib/reminders';
+import { buildReminderGroups, type ReminderGroup, type ReminderItem } from '@/lib/reminders';
+import { sectionByCategory } from '@/lib/reminderSections';
 import { useRangeData } from '@/hooks/useMonthData';
 import { useAuthStore } from '@/store/auth';
 import { useSettings } from '@/store/settings';
@@ -44,6 +45,7 @@ import { ListPickerSheet } from './ListPickerSheet';
 import { ComposeRow, useComposeRow } from './ui/ComposeRow';
 import { buildReminderDraft } from '@/lib/reminderCompose';
 import { PrimaryButton } from './ui/controls';
+import { CategoryChip, CategorySection, ReminderRow } from './ui/ReminderParts';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
   const user = useAuthStore((s) => s.user);
@@ -91,6 +93,15 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
     const occurrences = expandEvents(items, startOfDay(now), addDays(now, 120));
     return buildReminderGroups(items, occurrences, range.days, now);
   }, [items, range.days, now]);
+
+  /** "הכול" ברשימה עם קטגוריות מתחלק לפיהן, בדיוק כמו הרשימה האישית */
+  const sections = useMemo(
+    () =>
+      category === null && list && list.categories.length
+        ? sectionByCategory(groups, list.categories)
+        : null,
+    [category, list, groups],
+  );
 
   /* ---------------------------- אין חשבון ---------------------------- */
   if (!isFirebaseConfigured) {
@@ -177,6 +188,42 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
     setEditingDraft(true);
     setEditing(item);
   };
+
+  /** קבוצה של יום, באותה צורה של הרשימה האישית ובאותה שורה */
+  const renderGroup = (group: ReminderGroup) => (
+    <section key={group.key}>
+      <header className="flex items-baseline gap-2.5 px-2 pb-2">
+        <h2 className="text-label font-semibold text-ink">{group.label}</h2>
+        {group.hebrew && <span className="truncate text-caption text-faint">{group.hebrew}</span>}
+      </header>
+      <div className="space-y-2">
+        {group.items.map((item) => {
+          const source = allItems.find((i) => i.id === item.baseId);
+          return (
+            <ReminderRow
+              key={item.key}
+              item={item}
+              who={
+                !source || source.createdBy === user?.uid
+                  ? null
+                  : memberLabel(list!, source.createdBy)
+              }
+              onToggle={(done) => {
+                if (source && list) void setItemDone(list.id, source, item.sourceKey, done);
+              }}
+              onOpen={() => {
+                if (!source) return;
+                // פריט מהרשימה קיים בענן, ולכן אינו טיוטה
+                setEditingDraft(false);
+                setEditing(source);
+              }}
+              onDelete={() => setPendingDelete(item)}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
 
   const addList = async () => {
     setBusy(true);
@@ -417,44 +464,22 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
           {/* ---------------------------- הרשימה ---------------------------- */}
           <div className="mt-5 space-y-5">
-            {groups.some((g) => g.items.length) ? (
-              groups
-                .filter((g) => g.items.length)
-                .map((group) => (
-                  <section key={group.key}>
-                    <header className="flex items-baseline gap-2.5 px-2 pb-2">
-                      <h2 className="text-label font-semibold text-ink">{group.label}</h2>
-                      {group.hebrew && (
-                        <span className="truncate text-caption text-faint">{group.hebrew}</span>
-                      )}
-                    </header>
-                    <div className="space-y-2">
-                      {group.items.map((item) => (
-                        <SharedRow
-                          key={item.key}
-                          item={item}
-                          listId={list!.id}
-                          source={allItems.find((i) => i.id === item.baseId)}
-                          who={
-                            allItems.find((i) => i.id === item.baseId)?.createdBy === user.uid
-                              ? null
-                              : memberLabel(
-                                  list!,
-                                  allItems.find((i) => i.id === item.baseId)?.createdBy ?? '',
-                                )
-                          }
-                          onDelete={setPendingDelete}
-                          onOpen={(it) => {
-                            // פריט מהרשימה קיים בענן, ולכן אינו טיוטה
-                            setEditingDraft(false);
-                            setEditing(it);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))
-            ) : (
+            {sections ? (
+              sections.map((section) => (
+                <CategorySection
+                  key={section.id}
+                  collapseId={`reminders:${list!.id}:${section.id}`}
+                  name={section.name}
+                  open={section.open}
+                >
+                  {section.groups.map((group) => renderGroup(group))}
+                </CategorySection>
+              ))
+            ) : groups.some((g) => g.items.length) ? (
+              groups.filter((g) => g.items.length).map((group) => renderGroup(group))
+            ) : null}
+
+            {(sections ? !sections.length : !groups.some((g) => g.items.length)) && (
               <p className="rounded-2xl border border-dashed border-hairline px-4 py-10 text-center text-body text-muted">
                 {category === null
                   ? 'הרשימה ריקה. מה שתוסיפו כאן יופיע גם אצל שאר החברים.'
@@ -525,130 +550,5 @@ function Notice({ children }: { children: React.ReactNode }) {
     <p className="rounded-2xl border border-dashed border-hairline px-5 py-6 text-body leading-relaxed text-muted">
       {children}
     </p>
-  );
-}
-
-function CategoryChip({
-  label,
-  active,
-  count,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  count: number | undefined;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        void haptic('light');
-        onClick();
-      }}
-      aria-pressed={active}
-      /*
-        רקע שקוע ובלי צל: הצ׳יפים יושבים *בתוך* כרטיס הרשימה, ולא על
-        רקע המסך. קודם הם היו `bg-surface` עם צל - נכון כשהם ריחפו על
-        הקנבס, אבל בתוך כרטיס לבן זה צ׳יפ לבן על לבן שמורם בצל, וזה
-        נראה כמו רעש ולא כמו בורר.
-      */
-      className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-white' : 'bg-well text-muted'
-      }`}
-    >
-      {label}
-      {count ? <span className="tnum opacity-75">{count}</span> : null}
-    </button>
-  );
-}
-
-function SharedRow({
-  item,
-  listId,
-  source,
-  who,
-  onDelete,
-  onOpen,
-}: {
-  item: ReminderItem;
-  listId: string;
-  source: SharedItem | undefined;
-  who: string | null;
-  onDelete: (item: ReminderItem) => void;
-  onOpen: (item: SharedItem) => void;
-}) {
-  return (
-    <div
-      className={`ev ev-${item.color} flex w-full items-center gap-2 rounded-2xl p-3 ${
-        item.done ? 'opacity-55' : ''
-      }`}
-    >
-      <motion.button
-        type="button"
-        role="checkbox"
-        aria-checked={item.done}
-        aria-label={item.done ? 'ביטול סימון כבוצע' : 'סימון כבוצע'}
-        onClick={() => {
-          if (!source) return;
-          void haptic('light');
-          void setItemDone(listId, source, item.sourceKey, !item.done);
-        }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
-        className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          item.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
-        }`}
-      >
-        {item.done && <Check size={ICON.sm} strokeWidth={3} />}
-      </motion.button>
-
-      <motion.button
-        type="button"
-        onClick={() => source && onOpen(source)}
-        whileTap={{ scale: 0.99 }}
-        transition={TAP}
-        className="focus-ring min-w-0 flex-1 rounded-xl text-right"
-      >
-        <span
-          className={`block truncate text-body font-medium leading-snug ${
-            item.done ? 'line-through' : ''
-          }`}
-        >
-          {item.title}
-        </span>
-        {/*
-          מי הוסיף - רק כשזה לא אני. ברשימה משותפת זו העובדה שחסרה.
-          בלי אייקון: כל אייקון של אדם באזור הזה נקרא כפעולה ("הוספת
-          חבר") ולא כייחוס, והשם לבדו ברור יותר.
-        */}
-        {/*
-          מתי, ומי הוסיף. התאריך הוא החדש כאן: פריט משובץ נראה אחרת
-          מפריט שממתין, ובלי הכיתוב הזה שני המצבים נראים זהים ברשימה.
-        */}
-        <span className="mt-0.5 flex items-center gap-2 text-caption opacity-70">
-          {item.time && <span className="tnum font-medium">{item.time}</span>}
-          {who && <span className="truncate">{who}</span>}
-        </span>
-      </motion.button>
-
-      {/*
-        גם כאן הצ׳קבוקס היה הפעולה היחידה, ופריט שנוסף בטעות נשאר
-        ברשימה של כולם. `removeItem` היה קיים ולא נקרא מאף מקום.
-      */}
-      <motion.button
-        type="button"
-        onClick={() => {
-          void haptic('medium');
-          onDelete(item);
-        }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
-        aria-label={`מחיקת ${item.title}`}
-        className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
-      >
-        <Trash2 size={ICON.sm} strokeWidth={STROKE} />
-      </motion.button>
-    </div>
   );
 }

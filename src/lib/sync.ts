@@ -121,6 +121,7 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
       שנשמר לה רק כדי שתדע לאן לחזור.
     */
     undated: data.undated === true ? true : undefined,
+    categoryId: typeof data.categoryId === 'string' ? data.categoryId : undefined,
     createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
     updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
     deleted: data.deleted === true,
@@ -145,6 +146,12 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
     repeat: ev.repeat,
     exceptions: ev.exceptions ?? null,
     undated: ev.undated === true,
+    /*
+      רק כשיש. מסמך שכתוב בו `categoryId: null` היה נדחה כולו על ידי כלל
+      ישן שעוד לא מכיר את השדה, ולכן אירוע בלי קטגוריה נכתב בדיוק כמו
+      קודם. `set` מחליף את המסמך כולו, כך שהסרת קטגוריה מוחקת את השדה.
+    */
+    ...(ev.categoryId ? { categoryId: ev.categoryId } : {}),
     createdAt: ev.createdAt,
     updatedAt: ev.updatedAt,
     deleted: ev.deleted === true,

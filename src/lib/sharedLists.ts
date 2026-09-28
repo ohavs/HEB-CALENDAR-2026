@@ -24,6 +24,12 @@ export type ListMember = {
   uid: string;
   name: string;
   email: string;
+  /**
+   * תמונת הפרופיל של גוגל, כפי שנראתה בפעם האחרונה שהחבר פתח את
+   * האפליקציה. רשות: חברים שהצטרפו לפני שהשדה היה קיים מקבלים אותו
+   * בכניסה הבאה שלהם (`refreshMyMember`), ועד אז מוצגת האות הראשונה.
+   */
+  photo?: string;
   role: ListRole;
   joinedAt: number;
 };
@@ -125,6 +131,19 @@ export function isOwner(list: SharedList, uid: string | null): boolean {
   return Boolean(uid) && list.ownerUid === uid;
 }
 
+/**
+ * האם הרישום שלי ברשימה מיושן - שם או תמונה שהשתנו בחשבון מאז
+ * שהצטרפתי. נבדק מול כל עדכון של הרשימות, ולכן חייב להיות זול וטהור.
+ */
+export function memberNeedsRefresh(
+  list: SharedList,
+  me: { uid: string; name: string | null; photoURL: string | null },
+): boolean {
+  const mine = list.members[me.uid];
+  if (!mine) return false;
+  return (mine.photo ?? '') !== (me.photoURL ?? '') || (mine.name ?? '') !== (me.name ?? '');
+}
+
 /** שם להצגה של מי שיצר פריט. נופל לאימייל, ואז ל"חבר". */
 export function memberLabel(list: SharedList, uid: string): string {
   const member = list.members[uid];
@@ -146,7 +165,10 @@ export function findCategory(
  */
 export type CategoryFilter = string | 'none' | null;
 
-export function matchesCategory(item: SharedItem, filter: CategoryFilter): boolean {
+export function matchesCategory(
+  item: Pick<UserEvent, 'categoryId'>,
+  filter: CategoryFilter,
+): boolean {
   if (filter === null) return true;
   if (filter === 'none') return !item.categoryId;
   return item.categoryId === filter;
@@ -154,7 +176,7 @@ export function matchesCategory(item: SharedItem, filter: CategoryFilter): boole
 
 /** כמה פריטים פתוחים בכל קטגוריה, לתגיות שעל הצ׳יפים. */
 export function countByCategory(
-  items: SharedItem[],
+  items: UserEvent[],
   todayKey: DateKey,
 ): Map<CategoryFilter, number> {
   const out = new Map<CategoryFilter, number>();

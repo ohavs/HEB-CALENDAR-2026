@@ -17,10 +17,17 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Check, MapPin, Plus, Repeat, Trash2 } from 'lucide-react';
+import { Plus, Tag } from 'lucide-react';
 import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
-import { buildReminderGroups, pendingCount, type ReminderItem } from '@/lib/reminders';
+import {
+  buildReminderGroups,
+  pendingCount,
+  type ReminderGroup,
+  type ReminderItem,
+} from '@/lib/reminders';
+import { NO_CATEGORY, sectionByCategory } from '@/lib/reminderSections';
+import { countByCategory, type CategoryFilter } from '@/lib/sharedLists';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
 import { useSettings } from '@/store/settings';
@@ -36,10 +43,12 @@ import { buildReminderDraft } from '@/lib/reminderCompose';
 import { ComposeRow, useComposeRow } from './ui/ComposeRow';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
 import { Segmented } from './ui/controls';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
+import { ReminderCategoriesSheet } from './ReminderCategoriesSheet';
+import { CategoryChip, CategorySection, ReminderRow } from './ui/ReminderParts';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
 
 export function RemindersScreen({
@@ -83,6 +92,45 @@ export function RemindersScreen({
   );
   const pending = pendingCount(groups, dateKey(now));
 
+  /*
+    קטגוריות. אותו מודל של הרשימה המשותפת - `{ id, name }` ו-`categoryId`
+    על הפריט - ולכן גם אותה חלוקה ואותם צ׳יפים. מזהה של קטגוריה שנמחקה
+    נקרא כ"בלי קטגוריה", כדי שהפריט לא ייעלם יחד איתה.
+  */
+  const categories = settings.reminderCategories;
+  const known = useMemo(() => new Set(categories.map((c) => c.id)), [categories]);
+  const [category, setCategory] = useState<CategoryFilter>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const activeCategory = category && category !== NO_CATEGORY && !known.has(category) ? null : category;
+  const categoryOf = (id: string | undefined) => (id && known.has(id) ? id : NO_CATEGORY);
+
+  const counts = useMemo(
+    () =>
+      countByCategory(
+        events.map((e) => (e.categoryId && !known.has(e.categoryId) ? { ...e, categoryId: undefined } : e)),
+        dateKey(now),
+      ),
+    [events, known, now],
+  );
+
+  const visibleGroups = useMemo<ReminderGroup[]>(
+    () =>
+      activeCategory === null
+        ? groups
+        : groups.map((g) => ({
+            ...g,
+            items: g.items.filter((it) => categoryOf(it.categoryId) === activeCategory),
+          })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groups, activeCategory, known],
+  );
+
+  /** "הכול" עם קטגוריות מתחלק לפיהן; קטגוריה אחת היא רשימה אחת */
+  const sections = useMemo(
+    () => (activeCategory === null && categories.length ? sectionByCategory(groups, categories) : null),
+    [activeCategory, categories, groups],
+  );
+
   const [view, setView] = useState<RemindersView>(readRemindersView);
   const [title, setTitle] = useState('');
   /*
@@ -113,13 +161,17 @@ export function RemindersScreen({
   const draftOf = (): EventDraft | null => {
     const clean = title.trim();
     if (!clean) return null;
-    return buildReminderDraft({
+    const draft = buildReminderDraft({
       title: clean,
       color,
       date: compose.targetDate,
       time: compose.time,
       now,
     });
+    // מה שנוסף בזמן שקטגוריה פתוחה שייך לה - אחרת הוא היה נעלם מהמסך מיד
+    return activeCategory && activeCategory !== NO_CATEGORY
+      ? { ...draft, categoryId: activeCategory }
+      : draft;
   };
 
   /** אחרי הוספה או מסירה לעורך: השורה חוזרת נקייה */
@@ -153,6 +205,16 @@ export function RemindersScreen({
     onComposeMore(draft);
   };
 
+  const toggle = (item: ReminderItem, done: boolean) => {
+    setDone(item.baseId, item.sourceKey, done);
+    announce(`"${item.title}" ${done ? 'סומן כבוצע' : 'הוחזר לפתוח'}`);
+  };
+  const open = (item: ReminderItem) => onEditEvent(item.occurrence ?? item.event!);
+  const remove = (item: ReminderItem) => {
+    const occ = item.occurrence ?? pseudoOccurrence(item);
+    if (occ) onDeleteEvent(occ);
+  };
+
   return (
     <div
       // המנוע גולל את הרשימה כשגוררים אל הקצה שלה - בלי זה אפשר היה
@@ -161,10 +223,23 @@ export function RemindersScreen({
       className="no-scrollbar app-shell-narrow flex-1 overflow-y-auto overscroll-contain gutter-x"
       style={{ paddingBottom: bottomInset + 24 }}
     >
-      <header className="safe-t pb-4 pt-5 lg:pt-8">
-        <h1 className="text-heading font-semibold leading-tight text-ink">תזכורות</h1>
+      <header className="safe-t flex items-start gap-3 pb-4 pt-5 lg:pt-8">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-heading font-semibold leading-tight text-ink">תזכורות</h1>
+          {view === 'mine' && (
+            <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
+          )}
+        </div>
         {view === 'mine' && (
-          <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
+          <button
+            type="button"
+            onClick={() => setCategoriesOpen(true)}
+            aria-label="קטגוריות"
+            className="focus-ring mt-1 flex h-10 shrink-0 items-center gap-1.5 rounded-2xl bg-surface px-3 text-caption font-medium text-muted shadow-raised"
+          >
+            <Tag size={ICON.sm} strokeWidth={STROKE} />
+            קטגוריות
+          </button>
         )}
       </header>
 
@@ -201,6 +276,36 @@ export function RemindersScreen({
         <TemplatesView bottomInset={bottomInset} onPlace={onPlaceTemplate} />
       ) : (
         <>
+
+      {/*
+        הצ׳יפים באותה צורה של הרשימה המשותפת: "הכול", כל קטגוריה, ו"בלי
+        קטגוריה", עם מונה של מה שפתוח. מוצגים רק כשיש קטגוריות.
+      */}
+      {categories.length > 0 && (
+        <div className="no-scrollbar mb-3 flex gap-1.5 overflow-x-auto rounded-3xl bg-surface px-2.5 py-2.5 shadow-raised">
+          <CategoryChip
+            label="הכול"
+            active={activeCategory === null}
+            count={counts.get(null)}
+            onClick={() => setCategory(null)}
+          />
+          {categories.map((c) => (
+            <CategoryChip
+              key={c.id}
+              label={c.name}
+              active={activeCategory === c.id}
+              count={counts.get(c.id)}
+              onClick={() => setCategory(c.id)}
+            />
+          ))}
+          <CategoryChip
+            label="בלי קטגוריה"
+            active={activeCategory === NO_CATEGORY}
+            count={counts.get(NO_CATEGORY)}
+            onClick={() => setCategory(NO_CATEGORY)}
+          />
+        </div>
+      )}
 
       {/* ------------------------------ הוספה ------------------------------ */}
       {/*
@@ -257,34 +362,57 @@ export function RemindersScreen({
 
       {/* ------------------------------ הרשימה ------------------------------ */}
       <div className="mt-5 space-y-5">
-        {/* כשאין כלום, מצב ריק אחד - לא כותרת יום עם "אין תזכורות" ומתחתיה עוד אחד */}
-        {groups.some((g) => g.items.length) &&
-          groups.map((group) => (
-          <Group
-            key={group.key}
-            groupKey={group.key}
-            label={group.label}
-            hebrew={group.hebrew}
-            items={group.items}
-            onToggle={(item, done) => {
-              setDone(item.baseId, item.sourceKey, done);
-              announce(`"${item.title}" ${done ? 'סומן כבוצע' : 'הוחזר לפתוח'}`);
-            }}
-              onOpen={(item) => onEditEvent(item.occurrence ?? item.event!)}
-              onDelete={(item) => {
-                const occ = item.occurrence ?? pseudoOccurrence(item);
-                if (occ) onDeleteEvent(occ);
-              }}
+        {sections ? (
+          sections.map((section) => (
+            <CategorySection
+              key={section.id}
+              collapseId={`reminders:mine:${section.id}`}
+              name={section.name}
+              open={section.open}
+            >
+              {section.groups.map((group) => (
+                <Group
+                  key={group.key}
+                  groupKey={group.key}
+                  label={group.label}
+                  hebrew={group.hebrew}
+                  items={group.items}
+                  sectionId={section.id}
+                  categoryOf={categoryOf}
+                  onToggle={toggle}
+                  onOpen={open}
+                  onDelete={remove}
+                />
+              ))}
+            </CategorySection>
+          ))
+        ) : (
+          // כשאין כלום, מצב ריק אחד - לא כותרת יום עם "אין תזכורות" ומתחתיה עוד אחד
+          visibleGroups.some((g) => g.items.length) &&
+          visibleGroups.map((group) => (
+            <Group
+              key={group.key}
+              groupKey={group.key}
+              label={group.label}
+              hebrew={group.hebrew}
+              items={group.items}
+              onToggle={toggle}
+              onOpen={open}
+              onDelete={remove}
             />
-          ))}
+          ))
+        )}
 
-        {groups.every((g) => !g.items.length) && (
+        {(sections ? !sections.length : visibleGroups.every((g) => !g.items.length)) && (
           <p className="rounded-2xl border border-dashed border-hairline px-4 py-10 text-center text-body text-muted">
-            אין תזכורות. מה שתוסיפו כאן יופיע גם בוידג׳ט.
+            {activeCategory === null
+              ? 'אין תזכורות. מה שתוסיפו כאן יופיע גם בוידג׳ט.'
+              : 'אין תזכורות בקטגוריה הזו.'}
           </p>
         )}
       </div>
 
+      <ReminderCategoriesSheet open={categoriesOpen} onClose={() => setCategoriesOpen(false)} />
         </>
       )}
     </div>
@@ -341,6 +469,8 @@ function Group({
   label,
   hebrew,
   items,
+  sectionId,
+  categoryOf,
   onToggle,
   onOpen,
   onDelete,
@@ -349,6 +479,13 @@ function Group({
   label: string;
   hebrew: string;
   items: ReminderItem[];
+  /**
+   * הקטגוריה שהקבוצה יושבת בה, כשהרשימה מחולקת. אותו יום מופיע אז בכמה
+   * קטגוריות, והתצוגה המקדימה של גרירה צריכה להופיע רק באחת - זו של
+   * הפריט הנגרר, כי הגרירה מזיזה יום ולא קטגוריה.
+   */
+  sectionId?: string;
+  categoryOf?: (id: string | undefined) => string;
   onToggle: (item: ReminderItem, done: boolean) => void;
   onOpen: (item: ReminderItem) => void;
   onDelete: (item: ReminderItem) => void;
@@ -359,7 +496,8 @@ function Group({
   const dragged = useDragStore((s) => s.occurrence);
   const fromKey = useDragStore((s) => s.fromKey);
   /* לא מציגים תצוגה מקדימה בקבוצה שממנה הפריט יצא - שם הוא כבר קיים */
-  const preview = isTarget && dragged && fromKey !== groupKey ? dragged : null;
+  const inSection = !sectionId || !dragged || categoryOf?.(dragged.categoryId) === sectionId;
+  const preview = isTarget && inSection && dragged && fromKey !== groupKey ? dragged : null;
   const at = preview ? previewIndex(items, preview, groupKey) : -1;
 
   return (
@@ -435,90 +573,17 @@ function Row({
     מופע מדומה: זה מה שמאפשר לגרור אותו אל הלוח באותו מסלול בדיוק.
   */
   const occurrence: Occurrence | null = item.occurrence ?? pseudoOccurrence(item);
-  /*
-    השורה נשארת במקומה כרפאים חיוורים כל עוד היא נגררת. בלעדיה נראו שתי
-    תזכורות בו־זמנית - המקור בעוצמה מלאה והצל מעליו - וזה נקרא כאילו
-    אחת נדחסת לתוך השנייה.
-  */
   const dragging = useIsDraggingOccurrence(occurrence?.occurrenceId ?? '');
 
   return (
-    <div
-      className={`ev ev-${item.color} flex w-full items-center gap-2 rounded-2xl p-3 transition-opacity ${
-        item.done ? 'opacity-55' : ''
-      } ${dragging ? 'opacity-25' : ''}`}
-    >
-      <motion.button
-        type="button"
-        role="checkbox"
-        aria-checked={item.done}
-        aria-label={item.done ? 'ביטול סימון כבוצע' : 'סימון כבוצע'}
-        onClick={() => {
-          void haptic('light');
-          onToggle(item, !item.done);
-        }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
-        className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          item.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
-        }`}
-      >
-        {item.done && <Check size={ICON.sm} strokeWidth={3} />}
-      </motion.button>
-
-      <motion.button
-        type="button"
-        onClick={() => onOpen(item)}
-        onPointerDown={occurrence ? (e) => beginLongPress(e, occurrence) : undefined}
-        whileTap={{ scale: 0.99 }}
-        transition={TAP}
-        className="focus-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl text-right"
-      >
-        <span className="min-w-0 flex-1">
-          <span
-            className={`block truncate text-body font-medium leading-snug ${
-              item.done ? 'line-through' : ''
-            }`}
-          >
-            {item.title}
-          </span>
-          {(item.hasPlace || item.hasAlarm || item.repeating) && (
-            <span className="mt-1 flex items-center gap-2 opacity-75">
-              {item.hasPlace && <MapPin size={ICON.xs} strokeWidth={STROKE} />}
-              {item.hasAlarm && <Bell size={ICON.xs} strokeWidth={STROKE} />}
-              {item.repeating && <Repeat size={ICON.xs} strokeWidth={STROKE} />}
-            </span>
-          )}
-        </span>
-
-        {item.time && <span className="tnum shrink-0 text-caption font-semibold">{item.time}</span>}
-      </motion.button>
-
-      {/*
-        מחיקה מהשורה עצמה.
-
-        קודם היא הייתה קיימת רק בשני מקומות שצריך לגלות: פתיחת העורך,
-        וגרירה אל הפח. הצ׳קבוקס היה הפעולה היחידה שנראית, ולכן המסך
-        אמר "אפשר רק לסמן שבוצע". סימון ומחיקה אינם אותו דבר - פריט
-        שבוצע הוא רשומה, פריט שנמחק הוא טעות.
-
-        אותו מסלול אישור בדיוק כמו הגרירה אל הפח, מאותו מקור: מופע
-        בסדרה חוזרת נשאל "מה למחוק", וכל השאר נשאל פעם אחת.
-      */}
-      <motion.button
-        type="button"
-        onClick={() => {
-          void haptic('medium');
-          onDelete(item);
-        }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
-        aria-label={`מחיקת ${item.title}`}
-        className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
-      >
-        <Trash2 size={ICON.sm} strokeWidth={STROKE} />
-      </motion.button>
-    </div>
+    <ReminderRow
+      item={item}
+      onToggle={(done) => onToggle(item, done)}
+      onOpen={() => onOpen(item)}
+      onDelete={() => onDelete(item)}
+      onPointerDown={occurrence ? (e) => beginLongPress(e, occurrence) : undefined}
+      dragging={dragging}
+    />
   );
 }
 

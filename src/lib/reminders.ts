@@ -36,6 +36,8 @@ export type ReminderItem = {
   /** יש לו תזכורת בזמן */
   hasAlarm: boolean;
   repeating: boolean;
+  /** הקטגוריה, כפי שנשמרה על האירוע. ראו `reminderSections.ts` */
+  categoryId?: string;
   /** המופע עצמו, למסך העריכה. חסר בתזכורת בלי תאריך. */
   occurrence?: Occurrence;
   /** האירוע עצמו, לתזכורת בלי תאריך */
@@ -66,6 +68,7 @@ function itemFromOccurrence(occ: Occurrence): ReminderItem {
     hasPlace: Boolean(occ.placeId && occ.placeTrigger),
     hasAlarm: occ.reminderMinutes !== null,
     repeating: occ.repeat !== 'none',
+    categoryId: occ.categoryId,
     occurrence: occ,
   };
 }
@@ -82,6 +85,7 @@ function itemFromEvent(ev: UserEvent): ReminderItem {
     hasPlace: Boolean(ev.placeId && ev.placeTrigger),
     hasAlarm: ev.reminderMinutes !== null,
     repeating: ev.repeat !== 'none',
+    categoryId: ev.categoryId,
     event: ev,
   };
 }

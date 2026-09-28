@@ -31,10 +31,12 @@ service cloud.firestore {
         // תזכורת שאינה משויכת ליום. הרשימה למטה היא whitelist, ולכן
         // שדה שלא נמנה בה נדחה - וזה מה שחסם את הדגל הזה מלהגיע לענן.
         && (!('undated' in d) || d.undated is bool)
+        // קטגוריה של תזכורת אישית - מזהה מתוך ההגדרות
+        && (!('categoryId' in d) || (d.categoryId is string && d.categoryId.size() <= 64))
         && d.keys().hasOnly([
              'title', 'date', 'endDate', 'startTime', 'endTime', 'allDay',
              'location', 'placeId', 'placeTrigger', 'notes', 'color',
-             'reminderMinutes', 'repeat', 'exceptions', 'undated',
+             'reminderMinutes', 'repeat', 'exceptions', 'undated', 'categoryId',
              'createdAt', 'updatedAt', 'deleted'
            ]);
     }

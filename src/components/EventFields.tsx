@@ -10,7 +10,16 @@
  * אישי. שדה שמוצג ואינו עושה דבר גרוע משדה שאינו מוצג.
  */
 import { useState, type ReactNode } from 'react';
-import { Bell, CalendarDays, CalendarRange, Clock, MapPin, Navigation, Repeat } from 'lucide-react';
+import {
+  Bell,
+  CalendarDays,
+  CalendarRange,
+  Clock,
+  MapPin,
+  Navigation,
+  Repeat,
+  Tag,
+} from 'lucide-react';
 import type { DateKey, PlaceTrigger, UserEvent } from '@/types';
 import { REPEAT_LABELS, spanLengthOf } from '@/lib/recurrence';
 import { REMINDER_OPTIONS, useEvents } from '@/store/events';
@@ -127,6 +136,7 @@ export function EventFields({
   personal = true,
   scheduled = true,
   whenToggle,
+  category,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -146,6 +156,15 @@ export function EventFields({
    * הוא שייך לשאלה "מתי", ולכן יושב בתוך הקופסה שלה ולא מעליה.
    */
   whenToggle?: ReactNode;
+  /**
+   * קטגוריה, כשיש מה לבחור. הרשימה נמסרת מבחוץ כי המקור שונה - הגדרות
+   * לתזכורת אישית, מסמך הרשימה לפריט משותף - והמקום בטופס זהה בשניהם.
+   */
+  category?: {
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (next: string) => void;
+  };
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -298,8 +317,18 @@ export function EventFields({
         )}
       </FieldGroup>
 
-      {(scheduled || personal) && (
+      {(scheduled || personal || category) && (
         <FieldGroup>
+          {category && (
+            <SelectField<string>
+              label="קטגוריה"
+              value={category.value}
+              onChange={category.onChange}
+              icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
+              options={category.options}
+              variant="grouped"
+            />
+          )}
           {scheduled && (
             <SelectField<UserEvent['repeat']>
               label="חזרה"
