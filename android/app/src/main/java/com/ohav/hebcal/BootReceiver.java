@@ -17,6 +17,6 @@ public class BootReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         if (!Intent.ACTION_BOOT_COMPLETED.equals(action)
             && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) return;
-        GeofenceSync.apply(context, GeofenceStore.read(context));
+        GeofenceSync.apply(context, GeofenceStore.read(context), true);
     }
 }

@@ -20,6 +20,7 @@ import { templateToEvent } from '@/lib/templates';
 import {
   askServiceWorkerToFlush,
   notifyNow,
+  ensureNotificationPermission,
   refreshNativePermission,
   syncReminders,
 } from '@/lib/notifications';
@@ -82,6 +83,8 @@ import { useFindShared, type SharedTarget } from '@/hooks/useOccurrenceActions';
 import { ConflictSheet } from '@/components/ConflictSheet';
 
 const REMINDER_DEBOUNCE_MS = 700;
+/** הדלקה חד־פעמית של התראות מקום למי שכבר בחר בהן. ראו למטה. */
+const PLACE_ALERTS_MIGRATED = 'heb-cal:place-alerts-migrated';
 
 type EditorState = {
   open: boolean;
@@ -343,6 +346,28 @@ export default function App() {
     if (!isNative()) return;
     void syncNativeGeofences(fences);
   }, [fences, fenceTick]);
+
+  // גדר שמזהה הגעה בלי הרשאה להציג התראה היא גדר שעובדת לשווא
+  const hasFences = fences.length > 0;
+  useEffect(() => {
+    if (isNative() && hasFences) void ensureNotificationPermission();
+  }, [hasFences]);
+
+  /*
+    מי שכבר בחר "כשאגיע" לפני שהבחירה הדליקה את המתג, נשאר עם מתג כבוי
+    ובחירה שלא עושה דבר. פעם אחת בלבד: אחרי זה כיבוי במתג הוא החלטה.
+  */
+  useEffect(() => {
+    if (settings.placeAlertsEnabled) return;
+    if (!events.some((e) => !e.deleted && e.placeId && e.placeTrigger)) return;
+    try {
+      if (localStorage.getItem(PLACE_ALERTS_MIGRATED)) return;
+      localStorage.setItem(PLACE_ALERTS_MIGRATED, '1');
+    } catch {
+      return;
+    }
+    useSettingsStore.getState().set('placeAlertsEnabled', true);
+  }, [settings.placeAlertsEnabled, events]);
 
   useEffect(() => {
     // באנדרואיד הגדרות כבר רשומות במערכת, ומעקב בדף היה כפילות

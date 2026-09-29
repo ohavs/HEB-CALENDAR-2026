@@ -372,3 +372,25 @@ export function readCurrentPosition(): Promise<Coords> {
 export function radiusLabel(meters: number): string {
   return meters >= 1000 ? `${Math.round(meters / 100) / 10} ק״מ` : `${meters} מ׳`;
 }
+
+/**
+ * מה לומר על קוד שגיאה של רישום גדרות.
+ *
+ * הקודים הם של `GeofenceStatusCodes`. 1000 הוא הנפוץ, והוא לא באשמת
+ * האפליקציה: המיקום כבוי, או ש"דיוק המיקום של Google" כבוי - ובלעדיו
+ * Play Services מסרב לנטר גדרות בכלל.
+ */
+export function geofenceErrorText(code: string | undefined): string {
+  switch (code) {
+    case 'permission':
+    case '1004':
+      return 'חסרה הרשאת מיקום ״לאפשר תמיד״ עם מיקום מדויק.';
+    case '1000':
+      return 'המכשיר לא מאפשר מעקב אחרי מקומות: המיקום כבוי, או ש״דיוק המיקום של Google״ כבוי בהגדרות המיקום.';
+    case '1001':
+    case '1002':
+      return 'יותר מדי מקומות במעקב בבת אחת.';
+    default:
+      return `הרישום במערכת נכשל${code ? ` (קוד ${code})` : ''}.`;
+  }
+}

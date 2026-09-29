@@ -245,7 +245,7 @@ export function TimePickerSheet({
   subtitle,
   value,
   onChange,
-  minuteStep = 5,
+  minuteStep = 1,
 }: {
   open: boolean;
   onClose: () => void;

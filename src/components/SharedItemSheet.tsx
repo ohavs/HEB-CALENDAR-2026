@@ -243,6 +243,7 @@ export function SharedItemSheet({
           personal={false}
           reminder
           scheduled={dated}
+          onDated={() => setDated(true)}
           category={
             list.categories.length > 0
               ? {

@@ -12,12 +12,14 @@ import android.os.Build;
 
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingClient;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -37,6 +39,12 @@ final class GeofenceSync {
     static final String CHANNEL_ID = "places";
     /** אחרי כמה זמן גדר פגה מעצמה. שבוע קדימה, כמו האופק שנשלח. */
     private static final long EXPIRY_MS = 8L * 24 * 60 * 60 * 1000;
+    /**
+     * אותה רשימה בדיוק אינה נרשמת שוב בתוך זמן זה. האפליקציה מסנכרנת בכל
+     * חזרה לחזית, ו-Play Services דוחה רישום תכוף מדי (1005) - כלומר רישום
+     * חוזר היה עלול להפיל גדרות שכבר עבדו.
+     */
+    private static final long SAME_FENCES_MS = 30L * 60 * 1000;
     private GeofenceSync() {}
 
     /** מפתח היום בשעון המקומי, בדיוק כמו `dateKey()` בצד ה-web. */
@@ -74,13 +82,28 @@ final class GeofenceSync {
      */
     @SuppressLint("MissingPermission")
     static boolean apply(Context context, JSONArray fences) {
+        return apply(context, fences, false);
+    }
+
+    /** `force` - לרשום גם כשבדיוק אותה רשימה נרשמה לא מזמן (אתחול, עדכון) */
+    static boolean apply(Context context, JSONArray fences, boolean force) {
         GeofenceStore.write(context, fences);
         GeofencingClient client = LocationServices.getGeofencingClient(context);
         if (fences.length() == 0) {
             client.removeGeofences(pendingIntent(context));
+            GeofenceStore.clearRegistered(context);
+            putStatus(context, true, 0, null);
             return true;
         }
-        if (!hasPermission(context)) return false;
+        if (!hasPermission(context)) {
+            GeofenceStore.clearRegistered(context);
+            putStatus(context, false, fences.length(), "permission");
+            return false;
+        }
+        String signature = fences.toString();
+        if (!force && GeofenceStore.recentlyRegistered(context, signature, SAME_FENCES_MS)) {
+            return true;
+        }
 
         List<Geofence> list = new ArrayList<>();
         for (int i = 0; i < fences.length(); i++) {
@@ -125,10 +148,41 @@ final class GeofenceSync {
           מה שזה עתה נרשם - כשל שמופיע רק לפעמים, וזה הגרוע ביותר.
         */
         PendingIntent pending = pendingIntent(context);
+        int count = list.size();
         client
             .removeGeofences(pending)
-            .addOnCompleteListener(task -> client.addGeofences(request, pending));
+            .addOnCompleteListener(
+                removed ->
+                    client
+                        .addGeofences(request, pending)
+                        .addOnSuccessListener(
+                            ok -> {
+                                GeofenceStore.markRegistered(context, signature);
+                                putStatus(context, true, count, null);
+                            })
+                        .addOnFailureListener(
+                            e -> {
+                                GeofenceStore.clearRegistered(context);
+                                String code =
+                                    e instanceof ApiException
+                                        ? String.valueOf(((ApiException) e).getStatusCode())
+                                        : "error";
+                                putStatus(context, false, count, code);
+                            }));
         return true;
+    }
+
+    private static void putStatus(Context context, boolean ok, int count, String error) {
+        try {
+            JSONObject status = new JSONObject();
+            status.put("ok", ok);
+            status.put("count", count);
+            status.put("at", System.currentTimeMillis());
+            if (error != null) status.put("error", error);
+            GeofenceStore.putStatus(context, status);
+        } catch (JSONException ignored) {
+            // מצב לתצוגה בלבד; כשל כאן אינו נוגע ברישום עצמו
+        }
     }
 
     /**

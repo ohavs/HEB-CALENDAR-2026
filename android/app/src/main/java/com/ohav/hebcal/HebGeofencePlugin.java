@@ -15,6 +15,7 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * הגשר בין האפליקציה לגדרות הגאוגרפיות של מערכת ההפעלה.
@@ -27,7 +28,16 @@ import org.json.JSONArray;
 @CapacitorPlugin(
     name = "HebGeofence",
     permissions = {
-        @Permission(alias = "location", strings = {Manifest.permission.ACCESS_FINE_LOCATION}),
+        /*
+          מדויק ומשוער יחד. מ-API 31 בקשה של FINE לבד נזרקת בלי דיאלוג
+          ובלי שגיאה - הכפתור "לאשר מיקום" פשוט לא עשה כלום.
+        */
+        @Permission(
+            alias = "location",
+            strings = {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            }),
         @Permission(
             alias = "background",
             strings = {Manifest.permission.ACCESS_BACKGROUND_LOCATION})
@@ -61,6 +71,23 @@ public class HebGeofencePlugin extends Plugin {
         result.put("background", GeofenceSync.hasPermission(getContext()));
         // מ-API 30 אי אפשר לבקש "תמיד" מתוך דיאלוג; רק דרך ההגדרות
         result.put("needsSettings", Build.VERSION.SDK_INT >= Build.VERSION_CODES.R);
+        call.resolve(result);
+    }
+
+    /**
+     * מה קרה באמת: הרישום האחרון והחציה האחרונה.
+     *
+     * שני הצדדים של אותה שאלה - "למה לא קיבלתי התראה?" - ושניהם קורים
+     * מחוץ לאפליקציה, ברקע, בלי שום דרך אחרת לראות אותם.
+     */
+    @PluginMethod
+    public void status(PluginCall call) {
+        JSObject result = new JSObject();
+        JSONObject status = GeofenceStore.status(getContext());
+        JSONObject trigger = GeofenceStore.lastTrigger(getContext());
+        if (status != null) result.put("registration", status);
+        if (trigger != null) result.put("lastTrigger", trigger);
+        result.put("stored", GeofenceStore.read(getContext()).length());
         call.resolve(result);
     }
 

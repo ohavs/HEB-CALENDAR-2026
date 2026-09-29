@@ -14,6 +14,7 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 import com.google.android.gms.location.LocationServices;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Collections;
@@ -64,11 +65,13 @@ public class GeofenceReceiver extends BroadcastReceiver {
               ביום חמישי" היה מצלצל כבר ביום ראשון.
             */
             if (!kind.equals(fence.optString("kind"))) continue;
+            boolean armedToday = fence.optBoolean("anyDay") || today.equals(fence.optString("date"));
+            remember(context, fence, kind, armedToday);
             /*
               תזכורת בלי תאריך (`anyDay`) דרוכה בכל יום. היא עדיין חד־פעמית
               כאן - והאפליקציה רושמת אותה מחדש בפתיחה הבאה, כל עוד היא פתוחה.
             */
-            if (!fence.optBoolean("anyDay") && !today.equals(fence.optString("date"))) continue;
+            if (!armedToday) continue;
 
             notify(context, fence);
 
@@ -80,6 +83,27 @@ public class GeofenceReceiver extends BroadcastReceiver {
             LocationServices.getGeofencingClient(context)
                 .removeGeofences(Collections.singletonList(geofence.getRequestId()));
             GeofenceStore.forget(context, geofence.getRequestId());
+        }
+    }
+
+    /**
+     * החציה האחרונה, בשביל מסך ההגדרות.
+     *
+     * בלי זה אי אפשר להבחין בין "מערכת ההפעלה לא זיהתה הגעה" לבין "זיהתה,
+     * וההתראה נחסמה" - ומבחוץ שניהם נראים אותו דבר: שום דבר לא קרה.
+     */
+    private void remember(Context context, JSONObject fence, String kind, boolean armed) {
+        try {
+            NotificationManager manager = context.getSystemService(NotificationManager.class);
+            JSONObject trigger = new JSONObject();
+            trigger.put("at", System.currentTimeMillis());
+            trigger.put("title", fence.optString("title"));
+            trigger.put("kind", kind);
+            trigger.put("armed", armed);
+            trigger.put("shown", armed && manager != null && manager.areNotificationsEnabled());
+            GeofenceStore.putLastTrigger(context, trigger);
+        } catch (JSONException ignored) {
+            // לתצוגה בלבד
         }
     }
 

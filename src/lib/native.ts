@@ -291,9 +291,12 @@ export async function scheduleNativeReminders(reminders: NativeReminder[]): Prom
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     await ensureChannels();
-    const pending = await LocalNotifications.getPending();
-    if (pending.notifications.length) {
-      await LocalNotifications.cancel({ notifications: pending.notifications });
+    // התראת הבדיקה אינה חלק מהרשימה, ותזמון מחדש באמצע הדקה שלה היה מוחק אותה
+    const pending = (await LocalNotifications.getPending()).notifications.filter(
+      (n) => n.id !== TEST_ID,
+    );
+    if (pending.length) {
+      await LocalNotifications.cancel({ notifications: pending });
     }
     const now = Date.now();
     const upcoming = reminders
@@ -321,6 +324,39 @@ export async function scheduleNativeReminders(reminders: NativeReminder[]): Prom
     lastSchedule = { ok: false, count: 0, exact };
   }
   return lastSchedule;
+}
+
+const TEST_ID = notificationId('heb-cal-test-scheduled');
+
+/**
+ * התראת בדיקה בעוד דקה, באותו מסלול בדיוק של תזכורת אמיתית.
+ *
+ * התראה מיידית בודקת רק שמותר להציג - לא את השעון של המערכת, לא את
+ * השינה של המכשיר ולא את מה שקורה כשהאפליקציה סגורה. אלה בדיוק
+ * המקומות שבהם תזכורת נעלמת.
+ */
+export async function scheduleTestReminder(at: number): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    await ensureChannels();
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: TEST_ID,
+          title: 'התראת בדיקה',
+          body: 'אם זה הגיע בזמן, התזכורות עובדות גם כשהאפליקציה סגורה.',
+          smallIcon: 'ic_stat_notify',
+          channelId: channelFor('event-test'),
+          schedule: { at: new Date(at), allowWhileIdle: true },
+          isExactNotification: await exactAlarmsAllowed(),
+        },
+      ],
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function clearNativeReminders(): Promise<void> {
@@ -416,6 +452,15 @@ type GeofencePlugin = {
   check(): Promise<GeoPermission>;
   requestForeground(): Promise<GeoPermission>;
   openSettings(): Promise<void>;
+  status(): Promise<GeofenceStatus>;
+};
+
+/** מה קרה ברקע: הרישום האחרון במערכת, והחציה האחרונה שדווחה */
+export type GeofenceStatus = {
+  registration?: { ok: boolean; count: number; at: number; error?: string };
+  lastTrigger?: { at: number; title: string; kind: string; armed: boolean; shown: boolean };
+  /** כמה גדרות שמורות בצד הנייטיבי */
+  stored?: number;
 };
 
 async function geofencePlugin(): Promise<{ plugin: GeofencePlugin }> {
@@ -438,6 +483,16 @@ export async function requestGeoForeground(): Promise<GeoPermission> {
     return await (await geofencePlugin()).plugin.requestForeground();
   } catch {
     return DENIED;
+  }
+}
+
+/** `null` במעטפת ישנה שאין בה את הדיווח */
+export async function geofenceStatus(): Promise<GeofenceStatus | null> {
+  if (!isNative()) return null;
+  try {
+    return await (await geofencePlugin()).plugin.status();
+  } catch {
+    return null;
   }
 }
 

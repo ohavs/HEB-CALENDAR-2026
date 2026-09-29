@@ -40,7 +40,7 @@ import { Segmented, SettingRow, SettingsGroup, Toggle } from './ui/controls';
 import { PlaceEditor } from './PlaceEditor';
 import { Avatar } from './ui/Avatar';
 import { BackupRows } from './BackupRows';
-import { radiusLabel } from '@/lib/geofence';
+import { geofenceErrorText, radiusLabel } from '@/lib/geofence';
 import { CLEANUP_CHOICES } from '@/lib/reminders';
 import type { SavedPlace } from '@/types';
 import {
@@ -54,7 +54,10 @@ import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appU
 import {
   clearSystemCalendar,
   exactAlarmsAllowed,
+  scheduleTestReminder,
   geoPermission,
+  geofenceStatus,
+  type GeofenceStatus,
   openExactAlarmSettings,
   isNative,
   systemCalendarPermission,
@@ -62,6 +65,16 @@ import {
   requestGeoForeground,
   type GeoPermission,
 } from '@/lib/native';
+
+/** מה קרה בחציה האחרונה שמערכת ההפעלה דיווחה עליה */
+function lastTriggerText(t: GeofenceStatus['lastTrigger']): string | null {
+  if (!t) return null;
+  const when = `${relativeDayLabel(new Date(t.at), new Date(), true)} ${formatTime(t.at)}`;
+  const what = `${t.kind === 'leave' ? 'יציאה' : 'הגעה'} - ${t.title}`;
+  if (!t.armed) return `זוהתה ${what} (${when}), אבל לא ביום של התזכורת`;
+  if (!t.shown) return `זוהתה ${what} (${when}), אבל ההתראות חסומות`;
+  return `אחרונה: ${what}, ${when}`;
+}
 
 /** מצב התקנת PWA - מציגים כפתור התקנה רק אם הדפדפן הציע */
 type InstallPrompt = Event & { prompt: () => Promise<void> };
@@ -140,7 +153,6 @@ function TimeSettingRow({
         subtitle={hint}
         value={value}
         onChange={onChange}
-        minuteStep={5}
       />
     </>
   );
@@ -175,6 +187,8 @@ export function SettingsScreen({
   const [permission, setPermission] = useState<PermissionState>(() => notificationState());
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const [testSent, setTestSent] = useState(false);
+  /** באנדרואיד: מתי אמורה להגיע התראת הבדיקה המתוזמנת */
+  const [testAt, setTestAt] = useState<number | null>(null);
   const [version, setVersion] = useState<string | null>(null);
   /** מה הכפתור מספר: ממתין, בודק, מעודכן, או למה הבדיקה נכשלה */
   const [updateState, setUpdateState] = useState<
@@ -236,15 +250,27 @@ export function SettingsScreen({
     return buildReminders(settings, events).find((r) => r.at > now) ?? null;
   }, [settings, events]);
   const [geo, setGeo] = useState<GeoPermission | null>(null);
+  /** מה קרה ברקע - הרישום האחרון והחציה האחרונה. ראו `GeofenceStatus`. */
+  const [fenceStatus, setFenceStatus] = useState<GeofenceStatus | null>(null);
   useEffect(() => {
     if (!isNative()) return;
-    const read = () => void geoPermission().then(setGeo);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const read = () => {
+      void geoPermission().then(setGeo);
+      void geofenceStatus().then(setFenceStatus);
+      // הרישום עצמו אסינכרוני ורץ במקביל לחזרה לחזית; קריאה שנייה תופסת אותו
+      clearTimeout(timer);
+      timer = setTimeout(() => void geofenceStatus().then(setFenceStatus), 2500);
+    };
     read();
     const onVisible = () => {
       if (document.visibilityState === 'visible') read();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   /*
@@ -312,6 +338,16 @@ export function SettingsScreen({
       const next = await requestNotificationPermission();
       setPermission(next);
       if (next !== 'granted') return;
+    }
+    /*
+      באנדרואיד הבדיקה מתוזמנת לעוד דקה, דרך המסלול של תזכורת אמיתית:
+      התראה מיידית הוכיחה רק שמותר להציג, ולא שתזכורת תגיע בזמן כשהמכשיר
+      נעול והאפליקציה סגורה.
+    */
+    if (isNative()) {
+      const at = Date.now() + 60_000;
+      if (await scheduleTestReminder(at)) setTestAt(at);
+      return;
     }
     await showTestNotification();
     setTestSent(true);
@@ -744,9 +780,18 @@ export function SettingsScreen({
         )}
 
         <SettingRow
-          title={testSent ? 'נשלחה התראת בדיקה' : 'שליחת התראת בדיקה'}
+          title={
+            testAt
+              ? `התראת בדיקה ב-${formatTime(testAt)}`
+              : testSent
+                ? 'נשלחה התראת בדיקה'
+                : isNative()
+                  ? 'התראת בדיקה בעוד דקה'
+                  : 'שליחת התראת בדיקה'
+          }
+          hint={testAt ? 'אפשר לסגור את האפליקציה ולנעול את המסך' : undefined}
           icon={
-            testSent ? (
+            testSent || testAt ? (
               <Check size={ICON.md} strokeWidth={2.6} className="text-[rgb(52_179_138)]" />
             ) : (
               <Bell size={ICON.md} strokeWidth={2.1} />
@@ -785,7 +830,7 @@ export function SettingsScreen({
             hint={
               geo.foreground
                 ? 'בהרשאת מיקום רגילה ההתראות יגיעו רק כשהאפליקציה פתוחה. בהגדרות המכשיר, תחת ״הרשאות״ ואז ״מיקום״, יש לבחור ״לאפשר תמיד״.'
-                : 'בלי הרשאת מיקום אי אפשר לזהות הגעה ויציאה.'
+                : 'בלי הרשאת מיקום מדויק אי אפשר לזהות הגעה ויציאה. מיקום משוער אינו מספיק.'
             }
             icon={<MapPinned size={ICON.lg} strokeWidth={2.1} className="text-brand" />}
             onClick={() => {
@@ -803,6 +848,31 @@ export function SettingsScreen({
           >
             <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="text-faint" />
           </SettingRow>
+        )}
+
+        {/*
+          מה קרה באמת. הרישום והחציה קורים ברקע, מחוץ לאפליקציה, וכשאחד
+          מהם נכשל שום דבר אחר במסך לא מסגיר את זה.
+        */}
+        {settings.placeAlertsEnabled && geo?.background && fenceStatus?.registration && (
+          <SettingRow
+            title={
+              !fenceStatus.registration.ok
+                ? 'התראות המקום לא נרשמו'
+                : fenceStatus.registration.count
+                  ? `${fenceStatus.registration.count} התראות מקום דרוכות`
+                  : 'אין התראות מקום דרוכות'
+            }
+            hint={
+              !fenceStatus.registration.ok
+                ? geofenceErrorText(fenceStatus.registration.error)
+                : lastTriggerText(fenceStatus.lastTrigger) ??
+                  (fenceStatus.registration.count
+                    ? 'ההתראה מגיעה כמה דקות אחרי ההגעה בפועל, כשהמכשיר מזהה אותה'
+                    : 'בוחרים ״תזכורת כשאגיע״ או ״כשאצא״ בעורך, על מקום שמור')
+            }
+            icon={<MapPinned size={ICON.lg} strokeWidth={2.1} />}
+          />
         )}
 
         {settings.places.map((place) => (

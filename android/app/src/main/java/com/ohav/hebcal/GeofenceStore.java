@@ -22,6 +22,11 @@ final class GeofenceStore {
 
     private static final String PREFS = "heb_geofences";
     private static final String KEY = "fences";
+    private static final String STATUS = "status";
+    private static final String LAST_TRIGGER = "last_trigger";
+    /** הרשימה שנרשמה בהצלחה אחרונה, והזמן - כדי לא לרשום שוב את אותו דבר */
+    private static final String REGISTERED = "registered";
+    private static final String REGISTERED_AT = "registered_at";
 
     private GeofenceStore() {}
 
@@ -40,6 +45,60 @@ final class GeofenceStore {
             return new JSONArray(raw);
         } catch (JSONException e) {
             return new JSONArray();
+        }
+    }
+
+    /**
+     * מה קרה ברישום האחרון.
+     *
+     * הרישום אסינכרוני, והכישלון שלו - מיקום כבוי, "דיוק מיקום של Google"
+     * כבוי, הרשאה חסרה - לא הגיע עד עכשיו לשום מקום. מבחינת המשתמש המקום
+     * נשמר והמתג דלוק, וההתראה פשוט לא באה. כאן הוא נשמר כדי שההגדרות
+     * יוכלו לומר מה באמת קרה.
+     */
+    static void putStatus(Context context, JSONObject status) {
+        prefs(context).edit().putString(STATUS, status.toString()).apply();
+    }
+
+    static JSONObject status(Context context) {
+        return readObject(context, STATUS);
+    }
+
+    /** החציה האחרונה שמערכת ההפעלה דיווחה עליה, גם אם לא צלצלה */
+    static void putLastTrigger(Context context, JSONObject trigger) {
+        prefs(context).edit().putString(LAST_TRIGGER, trigger.toString()).apply();
+    }
+
+    static JSONObject lastTrigger(Context context) {
+        return readObject(context, LAST_TRIGGER);
+    }
+
+    static void markRegistered(Context context, String fences) {
+        prefs(context)
+            .edit()
+            .putString(REGISTERED, fences)
+            .putLong(REGISTERED_AT, System.currentTimeMillis())
+            .apply();
+    }
+
+    static void clearRegistered(Context context) {
+        prefs(context).edit().remove(REGISTERED).remove(REGISTERED_AT).apply();
+    }
+
+    /** האם בדיוק אותה רשימה נרשמה בהצלחה לפני פחות מ-`maxAgeMs` */
+    static boolean recentlyRegistered(Context context, String fences, long maxAgeMs) {
+        SharedPreferences p = prefs(context);
+        return fences.equals(p.getString(REGISTERED, null))
+            && System.currentTimeMillis() - p.getLong(REGISTERED_AT, 0) < maxAgeMs;
+    }
+
+    private static JSONObject readObject(Context context, String key) {
+        String raw = prefs(context).getString(key, null);
+        if (raw == null) return null;
+        try {
+            return new JSONObject(raw);
+        } catch (JSONException e) {
+            return null;
         }
     }
 

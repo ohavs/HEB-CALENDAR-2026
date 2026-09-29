@@ -393,6 +393,7 @@ export function EventEditor({
           patch={patch}
           reminder={reminder}
           scheduled={!reminder || !draft.undated}
+          onDated={() => patch({ undated: undefined })}
           whenToggle={
             reminder ? (
               <ToggleRow

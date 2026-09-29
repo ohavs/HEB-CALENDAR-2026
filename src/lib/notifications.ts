@@ -330,6 +330,18 @@ async function syncNative(reminders: NativeReminder[]): Promise<void> {
 }
 
 /**
+ * מוודא שיש הרשאת התראות, ושואל אם עוד לא נשאלה.
+ *
+ * להתראת מקום אין תזכורת בזמן, ולכן `syncNative` לא שאל בשבילה - והמקלט
+ * זיהה הגעה והציג התראה שאנדרואיד בלע בשקט.
+ */
+export async function ensureNotificationPermission(): Promise<PermissionState> {
+  const state = isNative() ? await refreshNativePermission() : notificationState();
+  if (state !== 'default') return state;
+  return requestNotificationPermission();
+}
+
+/**
  * מחשב מחדש את כל התזכורות, שומר אותן, וקובע טיימרים לקרובות.
  * יש לקרוא לזה בכל שינוי בהגדרות או באירועים.
  */

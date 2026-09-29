@@ -130,7 +130,6 @@ export function TimeRangeRow({
         title="התחלה"
         value={start}
         onChange={onStart}
-        minuteStep={5}
       />
       <TimePickerSheet
         open={open === 'end'}
@@ -138,7 +137,6 @@ export function TimeRangeRow({
         title="סיום"
         value={end}
         onChange={onEnd}
-        minuteStep={5}
       />
     </>
   );
@@ -209,7 +207,6 @@ export function SingleTimeRow({
         title={label}
         value={value ?? suggested}
         onChange={onChange}
-        minuteStep={5}
       />
     </>
   );
@@ -450,7 +447,7 @@ export function TimeField({
   value,
   onChange,
   icon,
-  minuteStep = 5,
+  minuteStep = 1,
   variant,
 }: {
   label: string;

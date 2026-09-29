@@ -9,7 +9,7 @@
  * מה שאינו חל על שניהם נשלט מבחוץ: התראת מקום ותזכורת קיימות רק לאירוע
  * אישי. שדה שמוצג ואינו עושה דבר גרוע משדה שאינו מוצג.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Bell,
   CalendarDays,
@@ -27,6 +27,7 @@ import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import {
+  dayForTime,
   reminderEndTime,
   shiftEndWithStart,
   suggestReminderTime,
@@ -150,6 +151,7 @@ export function EventFields({
   whenToggle,
   category,
   reminder = false,
+  onDated,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -185,6 +187,12 @@ export function EventFields({
    * המלא נשאר לאירוע בלוח, ששם כל השאלות האלה באמת נשאלות.
    */
   reminder?: boolean;
+  /**
+   * שעה נבחרה לתזכורת בלי יום. שורת השעה מוצגת תמיד, גם בלי יום - ושעה
+   * בלי יום אינה שעה, ולכן היא משייכת את התזכורת ליום הקרוב שבו השעה עוד
+   * לפנינו (`dayForTime`). מי שמחזיק את "משויך ליום" מעדכן את עצמו כאן.
+   */
+  onDated?: () => void;
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -221,14 +229,28 @@ export function EventFields({
    * שעת התזכורת. `allDay` נגזר ממנה ולא נקבע לבד - אותו כלל של
    * `buildReminderDraft` - וכך גם ההתראה: יש שעה, מתריעים בה.
    */
-  const setReminderTime = (time: string | null) =>
+  /*
+    היום נקבע מהשעה כל עוד המשתמש לא בחר יום בעצמו. הגלגל כותב בכל גלילה,
+    והפתיחה כבר שייכה את התזכורת ליום של השעה המוצעת - בלי זה, גלילה
+    מ-18:30 ל-08:00 בערב הייתה משאירה אותה על היום, בשעה שכבר עברה.
+  */
+  const autoDay = useRef(false);
+  const setReminderTime = (time: string | null) => {
+    if (time !== null && !scheduled) {
+      autoDay.current = true;
+      onDated?.();
+    }
+    const assign = time !== null && autoDay.current;
     patch({
+      ...(assign ? { date: dayForTime(time, new Date()) } : {}),
       allDay: time === null,
       startTime: time ?? draft.startTime,
       endTime: time ? reminderEndTime(time) : draft.endTime,
       ...(personal ? { reminderMinutes: time ? 0 : null } : {}),
     });
-  const isToday = draft.date === dateKey(new Date());
+  };
+  // בלי יום השעה המוצעת היא של היום: הבחירה עצמה תשייך ליום הנכון
+  const isToday = !scheduled || draft.date === dateKey(new Date());
 
   /*
     שלוש קבוצות ושדה אחד, לפי השאלה שכל אחת עונה עליה: מתי, איפה, ומה
@@ -237,23 +259,28 @@ export function EventFields({
   */
   return (
     <>
-      {(scheduled || whenToggle) && (
+      {(scheduled || whenToggle || reminder) && (
         <FieldGroup>
           {whenToggle}
-          {scheduled && reminder && (
+          {reminder && (
             <>
-              <DateField
-                label="תאריך"
-                value={draft.date}
-                onChange={(d) => patch({ date: d })}
-                icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-                hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-                variant="grouped"
-              />
+              {scheduled && (
+                <DateField
+                  label="תאריך"
+                  value={draft.date}
+                  onChange={(d) => {
+                    autoDay.current = false;
+                    patch({ date: d });
+                  }}
+                  icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
+                  hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
+                  variant="grouped"
+                />
+              )}
               <SingleTimeRow
                 icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
                 label={personal ? 'שעת התראה' : 'שעה'}
-                value={draft.allDay ? null : draft.startTime}
+                value={!scheduled || draft.allDay ? null : draft.startTime}
                 suggested={suggestReminderTime(new Date(), isToday)}
                 onChange={setReminderTime}
                 emptyLabel={personal ? 'בלי התראה' : 'בלי שעה'}
@@ -466,7 +493,7 @@ function BackgroundLocationHint() {
       <span>
         {geo.foreground
           ? 'כדי שההתראה תגיע גם כשהאפליקציה סגורה, צריך לבחור ״לאפשר תמיד״ בהרשאת המיקום. הקשה פותחת את ההגדרות.'
-          : 'צריך הרשאת מיקום כדי לזהות הגעה ויציאה. הקשה כדי לאשר.'}
+          : 'צריך הרשאת מיקום מדויק כדי לזהות הגעה ויציאה. הקשה כדי לאשר.'}
       </span>
     </button>
   );
