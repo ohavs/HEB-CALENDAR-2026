@@ -13,6 +13,7 @@ import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import type { DateKey, DayInfo, Settings } from "@/types";
 import type { Occurrence } from "@/lib/recurrence";
 import type { RangeData } from "@/hooks/useMonthData";
+import { usePageDirection } from "@/hooks/usePageDirection";
 import { dateKey, timeToMinutes, WEEKDAYS_SHORT_HE } from "@/lib/dates";
 import {
   beginLongPress,
@@ -32,17 +33,17 @@ const SWIPE_DISTANCE = 58;
 const SWIPE_VELOCITY = 320;
 
 /*
-  אותו כיוון תנועה כמו ברשת החודש: התוכן הולך אחרי האצבע. ראו את ההסבר
-  המלא ב-CalendarScreen - הוא נכון מילה במילה גם כאן.
+  אותו כיוון תנועה כמו ברשת החודש: קדימה הוא שמאלה, והתוכן הולך אחרי
+  האצבע. ראו את ההסבר המלא ב-CalendarScreen - הוא נכון מילה במילה גם כאן.
 */
 const stripVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? "100%" : "-100%",
+    x: direction > 0 ? "-100%" : "100%",
     opacity: 0.4,
   }),
   center: { x: 0, opacity: 1 },
   exit: (direction: number) => ({
-    x: direction > 0 ? "-100%" : "100%",
+    x: direction > 0 ? "100%" : "-100%",
     opacity: 0.4,
   }),
 };
@@ -282,19 +283,18 @@ export function WeekView({
     תנועה אלכסונית. הרצועה שלמעלה אינה נגללת כלל, ולכן היא המקום היחיד
     שבו החלקה אופקית חד-משמעית.
   */
-  const [direction, setDirection] = useState(0);
-  const page = (delta: number) => {
-    setDirection(delta);
-    onPage(delta);
-  };
+  const weekKey = data.dates[0] ? dateKey(data.dates[0]) : "week";
+  // נגזר מהשבוע שמוצג ולא מההחלקה: שבוע שהתחלף בבחירת יום או מהחלונית
+  // נכנס קודם עם הכיוון של ההחלקה הקודמת, וזה מה שנראה כמו נסיגה
+  const direction = usePageDirection(weekKey);
   const onDragEnd = (_: unknown, info: PanInfo) => {
     if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY)
-      page(-1);
+      onPage(1);
     else if (
       info.offset.x < -SWIPE_DISTANCE ||
       info.velocity.x < -SWIPE_VELOCITY
     )
-      page(1);
+      onPage(-1);
   };
 
   const today = dateKey(new Date());
@@ -316,7 +316,7 @@ export function WeekView({
       <div className="relative shrink-0 overflow-hidden border-b border-hairline bg-surface/95 backdrop-blur">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
-            key={data.dates[0] ? dateKey(data.dates[0]) : "week"}
+            key={weekKey}
             custom={direction}
             variants={stripVariants}
             initial="enter"

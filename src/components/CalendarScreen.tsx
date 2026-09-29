@@ -29,6 +29,7 @@ import { useSettings } from '@/store/settings';
 import { useDragActive } from '@/lib/dragEngine';
 import { availableViews, canSwitchViews, resolveView } from '@/lib/calendarViews';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { usePageDirection } from '@/hooks/usePageDirection';
 import { CalendarHeader } from './CalendarHeader';
 import { MonthGrid, WeekdayHeader } from './MonthGrid';
 import { WeekView } from './WeekView';
@@ -42,25 +43,22 @@ const SWIPE_DISTANCE = 58;
 const SWIPE_VELOCITY = 320;
 
 /*
-  התוכן הולך אחרי האצבע.
+  קדימה בזמן הוא שמאלה, כמו דפדוף בספר עברי.
 
-  גרירה שמאלה מתקדמת בזמן, ולכן החודש הבא נכנס מימין והנוכחי יוצא
-  שמאלה - כל הרצועה נעה שמאלה, לאותו כיוון שבו האצבע משכה. זו התנהגות
-  הקרוסלה הרגילה, והיא מה שהופך את התנועה לקריאה: מה שנכנס מהצד שאליו
-  משכת מרגיש כמו נסיגה, גם כשהחודש באמת התקדם.
+  ב-RTL "הבא" יושב בשמאל, ולכן החודש הבא נכנס משמאל והנוכחי יוצא ימינה -
+  והאצבע מביאה אותו בהחלקה ימינה, באותו כיוון שבו הרצועה זזה. קודם זה היה
+  הפוך, כמו קרוסלה של שפה שנכתבת משמאל לימין: ההחלקה ימינה החזירה אחורה,
+  והחודש הבא נכנס מהצד של "הקודם". התנועה הייתה נכונה, ובכל זאת נראתה
+  כמו נסיגה.
 
-  זה מתנגש עם הרצון שהעבר "יישב" מימין: אם החודש הקודם ייכנס מימין,
-  הוא ייכנס מאותו צד שאליו האצבע נעה כשמתקדמים. אי אפשר לקיים את שניהם,
-  ומבין השניים הצמדת התנועה לאצבע היא הרמז החזק יותר - היא מורגשת בכל
-  החלקה, בעוד ש"איפה יושב העבר" הוא מודל מנטלי שאיש אינו רואה.
-
+  התוכן תמיד זז לכיוון האצבע, והחודש החדש תמיד נכנס מהצד שממנו היא באה.
   `x` של framer הוא פיזי ולא לוגי, ולכן הסימנים מפורשים ואינם מתהפכים
   לבד לפי `dir`.
 */
 const pageVariants = {
-  enter: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0.4 }),
+  enter: (direction: number) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0.4 }),
   center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0.4 }),
+  exit: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0.4 }),
 };
 
 /** תחילת השבוע שבו נמצא התאריך. השבוע מתחיל ביום ראשון. */
@@ -80,7 +78,6 @@ function weekLabel(start: Date): string {
 
 export function CalendarScreen({
   month,
-  direction,
   onMonthChange,
   selectedDate,
   onSelectDate,
@@ -100,9 +97,7 @@ export function CalendarScreen({
   bottomInset,
 }: {
   month: Date;
-  /** כיוון המעבר האחרון בין חודשים, לאנימציה */
-  direction: number;
-  onMonthChange: (month: Date, direction: number) => void;
+  onMonthChange: (month: Date) => void;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   panelDetent: PanelDetent;
@@ -132,6 +127,7 @@ export function CalendarScreen({
   const view: CalendarView = resolveView(settings.view, views);
   const data = useMonthData(month);
   const dragActive = useDragActive();
+  const direction = usePageDirection(monthKey(month));
   const isDesktop = useIsDesktop();
 
   const selectedKey = dateKey(selectedDate);
@@ -151,30 +147,23 @@ export function CalendarScreen({
         const next = addDays(weekStart, delta * 7);
         onSelectDate(next);
         if (!isSameMonth(next, month)) {
-          onMonthChange(new Date(next.getFullYear(), next.getMonth(), 1), delta);
+          onMonthChange(new Date(next.getFullYear(), next.getMonth(), 1));
         }
         return;
       }
-      onMonthChange(addMonths(month, delta), delta);
+      onMonthChange(addMonths(month, delta));
     },
     [month, onMonthChange, onSelectDate, view, weekStart],
   );
 
   /*
-    האצבע נעה לכיוון החודש שרוצים, לא הפוכה לו.
-
-    הפריסה מציבה את העבר מימין ואת העתיד משמאל (ראו pageVariants), ולכן
-    גרירה ימינה מביאה את החודש הקודם וגרירה שמאלה את הבא - אותה סמנטיקה
-    של החצים בכותרת ושל DayView.
-
-    זה *אינו* מודל "גוררים את הסרט": שם היה צריך למשוך שמאלה כדי להביא
-    את מה שמימין. הבחירה כאן היא בכוונה במודל הפשוט יותר - גוררים לאן
-    שרוצים להגיע - כי החלונית ממילא נצמדת חזרה ולא עוקבת אחרי האצבע עד
-    החודש הבא.
+    החלקה ימינה מקדימה, החלקה שמאלה מחזירה. זה מודל "גוררים את הדף": האצבע
+    מושכת את החודש הנוכחי החוצה ימינה, והבא נכנס משמאל - מאותו צד שבו
+    יושב "הבא". ראו pageVariants.
   */
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(-1);
-    else if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) page(1);
+    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(1);
+    else if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) page(-1);
   };
 
   /**
@@ -198,8 +187,7 @@ export function CalendarScreen({
       }
       onSelectDate(day.date);
       if (!isSameMonth(day.date, month)) {
-        const delta = day.date > month ? 1 : -1;
-        onMonthChange(new Date(day.date.getFullYear(), day.date.getMonth(), 1), delta);
+        onMonthChange(new Date(day.date.getFullYear(), day.date.getMonth(), 1));
       }
       if (panelDetent === 'peek') onPanelDetentChange('half');
     },
@@ -211,10 +199,7 @@ export function CalendarScreen({
     (date: Date) => {
       onSelectDate(date);
       if (!isSameMonth(date, month)) {
-        onMonthChange(
-          new Date(date.getFullYear(), date.getMonth(), 1),
-          date > month ? 1 : -1,
-        );
+        onMonthChange(new Date(date.getFullYear(), date.getMonth(), 1));
       }
     },
     [month, onMonthChange, onSelectDate],
@@ -223,7 +208,7 @@ export function CalendarScreen({
   const today = startOfDay(new Date());
   const goToToday = () => {
     onSelectDate(today);
-    onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1), today > month ? 1 : -1);
+    onMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
   };
 
   /** התצוגה שמתחת לכותרת, בלי החלונית התחתונה. */

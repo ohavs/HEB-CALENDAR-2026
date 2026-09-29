@@ -113,10 +113,7 @@ export default function App() {
 
   const today = useMemo(() => startOfDay(new Date()), []);
   const [tab, setTab] = useState<TabId>('calendar');
-  const [monthState, setMonthState] = useState(() => ({
-    month: new Date(today.getFullYear(), today.getMonth(), 1),
-    direction: 0,
-  }));
+  const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [panelDetent, setPanelDetent] = useState<PanelDetent>('peek');
 
@@ -503,8 +500,8 @@ export default function App() {
   }, [conflictCount]);
 
   /* ---------------------------- ניווט בחודשים ---------------------------- */
-  const goToMonth = useCallback((month: Date, direction: number) => {
-    setMonthState({ month, direction });
+  const goToMonth = useCallback((month: Date) => {
+    setMonth(month);
     // מעבר חודש משנה את כל המסך בלי להזיז את המיקוד, ולכן הוא מוכרז
     announce(`${GREG_MONTHS_HE[month.getMonth()]} ${month.getFullYear()}`);
   }, []);
@@ -512,10 +509,7 @@ export default function App() {
   const goToDate = useCallback((date: Date) => {
     const day = startOfDay(date);
     setSelectedDate(day);
-    setMonthState((prev) => ({
-      month: new Date(day.getFullYear(), day.getMonth(), 1),
-      direction: day > prev.month ? 1 : -1,
-    }));
+    setMonth(new Date(day.getFullYear(), day.getMonth(), 1));
     setTab('calendar');
   }, []);
 
@@ -632,10 +626,7 @@ export default function App() {
         );
       },
       onEdge: (edge) => {
-        setMonthState((prev) => ({
-          month: addMonths(prev.month, edge === 'next' ? 1 : -1),
-          direction: edge === 'next' ? 1 : -1,
-        }));
+        setMonth((prev) => addMonths(prev, edge === 'next' ? 1 : -1));
       },
       /*
         המנוע רק מדווח שהשחרור היה על הפח. האישור הוא החלטה של המסך,
@@ -835,8 +826,7 @@ export default function App() {
             >
             {tab === 'calendar' && (
               <CalendarScreen
-                month={monthState.month}
-                direction={monthState.direction}
+                month={month}
                 onMonthChange={goToMonth}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
@@ -849,7 +839,7 @@ export default function App() {
                 onProfile={() => setTab('settings')}
                 onSearch={() => setSearchOpen(true)}
                 onOpenYear={() => {
-                  setYearValue(monthState.month.getFullYear());
+                  setYearValue(month.getFullYear());
                   setYearOpen(true);
                 }}
                 onPickView={cycleView}
@@ -909,10 +899,7 @@ export default function App() {
         onNavigate={(date) => {
           setDayViewDate(date);
           setSelectedDate(startOfDay(date));
-          setMonthState((prev) => ({
-            month: new Date(date.getFullYear(), date.getMonth(), 1),
-            direction: date > prev.month ? 1 : -1,
-          }));
+          setMonth(new Date(date.getFullYear(), date.getMonth(), 1));
         }}
         onAddEvent={() => {
           if (dayViewDate) openEditor(dateKey(dayViewDate));
@@ -997,7 +984,7 @@ export default function App() {
       <SearchSheet
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
-        year={monthState.month.getFullYear()}
+        year={month.getFullYear()}
         onPickDate={goToDate}
         onPickEvent={(event) => {
           goToDate(keyToDate(event.date));
@@ -1009,7 +996,7 @@ export default function App() {
         open={yearOpen}
         onClose={() => setYearOpen(false)}
         year={yearValue}
-        focusMonth={monthState.month.getMonth()}
+        focusMonth={month.getMonth()}
         onPick={goToDate}
         onYearChange={setYearValue}
       />
