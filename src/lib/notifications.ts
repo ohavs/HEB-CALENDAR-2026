@@ -25,6 +25,7 @@ import {
   requestNativeNotificationPermission,
   scheduleNativeReminders,
   showNativeNotification,
+  type NativeReminder,
 } from './native';
 import {
   deleteReminders,
@@ -240,6 +241,8 @@ export function buildReminders(
           // אירוע רב־יומי מקבל תזכורת אחת, ביום שהוא מתחיל - לא אחת
           // לכל יום של החופשה
           if (occ.spanIndex > 0) continue;
+          // מה שסומן כבוצע לא צריך לצלצל
+          if (occ.done) continue;
           const mins = occ.reminderMinutes ?? 0;
           const base = occ.allDay
             ? (() => {
@@ -300,13 +303,38 @@ async function flushDue(): Promise<void> {
   }
 }
 
+/*
+  תזמון אחד בכל רגע. כל תזמון מבטל את כל מה שנקבע ואז קובע מחדש, ושניים
+  במקביל (שינוי באירועים וחזרה לחזית באותה שנייה) היו משתלבים: אחד מבטל
+  את מה שהשני זה עתה קבע.
+*/
+let nativeQueue: Promise<void> = Promise.resolve();
+
+async function syncNative(reminders: NativeReminder[]): Promise<void> {
+  /*
+    ההרשאה נקראת כאן ולא מהמשתנה. קודם הוא נקרא כמות שהוא, והוא מתחיל
+    כ-'default' עד שהקריאה האסינכרונית חוזרת - כך שהתזמון הראשון אחרי
+    עלייה קרה נבלע בשקט, ושום דבר לא החזיר אותו.
+  */
+  let state = await refreshNativePermission();
+  /*
+    מי שקבע תזכורת עם שעה ביקש התראה. השאלה נשאלת כאן ולא רק בהגדרות,
+    כי שם איש לא מחפש אותה - וההרשאה שלא נשאלה לעולם היא 'default'
+    לנצח, ושום תזכורת לא נקבעה.
+  */
+  if (state === 'default' && reminders.some((r) => r.id.startsWith('event-'))) {
+    state = await requestNotificationPermission();
+  }
+  if (state !== 'granted') return;
+  await scheduleNativeReminders(reminders);
+}
+
 /**
  * מחשב מחדש את כל התזכורות, שומר אותן, וקובע טיימרים לקרובות.
  * יש לקרוא לזה בכל שינוי בהגדרות או באירועים.
  */
 export async function syncReminders(settings: Settings, events: UserEvent[]): Promise<void> {
   clearTimers();
-  if (notificationState() !== 'granted') return;
 
   /*
     באנדרואיד מוסרים את הרשימה למערכת ההפעלה וזהו: ההתראה תגיע גם
@@ -314,9 +342,12 @@ export async function syncReminders(settings: Settings, events: UserEvent[]): Pr
     ב-Periodic Sync - שלושתם קיימים רק כדי לפצות על מה שחסר ב-PWA.
   */
   if (isNative()) {
-    await scheduleNativeReminders(buildReminders(settings, events));
-    return;
+    const reminders = buildReminders(settings, events);
+    nativeQueue = nativeQueue.then(() => syncNative(reminders)).catch(() => undefined);
+    return nativeQueue;
   }
+
+  if (notificationState() !== 'granted') return;
 
   if (!idbAvailable()) return;
   const reminders = buildReminders(settings, events);

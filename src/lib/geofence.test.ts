@@ -314,4 +314,40 @@ describe('buildFences', () => {
     expect(new Set(fences.map((f) => f.id)).size).toBe(fences.length);
     expect(fences.every((f) => f.tag.startsWith('place-'))).toBe(true);
   });
+  it('מופע שסומן כבוצע אינו גדר', () => {
+    expect(buildFences([HOME], [{ ...occurrenceAt('arrive'), done: true }], NOW)).toEqual([]);
+  });
+
+  /*
+    "כשאגיע לסופר" היא בדיוק תזכורת שאין לה יום. `expandEvents` מדלג
+    עליה, ולכן היא נמסרת בנפרד - ודרוכה בכל יום.
+  */
+  describe('תזכורת בלי תאריך', () => {
+    const undated = (patch: Parameters<typeof event>[0] = {}) =>
+      event({
+        undated: true,
+        date: '2026-09-01',
+        placeId: 'home',
+        placeTrigger: 'arrive',
+        title: 'סוללות',
+        ...patch,
+      });
+
+    it('נרשמת, דרוכה בכל יום, ומתוארכת להיום בשביל מעטפת ישנה', () => {
+      const fences = buildFences([HOME], [], NOW, [undated()]);
+      expect(fences).toHaveLength(1);
+      expect(fences[0]).toMatchObject({ anyDay: true, date: TODAY, title: 'סוללות', kind: 'arrive' });
+    });
+
+    it('מה שבוצע, נמחק או בלי מקום - לא נרשם', () => {
+      const done = undated({ exceptions: { '2026-09-01': { done: true } } });
+      expect(buildFences([HOME], [], NOW, [done])).toEqual([]);
+      expect(buildFences([HOME], [], NOW, [undated({ deleted: true })])).toEqual([]);
+      expect(buildFences([HOME], [], NOW, [undated({ placeTrigger: undefined })])).toEqual([]);
+    });
+
+    it('אירוע עם תאריך אינו נרשם פעמיים דרך הרשימה הזו', () => {
+      expect(buildFences([HOME], [], NOW, [undated({ undated: undefined })])).toEqual([]);
+    });
+  });
 });

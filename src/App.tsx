@@ -91,6 +91,8 @@ type EditorState = {
   startTime?: string;
   /** טיוטה שהגיעה מההוספה המהירה במסך התזכורות */
   prefill?: EventDraft | null;
+  /** נפתח ממסך התזכורות: טופס של תזכורת ולא של אירוע */
+  reminder?: boolean;
 };
 
 export default function App() {
@@ -319,13 +321,28 @@ export default function App() {
   const fences = useMemo(() => {
     if (!settings.placeAlertsEnabled) return [];
     const upcoming = expandEvents(events, today, addDays(today, FENCE_HORIZON_DAYS));
-    return buildFences(settings.places, [...upcoming.values()].flat(), today);
+    return buildFences(settings.places, [...upcoming.values()].flat(), today, events);
   }, [settings.placeAlertsEnabled, settings.places, events, today]);
+
+  /*
+    רישום מחדש גם בכל חזרה לחזית, ולא רק כשהגדרות השתנו. "לאפשר תמיד"
+    ניתנת במסך ההגדרות של המערכת, מחוץ לאפליקציה - וכשהמשתמש חוזר ממנו
+    שום דבר כאן לא השתנה, ולכן הגדרות שנדחו בלי ההרשאה לא נרשמו לעולם.
+    גם אנדרואיד מוחק גדרות בעצמו (כיבוי מיקום, ניקוי נתונים), והחזרה
+    לאפליקציה היא הרגע לשחזר אותן.
+  */
+  const [fenceTick, setFenceTick] = useState(0);
+  useEffect(() => {
+    if (!isNative()) return;
+    const onVisible = () => document.visibilityState === 'visible' && setFenceTick((t) => t + 1);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   useEffect(() => {
     if (!isNative()) return;
     void syncNativeGeofences(fences);
-  }, [fences]);
+  }, [fences, fenceTick]);
 
   useEffect(() => {
     // באנדרואיד הגדרות כבר רשומות במערכת, ומעקב בדף היה כפילות
@@ -710,10 +727,20 @@ export default function App() {
     setEditor({ open: true, date: draft.date, editing: null, prefill: draft });
   }, []);
 
+  /** "כל האפשרויות" בהוספה המהירה של תזכורת */
+  const composeReminderMore = useCallback((draft: EventDraft) => {
+    setEditor({ open: true, date: draft.date, editing: null, prefill: draft, reminder: true });
+  }, []);
+
   const findShared = useFindShared();
 
-  /** פותח את העורך על מופע או על תזכורת בלי תאריך. */
-  const editAnything = useCallback(
+  /**
+   * פותח את העורך על תזכורת - מופע או פריט בלי תאריך.
+   *
+   * רק ממסך התזכורות. אותו פריט שנפתח מהלוח מקבל את טופס האירוע המלא,
+   * כי שם הוא אירוע: מה שקובע את הטופס הוא המקום, לא הפריט.
+   */
+  const editReminder = useCallback(
     (item: Occurrence | UserEvent) => {
       // פריט מרשימה משותפת נערך בגיליון שלו, לא בעורך האישי
       if ('shared' in item && item.shared) {
@@ -723,7 +750,7 @@ export default function App() {
           return;
         }
       }
-      setEditor({ open: true, date: item.date, editing: item });
+      setEditor({ open: true, date: item.date, editing: item, reminder: true });
     },
     [findShared],
   );
@@ -814,9 +841,9 @@ export default function App() {
 
             {tab === 'reminders' && (
               <RemindersScreen
-                onEditEvent={editAnything}
+                onEditEvent={editReminder}
                 onDeleteEvent={setPendingTrash}
-          onComposeMore={openEditorWith}
+                onComposeMore={composeReminderMore}
                 composeOnMount={composeReminder}
                 viewOverride={remindersView}
                 onPlaceTemplate={placeTemplateOn}
@@ -898,6 +925,7 @@ export default function App() {
         startTime={editor.startTime}
         prefill={editor.prefill}
         editing={editor.editing}
+        reminder={editor.reminder}
       />
 
       {/*

@@ -1,7 +1,8 @@
 /** טאב ההגדרות - תצוגה, תוכן הלוח, זמנים, תזכורות וחשבון. */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  AlarmClock,
   Bell,
   CalendarDays,
   BellRing,
@@ -23,10 +24,12 @@ import { useSyncState } from '@/hooks/useSyncState';
 import { syncErrorText } from '@/lib/sync';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
-import { useEventsStore } from '@/store/events';
+import { useEvents, useEventsStore } from '@/store/events';
+import { formatTime, relativeDayLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import {
+  buildReminders,
   notificationState,
   permissionLabel,
   requestNotificationPermission,
@@ -50,7 +53,9 @@ import { ICON, STROKE } from '@/lib/motion';
 import { checkForUpdate, currentVersionLabel, type UpdateInfo } from '@/lib/appUpdate';
 import {
   clearSystemCalendar,
+  exactAlarmsAllowed,
   geoPermission,
+  openExactAlarmSettings,
   isNative,
   systemCalendarPermission,
   openAppSettings,
@@ -205,6 +210,31 @@ export function SettingsScreen({
     המשתמש משנה אותה בהגדרות המערכת - מחוץ לאפליקציה.
   */
   const [cleanupOpen, setCleanupOpen] = useState(false);
+
+  /*
+    שעון מדויק. בלעדיו אנדרואיד מקבץ התראות ושולח אותן מתי שנוח לו -
+    גם שעה אחרי - והמשתמש רואה "ההתראות לא עובדות". נקרא מחדש בחזרה
+    למסך, כי ההרשאה ניתנת במסך של המערכת.
+  */
+  const [exactOk, setExactOk] = useState(true);
+  useEffect(() => {
+    if (!isNative()) return;
+    const read = () => void exactAlarmsAllowed().then(setExactOk);
+    read();
+    const onVisible = () => document.visibilityState === 'visible' && read();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  /**
+   * ההתראה הקרובה, כפי שהיא נקבעה. זו הדרך היחידה לדעת מהמסך שתזכורת
+   * באמת תצלצל - בלי לחכות לה.
+   */
+  const events = useEvents();
+  const nextAlert = useMemo(() => {
+    const now = Date.now();
+    return buildReminders(settings, events).find((r) => r.at > now) ?? null;
+  }, [settings, events]);
   const [geo, setGeo] = useState<GeoPermission | null>(null);
   useEffect(() => {
     if (!isNative()) return;
@@ -690,6 +720,28 @@ export function SettingsScreen({
             onClick={() => setCleanupOpen(true)}
           />
         </SettingRow>
+
+        {notificationsReady && isNative() && !exactOk && (
+          <SettingRow
+            title="התראות עלולות לאחר"
+            hint="אנדרואיד אינו מרשה לאפליקציה שעון מדויק, ולכן תזכורת יכולה להגיע גם שעה אחרי הזמן. הקשה פותחת את ״שעונים ותזכורות״."
+            icon={<AlarmClock size={ICON.lg} strokeWidth={2.1} className="text-brand" />}
+            onClick={() => void openExactAlarmSettings().then(setExactOk)}
+          >
+            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="text-faint" />
+          </SettingRow>
+        )}
+
+        {notificationsReady && (
+          <SettingRow
+            title="ההתראה הבאה"
+            hint={
+              nextAlert
+                ? `${relativeDayLabel(new Date(nextAlert.at), new Date(), true)} ${formatTime(nextAlert.at)} · ${nextAlert.title}`
+                : 'אין התראות בחודש הקרוב'
+            }
+          />
+        )}
 
         <SettingRow
           title={testSent ? 'נשלחה התראת בדיקה' : 'שליחת התראת בדיקה'}

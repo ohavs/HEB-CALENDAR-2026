@@ -240,8 +240,54 @@ export async function showNativeNotification(
  * מבטלים תמיד את כל מה שנקבע קודם: התזכורות מחושבות מחדש בכל שינוי,
  * וביטול סלקטיבי היה מצריך לנהל מצב נוסף שיכול להיסתר מהאמת.
  */
-export async function scheduleNativeReminders(reminders: NativeReminder[]): Promise<void> {
-  if (!isNative()) return;
+export type ScheduleResult = {
+  /** האם המערכת קיבלה את הרשימה */
+  ok: boolean;
+  /** כמה נקבעו בפועל */
+  count: number;
+  /** false כשאנדרואיד אינו מרשה שעון מדויק, וההתראות עלולות לאחר */
+  exact: boolean;
+};
+
+/** התזמון האחרון, כדי שמסך ההגדרות יוכל להגיד מה באמת קרה */
+let lastSchedule: ScheduleResult | null = null;
+export function lastNativeSchedule(): ScheduleResult | null {
+  return lastSchedule;
+}
+
+/**
+ * האם מותר לקבוע התראה מדויקת.
+ *
+ * כשלא, הפלאגין פותח בעצמו את מסך "שעונים ותזכורות" בכל `schedule` -
+ * כלומר בכל שינוי באירועים. לכן בודקים קודם, ומתזמנים בלי דיוק כשאין
+ * הרשאה; ההגדרות אומרות את זה במפורש ומציעות לתקן.
+ */
+export async function exactAlarmsAllowed(): Promise<boolean> {
+  if (!isNative()) return true;
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    const { exact_alarm } = await LocalNotifications.checkExactNotificationSetting();
+    return exact_alarm === 'granted';
+  } catch {
+    // גרסה שאין בה את הבדיקה - אנדרואיד ישן, ששם שעון מדויק מותר תמיד
+    return true;
+  }
+}
+
+export async function openExactAlarmSettings(): Promise<boolean> {
+  if (!isNative()) return true;
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    const { exact_alarm } = await LocalNotifications.changeExactNotificationSetting();
+    return exact_alarm === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+export async function scheduleNativeReminders(reminders: NativeReminder[]): Promise<ScheduleResult> {
+  if (!isNative()) return { ok: false, count: 0, exact: true };
+  const exact = await exactAlarmsAllowed();
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     await ensureChannels();
@@ -254,22 +300,27 @@ export async function scheduleNativeReminders(reminders: NativeReminder[]): Prom
       .filter((r) => r.at > now)
       .sort((a, b) => a.at - b.at)
       .slice(0, MAX_SCHEDULED);
-    if (!upcoming.length) return;
-    await LocalNotifications.schedule({
-      notifications: upcoming.map((r) => ({
-        id: notificationId(r.id),
-        title: r.title,
-        body: r.body,
-        smallIcon: 'ic_stat_notify',
-        channelId: channelFor(r.id),
-        // התראה מדויקת גם כשהמכשיר נם: תזכורת שמגיעה באיחור של שעה
-        // לכניסת שבת היא תזכורת מיותרת
-        schedule: { at: new Date(r.at), allowWhileIdle: true },
-      })),
-    });
+    if (upcoming.length) {
+      await LocalNotifications.schedule({
+        notifications: upcoming.map((r) => ({
+          id: notificationId(r.id),
+          title: r.title,
+          body: r.body,
+          smallIcon: 'ic_stat_notify',
+          channelId: channelFor(r.id),
+          // התראה מדויקת גם כשהמכשיר נם: תזכורת שמגיעה באיחור של שעה
+          // לכניסת שבת היא תזכורת מיותרת
+          schedule: { at: new Date(r.at), allowWhileIdle: true },
+          isExactNotification: exact,
+        })),
+      });
+    }
+    lastSchedule = { ok: true, count: upcoming.length, exact };
   } catch {
-    /* אין הרשאה או שהתזמון נכשל - האפליקציה ממשיכה לעבוד */
+    // נשמר ולא נזרק: המסך אינו נופל, אבל ההגדרות יודעות לומר שזה נכשל
+    lastSchedule = { ok: false, count: 0, exact };
   }
+  return lastSchedule;
 }
 
 export async function clearNativeReminders(): Promise<void> {

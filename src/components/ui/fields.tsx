@@ -8,7 +8,7 @@
  */
 import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, X } from 'lucide-react';
 import {
   DatePickerSheet,
   NumberPickerSheet,
@@ -138,6 +138,77 @@ export function TimeRangeRow({
         title="סיום"
         value={end}
         onChange={onEnd}
+        minuteStep={5}
+      />
+    </>
+  );
+}
+
+/**
+ * שעה אחת שאפשר גם להסיר: "שעת התראה" של תזכורת.
+ *
+ * תזכורת היא רגע ולא פרק זמן, ולכן אין לה התחלה וסיום - ובלי שעה היא
+ * פשוט "בלי", לא "כל היום". ההסרה היא כפתור גלוי בשורה ולא ערך מוסתר
+ * בתוך הגלגל, כי זו החלטה ולא עוד שעה.
+ */
+export function SingleTimeRow({
+  icon,
+  label,
+  value,
+  suggested,
+  onChange,
+  emptyLabel = 'בלי',
+}: {
+  icon?: ReactNode;
+  label: string;
+  /** HH:mm, או null כשאין שעה */
+  value: string | null;
+  /** מה שהגלגל מציג כשנפתח על שורה ריקה */
+  suggested: string;
+  onChange: (next: string | null) => void;
+  emptyLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  /*
+    הגלגל כותב בכל גלילה, ולכן הערך שלו חייב להיות מה שהטיוטה מחזיקה -
+    ולא נפילה לאחור שמוצגת בלבד. פתיחה על שורה ריקה קובעת את ההצעה מיד.
+  */
+  const openPicker = () => {
+    if (value === null) onChange(suggested);
+    setOpen(true);
+  };
+  return (
+    <>
+      <div className="flex items-center gap-3 px-4 py-2">
+        {icon && <span className="shrink-0 text-muted">{icon}</span>}
+        <span className="flex-1 text-label font-medium text-ink">{label}</span>
+        <button
+          type="button"
+          onClick={openPicker}
+          aria-label={value ? `${label} ${value}` : `הוספת ${label}`}
+          className={`focus-ring rounded-lg px-2 py-1 text-label font-semibold active:bg-hairline ${
+            value ? 'tnum text-ink' : 'text-faint'
+          }`}
+        >
+          {value ?? emptyLabel}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label={`הסרת ${label}`}
+            className="focus-ring -me-1.5 flex h-8 w-8 items-center justify-center rounded-full text-faint active:bg-hairline"
+          >
+            <X size={ICON.sm} strokeWidth={STROKE} />
+          </button>
+        )}
+      </div>
+      <TimePickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={label}
+        value={value ?? suggested}
+        onChange={onChange}
         minuteStep={5}
       />
     </>

@@ -189,6 +189,16 @@ describe('אירועים אישיים', () => {
     expect(r.body).toContain('בית הכנסת');
   });
 
+  it('מה שסומן כבוצע לא מצלצל', () => {
+    const ev = event({
+      date: soon,
+      startTime: '14:00',
+      reminderMinutes: 0,
+      exceptions: { [soon]: { done: true } },
+    });
+    expect(buildReminders(settings(), [ev], NOW).some((r) => r.id.startsWith('event-'))).toBe(false);
+  });
+
   it('אירוע שכבר עבר לא מייצר תזכורת', () => {
     const ev = event({ date: '2026-10-01', startTime: '09:00', reminderMinutes: 10 });
     expect(

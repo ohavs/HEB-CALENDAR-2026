@@ -9,7 +9,7 @@
  * מה שאינו חל על שניהם נשלט מבחוץ: התראת מקום ותזכורת קיימות רק לאירוע
  * אישי. שדה שמוצג ואינו עושה דבר גרוע משדה שאינו מוצג.
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Bell,
   CalendarDays,
@@ -26,9 +26,20 @@ import { REMINDER_OPTIONS, useEvents } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
-import { shiftEndWithStart } from '@/lib/reminderCompose';
+import {
+  reminderEndTime,
+  shiftEndWithStart,
+  suggestReminderTime,
+} from '@/lib/reminderCompose';
 import { ICON, STROKE } from '@/lib/motion';
-import { haptic } from '@/lib/native';
+import {
+  geoPermission,
+  haptic,
+  isNative,
+  openAppSettings,
+  requestGeoForeground,
+  type GeoPermission,
+} from '@/lib/native';
 import { LocationPicker } from './LocationPicker';
 import { Segmented, Toggle } from './ui/controls';
 import {
@@ -36,6 +47,7 @@ import {
   FieldGroup,
   PickerField,
   SelectField,
+  SingleTimeRow,
   TextArea,
   TimeRangeRow,
 } from './ui/fields';
@@ -137,6 +149,7 @@ export function EventFields({
   scheduled = true,
   whenToggle,
   category,
+  reminder = false,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -165,6 +178,13 @@ export function EventFields({
     options: { value: string; label: string }[];
     onChange: (next: string) => void;
   };
+  /**
+   * תזכורת ולא אירוע. תזכורת היא רגע: שעה אחת במקום התחלה וסיום, והשעה
+   * היא ההתראה עצמה - ולכן אין "כמה דקות לפני", אין פרישה על כמה ימים,
+   * ואין חזרה אלא אם היא כבר חוזרת (כדי שאפשר יהיה לכבות אותה). הטופס
+   * המלא נשאר לאירוע בלוח, ששם כל השאלות האלה באמת נשאלות.
+   */
+  reminder?: boolean;
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -191,7 +211,24 @@ export function EventFields({
     patch({ startTime: value, endTime: shiftEndWithStart(from, end, value) });
   };
 
-  const hasPlaceAlert = personal && scheduled && Boolean(savedPlace);
+  /*
+    בתזכורת גם בלי יום: "כשאגיע לסופר" היא בדיוק תזכורת שאין לה תאריך.
+    באירוע ביומן ההתראה דרוכה ביום שלו, ובלי יום אין לה מתי.
+  */
+  const hasPlaceAlert = personal && (scheduled || reminder) && Boolean(savedPlace);
+
+  /**
+   * שעת התזכורת. `allDay` נגזר ממנה ולא נקבע לבד - אותו כלל של
+   * `buildReminderDraft` - וכך גם ההתראה: יש שעה, מתריעים בה.
+   */
+  const setReminderTime = (time: string | null) =>
+    patch({
+      allDay: time === null,
+      startTime: time ?? draft.startTime,
+      endTime: time ? reminderEndTime(time) : draft.endTime,
+      ...(personal ? { reminderMinutes: time ? 0 : null } : {}),
+    });
+  const isToday = draft.date === dateKey(new Date());
 
   /*
     שלוש קבוצות ושדה אחד, לפי השאלה שכל אחת עונה עליה: מתי, איפה, ומה
@@ -203,7 +240,27 @@ export function EventFields({
       {(scheduled || whenToggle) && (
         <FieldGroup>
           {whenToggle}
-          {scheduled && (
+          {scheduled && reminder && (
+            <>
+              <DateField
+                label="תאריך"
+                value={draft.date}
+                onChange={(d) => patch({ date: d })}
+                icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
+                hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
+                variant="grouped"
+              />
+              <SingleTimeRow
+                icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
+                label={personal ? 'שעת התראה' : 'שעה'}
+                value={draft.allDay ? null : draft.startTime}
+                suggested={suggestReminderTime(new Date(), isToday)}
+                onChange={setReminderTime}
+                emptyLabel={personal ? 'בלי התראה' : 'בלי שעה'}
+              />
+            </>
+          )}
+          {scheduled && !reminder && (
             <>
               <DateField
                 label={multiDay ? 'מתאריך' : 'תאריך'}
@@ -308,16 +365,19 @@ export function EventFields({
                 { value: 'leave', label: `יוצא מ${savedPlace.name}` },
               ]}
             />
+            {draft.placeTrigger && <BackgroundLocationHint />}
             {draft.placeTrigger && (
               <p className="mt-2.5 text-caption leading-relaxed text-muted">
-                ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.
+                {reminder && !scheduled
+                  ? 'ההתראה דרוכה כל עוד התזכורת לא סומנה כבוצעה.'
+                  : 'ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.'}
               </p>
             )}
           </div>
         )}
       </FieldGroup>
 
-      {(scheduled || personal || category) && (
+      {(category || (reminder ? scheduled && draft.repeat !== 'none' : scheduled || personal)) && (
         <FieldGroup>
           {category && (
             <SelectField<string>
@@ -329,7 +389,7 @@ export function EventFields({
               variant="grouped"
             />
           )}
-          {scheduled && (
+          {scheduled && (!reminder || draft.repeat !== 'none') && (
             <SelectField<UserEvent['repeat']>
               label="חזרה"
               value={draft.repeat}
@@ -342,7 +402,7 @@ export function EventFields({
               variant="grouped"
             />
           )}
-          {personal && (
+          {personal && !reminder && (
             <SelectField<string>
               label="תזכורת"
               value={String(draft.reminderMinutes)}
@@ -372,5 +432,42 @@ export function EventFields({
         places={places}
       />
     </>
+  );
+}
+
+/**
+ * "לאפשר תמיד", כשהיא חסרה - כאן, ברגע הבחירה, ולא רק בהגדרות.
+ *
+ * בלי ההרשאה הזו הכול נראה תקין: המקום נשמר, ההתראה מסומנת - והיא לא
+ * מגיעה, כי מערכת ההפעלה אינה מנטרת כשהאפליקציה סגורה. אנדרואיד אינו
+ * מרשה לבקש אותה בדיאלוג, ולכן הכפתור מוביל למסך ההרשאות.
+ */
+function BackgroundLocationHint() {
+  const [geo, setGeo] = useState<GeoPermission | null>(null);
+  useEffect(() => {
+    if (!isNative()) return;
+    const read = () => void geoPermission().then(setGeo);
+    read();
+    const onVisible = () => document.visibilityState === 'visible' && read();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+  if (!geo || geo.background) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (!geo.foreground) void requestGeoForeground().then(setGeo);
+        else void openAppSettings();
+      }}
+      className="focus-ring mt-2.5 flex w-full items-start gap-2 rounded-xl bg-brand-soft px-3 py-2.5 text-right text-caption leading-relaxed text-brand-ink"
+    >
+      <Navigation size={ICON.xs} strokeWidth={STROKE} className="mt-0.5 shrink-0" />
+      <span>
+        {geo.foreground
+          ? 'כדי שההתראה תגיע גם כשהאפליקציה סגורה, צריך לבחור ״לאפשר תמיד״ בהרשאת המיקום. הקשה פותחת את ההגדרות.'
+          : 'צריך הרשאת מיקום כדי לזהות הגעה ויציאה. הקשה כדי לאשר.'}
+      </span>
+    </button>
   );
 }

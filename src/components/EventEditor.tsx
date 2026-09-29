@@ -5,17 +5,17 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { CalendarDays, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, useEventsStore, type EventDraft } from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
-import { DEFAULT_START, EventFields, defaultEndFor } from './EventFields';
-import { keyToDate, dayTitleLabel } from '@/lib/dates';
+import { DEFAULT_START, EventFields, ToggleRow, defaultEndFor } from './EventFields';
+import { dateKey, keyToDate, dayTitleLabel } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { isDraftDirty } from '@/lib/draftDirty';
-import { useSettings } from '@/store/settings';
+import { useSettings, useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { ICON, STROKE } from '@/lib/motion';
@@ -55,6 +55,7 @@ export function EventEditor({
   startTime,
   prefill,
   editing,
+  reminder = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -78,6 +79,12 @@ export function EventEditor({
   prefill?: EventDraft | null;
   /** אירוע קיים לעריכה, או null ליצירה */
   editing: Occurrence | UserEvent | null;
+  /**
+   * נפתח ממסך התזכורות. אותו אירוע ואותה שמירה, אבל טופס של תזכורת:
+   * שעת התראה אחת, בלי סיום, בלי "כמה דקות לפני" ובלי חזרה. ראו
+   * `reminder` ב-`EventFields`.
+   */
+  reminder?: boolean;
 }) {
   const settings = useSettings();
   const { add, update, remove, updateOccurrence, cancelOccurrence } = useEventsStore();
@@ -135,6 +142,8 @@ export function EventEditor({
         repeat: editing.repeat,
         endDate: editing.endDate,
         categoryId: editing.categoryId,
+        // בטיוטה ולא נקרא מ-`editing` בשמירה: המתג "משויך ליום" משנה אותו
+        undated: 'undated' in editing && editing.undated ? true : undefined,
       };
       setDraft(loaded);
       /*
@@ -155,19 +164,36 @@ export function EventEditor({
 
   const patch = (values: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...values }));
 
-  const payloadOf = (): EventDraft => ({
-    ...draft,
-    title: draft.title.trim(),
-    location: draft.location?.trim() || undefined,
-    placeId: draft.placeId,
-    // בלי מקום שמור אין על מה לגדר
-    placeTrigger: draft.placeId ? draft.placeTrigger : undefined,
-    // עריכת תזכורת בלי תאריך לא משייכת אותה ליום בשקט
-    undated: editing && 'undated' in editing ? editing.undated : undefined,
-    notes: draft.notes?.trim() || undefined,
-    startTime: draft.allDay ? null : draft.startTime,
-    endTime: draft.allDay ? null : draft.endTime,
-  });
+  const payloadOf = (): EventDraft => {
+    const base: EventDraft = {
+      ...draft,
+      title: draft.title.trim(),
+      location: draft.location?.trim() || undefined,
+      placeId: draft.placeId,
+      // בלי מקום שמור אין על מה לגדר
+      placeTrigger: draft.placeId ? draft.placeTrigger : undefined,
+      // עריכת תזכורת בלי תאריך לא משייכת אותה ליום בשקט
+      undated: draft.undated,
+      notes: draft.notes?.trim() || undefined,
+      startTime: draft.allDay ? null : draft.startTime,
+      endTime: draft.allDay ? null : draft.endTime,
+    };
+    if (!reminder) return base;
+    /*
+      בתזכורת השעה היא ההתראה. זה נקבע כאן ולא רק בשדה, כי תזכורת שקיבלה
+      שעה בעורך הישן נשארה עם `reminderMinutes: null` - שעה על המסך, ושום
+      התראה במכשיר. שמירה אחת מתקנת אותה.
+    */
+    const timed = !draft.undated && !draft.allDay;
+    return {
+      ...base,
+      allDay: !timed,
+      startTime: timed ? base.startTime : null,
+      endTime: timed ? base.endTime : null,
+      endDate: undefined,
+      reminderMinutes: timed ? 0 : null,
+    };
+  };
 
   /** שמירה על המופע הזה בלבד: רק השדות שבאמת השתנו נרשמים כחריג. */
   const saveOccurrence = () => {
@@ -218,6 +244,14 @@ export function EventEditor({
 
   const onSave = () => {
     if (!draft.title.trim()) return;
+    /*
+      מי שבחר "תזכורת כשאגיע" ביקש התראת מקום. המתג הכללי בהגדרות כבוי
+      כברירת מחדל, וכשהוא נשאר כבוי הבחירה כאן נשמרה ולא עשתה כלום - בלי
+      שום סימן. הבחירה המפורשת מדליקה אותו.
+    */
+    if (draft.placeId && draft.placeTrigger && !settings.placeAlertsEnabled) {
+      useSettingsStore.getState().set('placeAlertsEnabled', true);
+    }
     if (!editing) {
       add(payloadOf());
       saved(`"${draft.title.trim()}" נוסף`);
@@ -228,7 +262,7 @@ export function EventEditor({
       return;
     }
     update('baseId' in editing ? editing.baseId : editing.id, payloadOf());
-    saved('האירוע נשמר');
+    saved(reminder ? 'התזכורת נשמרה' : 'האירוע נשמר');
   };
 
   const onDelete = () => {
@@ -242,7 +276,7 @@ export function EventEditor({
       return;
     }
     remove('baseId' in editing ? editing.baseId : editing.id);
-    saved('האירוע נמחק');
+    saved(reminder ? 'התזכורת נמחקה' : 'האירוע נמחק');
   };
 
   const eventDate = keyToDate(draft.date);
@@ -268,8 +302,12 @@ export function EventEditor({
       onClose={onClose}
       beforeClose={beforeClose}
       size="tall"
-      title={editing ? 'עריכת אירוע' : 'אירוע חדש'}
-      subtitle={`${dayTitleLabel(eventDate)} · ${hebrew.day} ב${hebrew.month}`}
+      title={reminder ? (editing ? 'עריכת תזכורת' : 'תזכורת חדשה') : editing ? 'עריכת אירוע' : 'אירוע חדש'}
+      subtitle={
+        draft.undated
+          ? 'בלי תאריך'
+          : `${dayTitleLabel(eventDate)} · ${hebrew.day} ב${hebrew.month}`
+      }
       headerAction={
         editing ? (
           <motion.button
@@ -291,10 +329,14 @@ export function EventEditor({
         <PrimaryButton onClick={onSave} disabled={!draft.title.trim()}>
           {/* כפתור מושבת שאומר למה עדיף על כפתור מושבת ששותק */}
           {!draft.title.trim()
-            ? 'צריך שם לאירוע'
+            ? reminder
+              ? 'צריך שם לתזכורת'
+              : 'צריך שם לאירוע'
             : editing
               ? 'שמירת שינויים'
-              : 'יצירת אירוע'}
+              : reminder
+                ? 'הוספת תזכורת'
+                : 'יצירת אירוע'}
         </PrimaryButton>
       }
     >
@@ -314,9 +356,9 @@ export function EventEditor({
             type="text"
             value={draft.title}
             onChange={(e) => patch({ title: e.target.value })}
-            placeholder="שם האירוע"
+            placeholder={reminder ? 'מה להזכיר' : 'שם האירוע'}
             autoComplete="off"
-            aria-label="כותרת האירוע"
+            aria-label={reminder ? 'כותרת התזכורת' : 'כותרת האירוע'}
             className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
           />
         </div>
@@ -349,6 +391,28 @@ export function EventEditor({
         <EventFields
           draft={draft}
           patch={patch}
+          reminder={reminder}
+          scheduled={!reminder || !draft.undated}
+          whenToggle={
+            reminder ? (
+              <ToggleRow
+                grouped
+                icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
+                label="משויך ליום"
+                checked={!draft.undated}
+                onChange={(on) => {
+                  if (on) {
+                    // היום שנשמר לה עלול להיות מלפני שבוע; תזכורת ששובצה לעבר לא תצלצל
+                    const today = dateKey(new Date());
+                    patch({ undated: undefined, date: draft.date < today ? today : draft.date });
+                    return;
+                  }
+                  // "שעה בלי יום אינה שעה" - אותו כלל של ההוספה המהירה
+                  patch({ undated: true, allDay: true, reminderMinutes: null });
+                }}
+              />
+            ) : undefined
+          }
           category={
             settings.reminderCategories.length > 0
               ? {
@@ -384,8 +448,10 @@ export function EventEditor({
         }}
         hint={
           editing
-            ? 'השינויים שעשיתם באירוע הזה עוד לא נשמרו'
-            : 'האירוע הזה עוד לא נשמר'
+            ? `השינויים שעשיתם ${reminder ? 'בתזכורת' : 'באירוע'} הזה עוד לא נשמרו`
+            : reminder
+              ? 'התזכורת הזו עוד לא נשמרה'
+              : 'האירוע הזה עוד לא נשמר'
         }
       />
 

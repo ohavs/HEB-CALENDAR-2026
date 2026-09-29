@@ -64,7 +64,11 @@ public class GeofenceReceiver extends BroadcastReceiver {
               ביום חמישי" היה מצלצל כבר ביום ראשון.
             */
             if (!kind.equals(fence.optString("kind"))) continue;
-            if (!today.equals(fence.optString("date"))) continue;
+            /*
+              תזכורת בלי תאריך (`anyDay`) דרוכה בכל יום. היא עדיין חד־פעמית
+              כאן - והאפליקציה רושמת אותה מחדש בפתיחה הבאה, כל עוד היא פתוחה.
+            */
+            if (!fence.optBoolean("anyDay") && !today.equals(fence.optString("date"))) continue;
 
             notify(context, fence);
 

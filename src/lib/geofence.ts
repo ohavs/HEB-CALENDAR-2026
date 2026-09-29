@@ -13,7 +13,7 @@
  * גאו-פנסינג אמיתי ברקע יגיע עם אפליקציית האנדרואיד; כל הלוגיקה כאן
  * (הסף, ההיסטרזיס, ניסוח ההתראה) תישאר כמות שהיא.
  */
-import type { PlaceTrigger, SavedPlace } from '@/types';
+import type { PlaceTrigger, SavedPlace, UserEvent } from '@/types';
 import { isNative, readNativePosition, watchNativePosition } from './native';
 import type { Occurrence } from './recurrence';
 import { dateKey } from './dates';
@@ -192,6 +192,12 @@ export type NativeFence = {
   kind: PlaceTrigger;
   /** יום המופע, להשוואת מחרוזות במקלט */
   date: string;
+  /**
+   * תזכורת בלי תאריך: דרוכה בכל יום. מעטפת ישנה שאינה מכירה את השדה
+   * משווה ל-`date`, שהוא היום של הרישום - כך היא עדיין מצלצלת בכל יום
+   * שבו האפליקציה נפתחה, ולא שותקת לגמרי.
+   */
+  anyDay?: boolean;
   title: string;
   body: string;
   /** תג ההתראה, לקביעת הערוץ בצד הנייטיבי */
@@ -213,6 +219,11 @@ export function buildFences(
   places: SavedPlace[],
   occurrences: Occurrence[],
   now = new Date(),
+  /**
+   * תזכורות בלי תאריך. `expandEvents` מדלג עליהן, ולכן הן אינן בין
+   * המופעים - אבל "כשאגיע לסופר" היא בדיוק תזכורת שאין לה יום.
+   */
+  undated: UserEvent[] = [],
 ): NativeFence[] {
   const byId = new Map(places.map((p) => [p.id, p]));
   const todayKey = dateKey(now);
@@ -223,6 +234,8 @@ export function buildFences(
     // באירוע רב־יומי דרוך רק היום הראשון, בדיוק כמו בתזכורת רגילה
     if (occurrence.spanIndex > 0) continue;
     if (occurrence.date < todayKey) continue;
+    // מה שכבר נעשה לא צריך תזכורת כשמגיעים
+    if (occurrence.done) continue;
 
     const place = byId.get(occurrence.placeId);
     // מקום שנמחק - האירוע נשאר, אבל אין לו על מה להצביע
@@ -241,6 +254,27 @@ export function buildFences(
       tag: `place-${occurrence.occurrenceId}-${kind}`,
     });
     if (fences.length >= MAX_FENCES) break;
+  }
+
+  for (const ev of undated) {
+    if (fences.length >= MAX_FENCES) break;
+    if (!ev.undated || ev.deleted || !ev.placeId || !ev.placeTrigger) continue;
+    if (ev.exceptions?.[ev.date]?.done) continue;
+    const place = byId.get(ev.placeId);
+    if (!place) continue;
+    const kind = ev.placeTrigger;
+    fences.push({
+      id: `${ev.id}|${kind}`,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      radius: place.radius,
+      kind,
+      date: todayKey,
+      anyDay: true,
+      title: ev.title,
+      body: kind === 'arrive' ? `הגעת ל${place.name}` : `יצאת מ${place.name}`,
+      tag: `place-${ev.id}-${kind}`,
+    });
   }
 
   return fences;

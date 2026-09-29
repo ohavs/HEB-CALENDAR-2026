@@ -11,7 +11,7 @@ import {
   useReducedMotion,
   type PanInfo,
 } from 'framer-motion';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
@@ -48,6 +48,9 @@ export type SheetProps = {
   beforeClose?: () => boolean;
   className?: string;
 };
+
+/** הגיליונות הפתוחים, מהתחתון לעליון. Esc שייך לעליון בלבד. */
+const escStack: symbol[] = [];
 
 export function Sheet({
   open,
@@ -98,15 +101,27 @@ export function Sheet({
     };
   }, [open]);
 
-  // Esc סוגר
+  /*
+    Esc סוגר - רק את העליון. כל גיליון מאזין ל-window, ובלי המחסנית
+    Esc אחד על בורר שעה סגר גם את הטופס שמתחתיו, כולל מה שמולא בו.
+  */
+  // דרך ref: `requestClose` מתחלף עם כל שינוי בטופס, ורישום מחדש היה
+  // מקפיץ את הגיליון לראש המחסנית - מעל הבורר שנפתח ממנו
+  const requestCloseRef = useRef(requestClose);
+  requestCloseRef.current = requestClose;
   useEffect(() => {
     if (!open) return;
+    const token = Symbol('sheet');
+    escStack.push(token);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestClose();
+      if (e.key === 'Escape' && escStack[escStack.length - 1] === token) requestCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, requestClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      escStack.splice(escStack.indexOf(token), 1);
+    };
+  }, [open]);
 
   // כפתור החזרה של אנדרואיד, והחלקת "חזרה" בדפדפן הנייד, סוגרים את
   // הגיליון במקום לצאת מהאפליקציה. כל גיליון באפליקציה עובר דרך כאן.
