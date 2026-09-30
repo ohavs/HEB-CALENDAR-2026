@@ -39,23 +39,34 @@ export function useSheetDrag(controls: DragControls) {
     [controls],
   );
 
-  /** האם יש מתחת לאצבע אזור גלילה שאפשר עוד לגלול בו למעלה */
-  const canScrollUp = useCallback((target: EventTarget | null) => {
-    const el = scrollRef.current;
-    if (!el || !(target instanceof Node)) return false;
-    if (!el.contains(target)) return false;
-    return el.scrollTop > 0;
+  /**
+   * האם האצבע נמצאת על משהו שהגרירה למטה שייכת לו ולא לחלונית.
+   *
+   * לא רק אזור הגלילה של החלונית: כל אזור נגלל שבתוכה - גלגל השעות, רשימה
+   * פנימית - ששם משיכה למטה היא "אחורה" ולא "סגור". כשנבדק רק האזור
+   * הראשי, גלילה אחורה בגלגל הורידה את כל החלונית. ומה שמסומן
+   * `data-sheet-no-dismiss` לעולם אינו סוגר, גם כשהוא בראש: גלגל שהגיע
+   * ל-00 עדיין אינו ידית.
+   */
+  const ownsGesture = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    const root = scrollRef.current?.closest('[role="dialog"]') ?? null;
+    for (let el: Element | null = target; el && el !== root; el = el.parentElement) {
+      if (el instanceof HTMLElement && el.dataset.sheetNoDismiss !== undefined) return true;
+      if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) return true;
+    }
+    return false;
   }, []);
 
   /** מכריע מה המחווה הזו, פעם אחת. מחזיר את ההכרעה. */
   const decide = useCallback(
     (state: Gesture, dy: number, target: EventTarget | null): Decision | null => {
       if (state.decision === null && Math.abs(dy) >= START_THRESHOLD) {
-        state.decision = dy > 0 && !canScrollUp(target) ? 'dismiss' : 'scroll';
+        state.decision = dy > 0 && !ownsGesture(target) ? 'dismiss' : 'scroll';
       }
       return state.decision;
     },
-    [canScrollUp],
+    [ownsGesture],
   );
 
   /*

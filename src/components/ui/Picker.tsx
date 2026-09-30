@@ -124,8 +124,12 @@ function WheelColumn({
     <div
       ref={ref}
       onScroll={onScroll}
-      // הגלגלת גוללת בעצמה, ואסור שהגרירה שלה תסגור את החלונית
-      onPointerDown={(e) => e.stopPropagation()}
+      /*
+        הגלגלת גוללת בעצמה, ואסור שהגרירה שלה תסגור את החלונית. עצירת
+        pointerdown לבדה לא הספיקה: ההכרעה נעשית ב-touchmove של הפאנל,
+        והיא ראתה משיכה למטה - כלומר גלילה אחורה - וסגרה. ראו `useSheetDrag`.
+      */
+      data-sheet-no-dismiss
       className="no-scrollbar relative h-[260px] flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain"
       style={{
         scrollPaddingBlock: ITEM_H * 2,
