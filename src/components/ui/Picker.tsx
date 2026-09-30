@@ -13,7 +13,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Sheet } from './Sheet';
 import {
   GREG_MONTHS_HE,
@@ -26,6 +26,7 @@ import {
 } from '@/lib/dates';
 import { useDateMarkers } from '@/hooks/useDateMarkers';
 import { ICON, STROKE, TAP } from '@/lib/motion';
+import { haptic } from '@/lib/native';
 
 /* ==========================================================================
    מפעיל - הכפתור שמציג את הערך הנוכחי ופותח את הבורר
@@ -314,6 +315,7 @@ export function OptionPickerSheet<T extends string | number>({
   value,
   options,
   onChange,
+  create,
 }: {
   open: boolean;
   onClose: () => void;
@@ -322,6 +324,14 @@ export function OptionPickerSheet<T extends string | number>({
   value: T;
   options: PickerOption<T>[];
   onChange: (next: T) => void;
+  /**
+   * הוספה של אפשרות חדשה מתוך הבורר עצמו - קטגוריה, למשל.
+   *
+   * מי שפתח את הבורר ולא מצא את מה שחיפש היה צריך לסגור את הטופס, לחפש
+   * את מסך הניהול, להוסיף, ולחזור למלא מההתחלה. `onCreate` מחזיר את הערך
+   * של מה שנוצר, והוא נבחר מיד; `null` כשלא נוצר (תקרה, שם ריק).
+   */
+  create?: { placeholder: string; onCreate: (name: string) => T | null };
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={title} subtitle={subtitle}>
@@ -357,8 +367,64 @@ export function OptionPickerSheet<T extends string | number>({
             </motion.button>
           );
         })}
+        {create && (
+          <CreateOptionRow
+            placeholder={create.placeholder}
+            onCreate={(name) => {
+              const next = create.onCreate(name);
+              if (next === null) return false;
+              onChange(next);
+              onClose();
+              return true;
+            }}
+          />
+        )}
       </div>
     </Sheet>
+  );
+}
+
+/** שורת "חדש" בתחתית בורר אפשרויות: שדה וכפתור, בלי מסך נוסף */
+function CreateOptionRow({
+  placeholder,
+  onCreate,
+}: {
+  placeholder: string;
+  /** מחזיר אם נוצר, כדי שהשדה יתרוקן רק אז */
+  onCreate: (name: string) => boolean;
+}) {
+  const [name, setName] = useState('');
+  const submit = () => {
+    const clean = name.trim();
+    if (!clean) return;
+    if (onCreate(clean)) {
+      setName('');
+      void haptic('medium');
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="field-reset field-shell min-w-0 flex-1 rounded-2xl bg-well px-4 py-4 text-body text-ink placeholder:text-faint"
+      />
+      <motion.button
+        type="button"
+        onClick={submit}
+        disabled={!name.trim()}
+        whileTap={{ scale: 0.92 }}
+        transition={TAP}
+        aria-label={placeholder}
+        className="focus-ring flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand text-white disabled:opacity-40"
+      >
+        <Plus size={ICON.md} strokeWidth={2.5} />
+      </motion.button>
+    </div>
   );
 }
 

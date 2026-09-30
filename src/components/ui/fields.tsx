@@ -356,6 +356,7 @@ export function SelectField<T extends string | number>({
   icon,
   hint,
   variant,
+  create,
 }: {
   label: string;
   value: T;
@@ -364,6 +365,8 @@ export function SelectField<T extends string | number>({
   icon?: ReactNode;
   hint?: ReactNode;
   variant?: FieldVariant;
+  /** ראו `create` ב-`OptionPickerSheet` */
+  create?: { placeholder: string; onCreate: (name: string) => T | null };
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
@@ -384,6 +387,7 @@ export function SelectField<T extends string | number>({
         value={value}
         options={options}
         onChange={onChange}
+        create={create}
       />
     </>
   );

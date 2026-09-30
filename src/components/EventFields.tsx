@@ -179,6 +179,8 @@ export function EventFields({
     value: string;
     options: { value: string; label: string }[];
     onChange: (next: string) => void;
+    /** קטגוריה חדשה מתוך הבורר. מחזיר את המזהה, או null כשלא נוצרה. */
+    onCreate?: (name: string) => string | null;
   };
   /**
    * תזכורת ולא אירוע. תזכורת היא רגע: שעה אחת במקום התחלה וסיום, והשעה
@@ -414,6 +416,11 @@ export function EventFields({
               icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
               options={category.options}
               variant="grouped"
+              create={
+                category.onCreate
+                  ? { placeholder: 'קטגוריה חדשה', onCreate: category.onCreate }
+                  : undefined
+              }
             />
           )}
           {scheduled && (!reminder || draft.repeat !== 'none') && (

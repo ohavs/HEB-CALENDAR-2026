@@ -11,6 +11,8 @@ import type { Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, useEventsStore, type EventDraft } from '@/store/events';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
+import { MAX_REMINDER_CATEGORIES } from './ReminderCategoriesSheet';
+import { newId } from '@/lib/sharedLists';
 import { DEFAULT_START, EventFields, ToggleRow, defaultEndFor } from './EventFields';
 import { dateKey, keyToDate, dayTitleLabel } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
@@ -163,6 +165,19 @@ export function EventEditor({
   }, [open, editing, date, startTime, prefill, settings.defaultEventColor]);
 
   const patch = (values: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...values }));
+
+  /** קטגוריה חדשה מתוך הבורר; אותה שמירה של `ReminderCategoriesSheet` */
+  const createCategory = (name: string): string | null => {
+    const { settings: current, set } = useSettingsStore.getState();
+    const clean = name.trim().slice(0, 30);
+    if (!clean || current.reminderCategories.length >= MAX_REMINDER_CATEGORIES) return null;
+    const existing = current.reminderCategories.find((c) => c.name === clean);
+    if (existing) return existing.id;
+    const category = { id: newId(), name: clean };
+    set('reminderCategories', [...current.reminderCategories, category]);
+    announce(`נוספה הקטגוריה ${clean}`);
+    return category.id;
+  };
 
   const payloadOf = (): EventDraft => {
     const base: EventDraft = {
@@ -415,7 +430,11 @@ export function EventEditor({
             ) : undefined
           }
           category={
-            settings.reminderCategories.length > 0
+            /*
+              בתזכורת תמיד, גם בלי קטגוריות - שם אפשר ליצור את הראשונה.
+              באירוע בלוח רק כשיש: שם זו שאלה משנית, ושורה ריקה היא רעש.
+            */
+            reminder || settings.reminderCategories.length > 0
               ? {
                   value: draft.categoryId ?? 'none',
                   onChange: (v) => patch({ categoryId: v === 'none' ? undefined : v }),
@@ -423,6 +442,7 @@ export function EventEditor({
                     { value: 'none', label: 'בלי קטגוריה' },
                     ...settings.reminderCategories.map((c) => ({ value: c.id, label: c.name })),
                   ],
+                  onCreate: createCategory,
                 }
               : undefined
           }

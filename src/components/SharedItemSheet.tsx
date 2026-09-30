@@ -17,8 +17,8 @@ import { motion } from 'framer-motion';
 import { CalendarDays, EyeOff } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
-import { isHiddenFor, memberLabel } from '@/lib/sharedLists';
-import { saveItem, setItemHiddenForMe } from '@/lib/sharedSync';
+import { isHiddenFor, memberLabel, newId } from '@/lib/sharedLists';
+import { saveItem, setCategories, setItemHiddenForMe } from '@/lib/sharedSync';
 import { useAuthStore } from '@/store/auth';
 import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
@@ -143,6 +143,24 @@ export function SharedItemSheet({
 
   const hidden = isHiddenFor(item, uid);
 
+  /*
+    קטגוריה חדשה נכתבת לרשימה מיד, ולא עם שמירת הפריט: היא של כל
+    החברים, וגם ביטול הפריט לא אמור לבטל אותה. המזהה נוצר כאן, כדי שהפריט
+    יוכל לבחור בה לפני שהכתיבה חזרה.
+  */
+  const createCategory = (name: string): string | null => {
+    const clean = name.trim().slice(0, 30);
+    if (!clean) return null;
+    const existing = list.categories.find((c) => c.name === clean);
+    if (existing) return existing.id;
+    const next = { id: newId(), name: clean, color: list.color };
+    void setCategories(list.id, [...list.categories, next]).catch(() =>
+      announce('הקטגוריה לא נשמרה'),
+    );
+    announce(`נוספה הקטגוריה ${clean} לרשימה`);
+    return next.id;
+  };
+
   const save = () => {
     const clean = title.trim();
     if (!clean) return;
@@ -244,18 +262,15 @@ export function SharedItemSheet({
           reminder
           scheduled={dated}
           onDated={() => setDated(true)}
-          category={
-            list.categories.length > 0
-              ? {
-                  value: category,
-                  onChange: setCategory,
-                  options: [
-                    { value: 'none', label: 'בלי קטגוריה' },
-                    ...list.categories.map((c) => ({ value: c.id, label: c.name })),
-                  ],
-                }
-              : undefined
-          }
+          category={{
+            value: category,
+            onChange: setCategory,
+            options: [
+              { value: 'none', label: 'בלי קטגוריה' },
+              ...list.categories.map((c) => ({ value: c.id, label: c.name })),
+            ],
+            onCreate: createCategory,
+          }}
           whenToggle={
             <ToggleRow
               grouped
