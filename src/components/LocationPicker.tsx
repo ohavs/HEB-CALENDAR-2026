@@ -8,15 +8,26 @@
  * מה שמוצע הוא רק מה ששייך למשתמש. ערים מהרשימה המובנית אינן מוצעות כאן
  * בכוונה; הן משרתות את זמני השבת, ובבורר מקום הן היו רעש.
  *
- * הכול מקומי: אין קריאת רשת ואין מפתח API, ומה שהמשתמש מקליד לא יוצא
- * מהמכשיר.
+ * ומתחת להן - חיפוש לפי שם (`placeSearch.ts`), כי בלי נקודת ציון אין
+ * התראת הגעה ויציאה, ושם שהוקלד כטקסט חופשי נשמר בלי לעשות דבר. בחירה
+ * בתוצאה שומרת אותה כמקום שמור, או משתמשת במקום השמור שכבר יושב שם.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Crosshair, History, MapPin, Search, Trash2, X } from 'lucide-react';
+import { Crosshair, Globe, History, MapPin, Search, Trash2, X } from 'lucide-react';
 import type { SavedPlace, UserEvent } from '@/types';
 import { suggestLocations, type LocationSuggestion } from '@/lib/eventLocations';
-import { nearestCity } from '@/lib/locations';
+import { findCity, nearestCity } from '@/lib/locations';
+import {
+  MIN_QUERY,
+  SEARCH_DEBOUNCE_MS,
+  existingPlaceFor,
+  searchPlaces,
+  type PlaceResult,
+} from '@/lib/placeSearch';
+import { newId } from '@/lib/sharedLists';
+import { useSettingsStore } from '@/store/settings';
+import { announce } from '@/lib/announce';
 import { readCurrentPosition } from '@/lib/geofence';
 import { Sheet } from './ui/Sheet';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
@@ -58,6 +69,65 @@ export function LocationPicker({
     [query, events, places],
   );
 
+  /* ------------------------------ חיפוש בשם ------------------------------ */
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [searching, setSearching] = useState<'idle' | 'loading' | 'error' | 'offline'>('idle');
+  const cityId = useSettingsStore((s) => s.settings.cityId);
+  useEffect(() => {
+    const q = query.trim();
+    if (!open || q.length < MIN_QUERY) {
+      setResults([]);
+      setSearching('idle');
+      return;
+    }
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setSearching('offline');
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setSearching('loading');
+      const city = findCity(cityId);
+      searchPlaces(q, { latitude: city.latitude, longitude: city.longitude }, controller.signal)
+        .then((next) => {
+          setResults(next);
+          setSearching('idle');
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setSearching('error');
+        });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, open, cityId]);
+
+  /**
+   * תוצאת חיפוש הופכת למקום שמור, כי רק למקום שמור יש על מה לגדר - ואז
+   * "תזכורת כשאגיע" מופיעה בטופס מיד. מקום שכבר שמור באותה נקודה נבחר
+   * במקומה, כדי שהרשימה לא תתמלא בכפילויות.
+   */
+  const pickResult = (r: PlaceResult) => {
+    const existing = existingPlaceFor(r, places);
+    if (existing) {
+      choose({ location: r.label, placeId: existing.id });
+      return;
+    }
+    const place: SavedPlace = {
+      id: newId(),
+      name: r.label,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      radius: r.radius,
+      createdAt: Date.now(),
+    };
+    const { settings, set } = useSettingsStore.getState();
+    set('places', [...settings.places, place]);
+    announce(`${r.label} נשמר כמקום`);
+    choose({ location: r.label, placeId: place.id });
+  };
+
   const choose = (next: LocationChoice) => {
     onChange(next);
     onClose();
@@ -92,10 +162,12 @@ export function LocationPicker({
         <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
         <input
           id="location-query"
-          type="search"
+          /* לא type="search": הוא מוסיף X משלו ליד שלנו */
+          type="text"
+          enterKeyHint="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="מקום שמור, או כל טקסט"
+          placeholder="חיפוש מקום, כתובת או עסק"
           autoFocus
           className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
         />
@@ -112,26 +184,6 @@ export function LocationPicker({
       </div>
 
       <div className="space-y-2.5 pb-2">
-        {/* שימוש בטקסט שהוקלד, כשאין לו התאמה ברשימה */}
-        {showFreeText && (
-          <motion.button
-            type="button"
-            whileTap={TAP_SCALE}
-            onClick={() => choose({ location: trimmed })}
-            className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-brand-soft px-4 py-4 text-right"
-          >
-            <MapPin size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-brand-ink" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-body font-semibold text-brand-ink">
-                {trimmed}
-              </span>
-              <span className="mt-0.5 block text-caption text-brand-ink/70">
-                שימוש בטקסט שהקלדתם
-              </span>
-            </span>
-          </motion.button>
-        )}
-
         {/* מיקום נוכחי */}
         {!trimmed && (
           <motion.button
@@ -207,10 +259,75 @@ export function LocationPicker({
         ) : (
           !showFreeText && (
             <p className="py-8 text-center text-label text-muted">
-              אין עדיין מקומות שלכם. אפשר להוסיף מקום שמור בהגדרות, או פשוט
-              לכתוב כאן טקסט.
+              אין עדיין מקומות שלכם. אפשר לחפש מקום לפי שם, או פשוט לכתוב
+              כאן טקסט.
             </p>
           )
+        )}
+
+        {/* חיפוש לפי שם - מה שנמצא בעולם, מתחת למה ששייך למשתמש */}
+        {trimmed.length >= MIN_QUERY && (
+          <section aria-label="תוצאות חיפוש" className="space-y-2 pt-1">
+            {results.length > 0 && (
+              <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+                {results.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => pickResult(r)}
+                    className="focus-ring-inset flex w-full items-center gap-3.5 px-4 py-4 text-right"
+                  >
+                    <Globe size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-body font-medium text-ink">
+                        {r.label}
+                      </span>
+                      {r.hint && (
+                        <span className="mt-0.5 block truncate text-caption text-muted">
+                          {r.hint}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="px-1 text-caption text-faint" role="status">
+              {searching === 'loading'
+                ? 'מחפש…'
+                : searching === 'offline'
+                  ? 'אין חיבור לרשת, ולכן אין חיפוש מקומות. אפשר להשתמש בטקסט שהקלדתם.'
+                  : searching === 'error'
+                    ? 'החיפוש לא הצליח כרגע. אפשר להשתמש בטקסט שהקלדתם.'
+                    : results.length === 0
+                      ? 'לא נמצא מקום בשם הזה.'
+                      : 'בחירה בתוצאה שומרת אותה כמקום, ואז אפשר לקבל התראה בהגעה וביציאה. © OpenStreetMap'}
+            </p>
+          </section>
+        )}
+
+        {/*
+          הטקסט שהוקלד, כמו שהוא - אחרון ובלי הדגשה. "אצל סבתא" הוא מקום
+          לגיטימי, אבל אין לו נקודה ולכן גם לא התראה, וכשהוא ישב ראשון
+          ומודגש הוא נבחר במקום תוצאת החיפוש שמעליה הייתה נותנת את שתיהן.
+        */}
+        {showFreeText && (
+          <motion.button
+            type="button"
+            whileTap={TAP_SCALE}
+            onClick={() => choose({ location: trimmed })}
+            className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right"
+          >
+            <MapPin size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-body font-medium text-ink">
+                {trimmed}
+              </span>
+              <span className="mt-0.5 block text-caption text-muted">
+                שימוש בטקסט שהקלדתם - בלי התראת מקום
+              </span>
+            </span>
+          </motion.button>
         )}
       </div>
     </Sheet>
