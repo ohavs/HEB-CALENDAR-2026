@@ -346,6 +346,21 @@ describe('buildFences', () => {
       expect(buildFences([HOME], [], NOW, [undated({ placeTrigger: undefined })])).toEqual([]);
     });
 
+    /*
+      הצד הנייטיבי זוכר מה כבר צלצל לפי המזהה, ולכן הוא חייב להיות יציב
+      בין רישומים - אחרת כל פתיחה של האפליקציה הייתה "התראה חדשה" - ולהשתנות
+      כשהמקום משתנה, כי זו כבר תזכורת אחרת.
+    */
+    it('המזהה יציב בין רישומים, ומשתנה כשהמקום משתנה', () => {
+      const work: SavedPlace = { ...HOME, id: 'work', name: 'עבודה', latitude: 32.1 };
+      const ev = undated({ id: 'r1' });
+      const a = buildFences([HOME, work], [], NOW, [ev])[0].id;
+      const b = buildFences([HOME, work], [], NOW, [ev])[0].id;
+      const moved = buildFences([HOME, work], [], NOW, [{ ...ev, placeId: 'work' }])[0].id;
+      expect(a).toBe(b);
+      expect(moved).not.toBe(a);
+    });
+
     it('אירוע עם תאריך אינו נרשם פעמיים דרך הרשימה הזו', () => {
       expect(buildFences([HOME], [], NOW, [undated({ undated: undefined })])).toEqual([]);
     });

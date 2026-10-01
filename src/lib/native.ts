@@ -458,7 +458,15 @@ type GeofencePlugin = {
 /** מה קרה ברקע: הרישום האחרון במערכת, והחציה האחרונה שדווחה */
 export type GeofenceStatus = {
   registration?: { ok: boolean; count: number; at: number; error?: string };
-  lastTrigger?: { at: number; title: string; kind: string; armed: boolean; shown: boolean };
+  lastTrigger?: {
+    at: number;
+    title: string;
+    kind: string;
+    armed: boolean;
+    shown: boolean;
+    /** המיקום היה גס מכדי לדעת אם באמת הייתה חציה, ולכן לא צלצל */
+    imprecise?: boolean;
+  };
   /** כמה גדרות שמורות בצד הנייטיבי */
   stored?: number;
 };

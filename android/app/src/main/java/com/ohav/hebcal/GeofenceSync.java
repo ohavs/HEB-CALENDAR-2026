@@ -109,6 +109,8 @@ final class GeofenceSync {
         for (int i = 0; i < fences.length(); i++) {
             JSONObject fence = fences.optJSONObject(i);
             if (fence == null) continue;
+            // מה שכבר צלצל אינו נרשם שוב, גם כשהאפליקציה עדיין שולחת אותו
+            if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) continue;
             int transition =
                 "leave".equals(fence.optString("kind"))
                     ? Geofence.GEOFENCE_TRANSITION_EXIT

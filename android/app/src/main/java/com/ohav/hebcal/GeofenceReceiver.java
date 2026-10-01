@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
@@ -38,6 +39,8 @@ import java.util.List;
 public class GeofenceReceiver extends BroadcastReceiver {
 
     static final String ACTION = "com.ohav.hebcal.GEOFENCE";
+    /** דיוק מינימלי שמתחתיו חציה נחשבת אמיתית, גם בגדר קטנה */
+    private static final double MIN_ACCURACY_M = 200;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -55,9 +58,14 @@ public class GeofenceReceiver extends BroadcastReceiver {
         if (crossed == null) return;
 
         String today = GeofenceSync.todayKey();
+        Location where = event.getTriggeringLocation();
         for (Geofence geofence : crossed) {
             JSONObject fence = GeofenceStore.find(context, geofence.getRequestId());
             if (fence == null) continue;
+            if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) {
+                drop(context, geofence.getRequestId());
+                continue;
+            }
 
             /*
               הגדר נרשמת לשבוע קדימה, ולכן חציה שלה אינה בהכרח ביום
@@ -66,7 +74,20 @@ public class GeofenceReceiver extends BroadcastReceiver {
             */
             if (!kind.equals(fence.optString("kind"))) continue;
             boolean armedToday = fence.optBoolean("anyDay") || today.equals(fence.optString("date"));
-            remember(context, fence, kind, armedToday);
+
+            /*
+              מיקום גס אינו חציה. מכשיר שישן בלילה מקבל מיקום מ-Wi-Fi ומאנטנות,
+              בדיוק של מאות מטרים, והנקודה קופצת החוצה וחוזרת - ומבחינת מערכת
+              ההפעלה זו יציאה והגעה. כשהדיוק גרוע מהרדיוס עצמו אי אפשר לדעת אם
+              המשתמש באמת חצה, והגדר נשארת דרוכה לחציה אמיתית.
+            */
+            if (where != null && where.hasAccuracy()
+                && where.getAccuracy() > Math.max(fence.optDouble("radius", 150), MIN_ACCURACY_M)) {
+                remember(context, fence, kind, armedToday, true);
+                continue;
+            }
+
+            remember(context, fence, kind, armedToday, false);
             /*
               תזכורת בלי תאריך (`anyDay`) דרוכה בכל יום. היא עדיין חד־פעמית
               כאן - והאפליקציה רושמת אותה מחדש בפתיחה הבאה, כל עוד היא פתוחה.
@@ -76,14 +97,18 @@ public class GeofenceReceiver extends BroadcastReceiver {
             notify(context, fence);
 
             /*
-              חד־פעמי: התזכורת נעשתה, והגדר מוסרת משני המקומות - מהמערכת
-              וממה שמתאר אותה אצלנו. בלעדי זה היא הייתה מצלצלת בכל כניסה
-              נוספת באותו יום.
+              חד־פעמי: התזכורת נעשתה. הגדר מוסרת, ו"צלצלה" נרשם - הסרה לבדה לא
+              הספיקה, כי האפליקציה רשמה אותה מחדש בפתיחה הבאה.
             */
-            LocationServices.getGeofencingClient(context)
-                .removeGeofences(Collections.singletonList(geofence.getRequestId()));
-            GeofenceStore.forget(context, geofence.getRequestId());
+            GeofenceStore.markFired(context, GeofenceStore.firedKey(fence));
+            drop(context, geofence.getRequestId());
         }
+    }
+
+    private static void drop(Context context, String id) {
+        LocationServices.getGeofencingClient(context)
+            .removeGeofences(Collections.singletonList(id));
+        GeofenceStore.forget(context, id);
     }
 
     /**
@@ -92,7 +117,8 @@ public class GeofenceReceiver extends BroadcastReceiver {
      * בלי זה אי אפשר להבחין בין "מערכת ההפעלה לא זיהתה הגעה" לבין "זיהתה,
      * וההתראה נחסמה" - ומבחוץ שניהם נראים אותו דבר: שום דבר לא קרה.
      */
-    private void remember(Context context, JSONObject fence, String kind, boolean armed) {
+    private void remember(
+        Context context, JSONObject fence, String kind, boolean armed, boolean imprecise) {
         try {
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             JSONObject trigger = new JSONObject();
@@ -100,7 +126,10 @@ public class GeofenceReceiver extends BroadcastReceiver {
             trigger.put("title", fence.optString("title"));
             trigger.put("kind", kind);
             trigger.put("armed", armed);
-            trigger.put("shown", armed && manager != null && manager.areNotificationsEnabled());
+            trigger.put("imprecise", imprecise);
+            trigger.put(
+                "shown",
+                armed && !imprecise && manager != null && manager.areNotificationsEnabled());
             GeofenceStore.putLastTrigger(context, trigger);
         } catch (JSONException ignored) {
             // לתצוגה בלבד

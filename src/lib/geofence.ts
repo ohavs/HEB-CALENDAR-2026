@@ -184,7 +184,12 @@ export function evaluatePosition(
  * היה מקבל כלום.
  */
 export type NativeFence = {
-  /** `<occurrenceId>|<kind>` - ייחודי, ומאפשר להסיר גדר בודדת */
+  /**
+   * `<occurrenceId>|<placeId>|<kind>` - ייחודי, ומאפשר להסיר גדר בודדת.
+   *
+   * הצד הנייטיבי זוכר לפיו מה כבר צלצל, ולכן המקום חלק ממנו: תזכורת
+   * שהועברה למקום אחר היא התראה חדשה, ולא אחת שכבר נשלחה.
+   */
   id: string;
   latitude: number;
   longitude: number;
@@ -243,7 +248,7 @@ export function buildFences(
 
     const kind = occurrence.placeTrigger;
     fences.push({
-      id: `${occurrence.occurrenceId}|${kind}`,
+      id: `${occurrence.occurrenceId}|${place.id}|${kind}`,
       latitude: place.latitude,
       longitude: place.longitude,
       radius: place.radius,
@@ -264,7 +269,7 @@ export function buildFences(
     if (!place) continue;
     const kind = ev.placeTrigger;
     fences.push({
-      id: `${ev.id}|${kind}`,
+      id: `${ev.id}|${place.id}|${kind}`,
       latitude: place.latitude,
       longitude: place.longitude,
       radius: place.radius,

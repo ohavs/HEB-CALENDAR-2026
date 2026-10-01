@@ -27,6 +27,10 @@ final class GeofenceStore {
     /** הרשימה שנרשמה בהצלחה אחרונה, והזמן - כדי לא לרשום שוב את אותו דבר */
     private static final String REGISTERED = "registered";
     private static final String REGISTERED_AT = "registered_at";
+    /** מה שכבר צלצל: מפתח ← מתי. ראו `markFired`. */
+    private static final String FIRED = "fired";
+    /** אחרי כמה זמן נשכח מה שצלצל - הרבה אחרי שהמופע עצמו כבר עבר */
+    private static final long FIRED_TTL_MS = 45L * 24 * 60 * 60 * 1000;
 
     private GeofenceStore() {}
 
@@ -100,6 +104,59 @@ final class GeofenceStore {
         } catch (JSONException e) {
             return null;
         }
+    }
+
+    /**
+     * המפתח של "כבר צלצל".
+     *
+     * גדר עם יום נזכרת יחד עם היום: אותה תזכורת חוזרת ביום אחר היא התראה
+     * חדשה. גדר של תזכורת בלי תאריך (`anyDay`) נזכרת לבדה - היא צלצלה,
+     * והיא לא תצלצל שוב.
+     */
+    static String firedKey(JSONObject fence) {
+        String id = fence.optString("id");
+        return fence.optBoolean("anyDay") ? id : id + "@" + fence.optString("date");
+    }
+
+    /**
+     * רישום שהגדר צלצלה, כך שלא תירשם שוב.
+     *
+     * זה היה הבאג: אחרי צלצול הגדר הוסרה, אבל האפליקציה רשמה אותה מחדש בכל
+     * חזרה לחזית - כי אצלה התזכורת עדיין פתוחה. הגדר שנרשמה כשהמשתמש כבר
+     * בבית חיכתה לתזוזה הראשונה של המיקום בלילה, וצלצלה "הגעת הביתה" ב-1:00.
+     */
+    static void markFired(Context context, String key) {
+        JSONObject fired = firedMap(context);
+        try {
+            fired.put(key, System.currentTimeMillis());
+        } catch (JSONException ignored) {
+            return;
+        }
+        prefs(context).edit().putString(FIRED, fired.toString()).apply();
+    }
+
+    static boolean isFired(Context context, String key) {
+        return firedMap(context).has(key);
+    }
+
+    private static JSONObject firedMap(Context context) {
+        JSONObject fired = readObject(context, FIRED);
+        if (fired == null) return new JSONObject();
+        long cutoff = System.currentTimeMillis() - FIRED_TTL_MS;
+        JSONObject kept = new JSONObject();
+        java.util.Iterator<String> keys = fired.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            long at = fired.optLong(key);
+            if (at >= cutoff) {
+                try {
+                    kept.put(key, at);
+                } catch (JSONException ignored) {
+                    // ממשיכים - רשומה אחת שבורה אינה סיבה לאבד את כולן
+                }
+            }
+        }
+        return kept;
     }
 
     /** הגדר לפי המזהה שמערכת ההפעלה מחזירה, או null אם אינה מוכרת עוד. */
