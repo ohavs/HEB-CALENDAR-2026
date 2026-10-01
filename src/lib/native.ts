@@ -466,6 +466,8 @@ export type GeofenceStatus = {
     shown: boolean;
     /** המיקום היה גס מכדי לדעת אם באמת הייתה חציה, ולכן לא צלצל */
     imprecise?: boolean;
+    /** "הגעה" בלי שהמשתמש יצא קודם מהאזור - קפיצה של המיקום, לא הגעה */
+    notAway?: boolean;
   };
   /** כמה גדרות שמורות בצד הנייטיבי */
   stored?: number;

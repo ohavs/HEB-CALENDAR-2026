@@ -29,6 +29,8 @@ final class GeofenceStore {
     private static final String REGISTERED_AT = "registered_at";
     /** מה שכבר צלצל: מפתח ← מתי. ראו `markFired`. */
     private static final String FIRED = "fired";
+    /** גדרות הגעה שהמשתמש כבר יצא מהטבעת שלהן. ראו `GeofenceSync.apply`. */
+    private static final String ARMED = "armed";
     /** אחרי כמה זמן נשכח מה שצלצל - הרבה אחרי שהמופע עצמו כבר עבר */
     private static final long FIRED_TTL_MS = 45L * 24 * 60 * 60 * 1000;
 
@@ -133,6 +135,27 @@ final class GeofenceStore {
             return;
         }
         prefs(context).edit().putString(FIRED, fired.toString()).apply();
+    }
+
+    /** יציאה מהטבעת החיצונית: ההגעה הבאה היא הגעה אמיתית */
+    static void setArmed(Context context, String id, boolean armed) {
+        JSONObject map = readObject(context, ARMED);
+        if (map == null) map = new JSONObject();
+        if (armed) {
+            try {
+                map.put(id, System.currentTimeMillis());
+            } catch (JSONException ignored) {
+                return;
+            }
+        } else {
+            map.remove(id);
+        }
+        prefs(context).edit().putString(ARMED, map.toString()).apply();
+    }
+
+    static boolean isArmed(Context context, String id) {
+        JSONObject map = readObject(context, ARMED);
+        return map != null && map.has(id);
     }
 
     static boolean isFired(Context context, String key) {

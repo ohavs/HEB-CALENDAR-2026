@@ -48,18 +48,39 @@ public class GeofenceReceiver extends BroadcastReceiver {
         if (event == null || event.hasError()) return;
 
         int transition = event.getGeofenceTransition();
+        Location where = event.getTriggeringLocation();
+
+        List<Geofence> crossedAll = event.getTriggeringGeofences();
+        if (crossedAll == null) return;
+        /*
+          הטבעות החיצוניות אינן מצלצלות: יציאה מהן רק דורכת את ההגעה. גם
+          כאן מיקום גס אינו נחשב - "יצאת" על סמך דיוק של קילומטר הוא אותה
+          קפיצה של הלילה, רק בכיוון ההפוך.
+        */
+        for (Geofence geofence : crossedAll) {
+            String rid = geofence.getRequestId();
+            if (!rid.endsWith(GeofenceSync.OUTER_SUFFIX)) continue;
+            if (transition != Geofence.GEOFENCE_TRANSITION_EXIT) continue;
+            String baseId = rid.substring(0, rid.length() - GeofenceSync.OUTER_SUFFIX.length());
+            JSONObject fence = GeofenceStore.find(context, baseId);
+            if (fence == null) continue;
+            // הסף הוא רוחב הטבעת עצמה: מיקום שמדויק פחות ממנה אינו יודע אם יצא
+            double ring = fence.optDouble("radius", 150) + GeofenceSync.ARM_MARGIN_M;
+            if (where != null && where.hasAccuracy() && where.getAccuracy() > ring) continue;
+            GeofenceStore.setArmed(context, baseId, true);
+        }
+
         String kind =
             transition == Geofence.GEOFENCE_TRANSITION_ENTER
                 ? "arrive"
                 : transition == Geofence.GEOFENCE_TRANSITION_EXIT ? "leave" : null;
         if (kind == null) return;
 
-        List<Geofence> crossed = event.getTriggeringGeofences();
-        if (crossed == null) return;
+        List<Geofence> crossed = crossedAll;
 
         String today = GeofenceSync.todayKey();
-        Location where = event.getTriggeringLocation();
         for (Geofence geofence : crossed) {
+            if (geofence.getRequestId().endsWith(GeofenceSync.OUTER_SUFFIX)) continue;
             JSONObject fence = GeofenceStore.find(context, geofence.getRequestId());
             if (fence == null) continue;
             if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) {
@@ -83,11 +104,27 @@ public class GeofenceReceiver extends BroadcastReceiver {
             */
             if (where != null && where.hasAccuracy()
                 && where.getAccuracy() > Math.max(fence.optDouble("radius", 150), MIN_ACCURACY_M)) {
-                remember(context, fence, kind, armedToday, true);
+                remember(context, fence, kind, armedToday, true, false);
                 continue;
             }
 
-            remember(context, fence, kind, armedToday, false);
+            /*
+              הגעה בלי יציאה קודמת אינה הגעה. זה מה שצלצל "הגעת הביתה"
+              למשתמש שישב בבית: הגדר נרשמה כשהוא כבר בפנים, והמיקום נכנס
+              אליה שוב בלי שהוא זז. הגדר נשארת דרוכה, ותצלצל אחרי יציאה אמיתית.
+            */
+            if ("arrive".equals(kind)) {
+                boolean wasAway = GeofenceStore.isArmed(context, fence.optString("id"));
+                // כניסה מדויקת היא הגעה בכל מקרה, גם ביום אחר: היציאה נוצלה,
+                // והקפיצה הבאה בבית לא תיחשב חזרה
+                GeofenceStore.setArmed(context, fence.optString("id"), false);
+                if (!wasAway) {
+                    remember(context, fence, kind, armedToday, false, true);
+                    continue;
+                }
+            }
+
+            remember(context, fence, kind, armedToday, false, false);
             /*
               תזכורת בלי תאריך (`anyDay`) דרוכה בכל יום. היא עדיין חד־פעמית
               כאן - והאפליקציה רושמת אותה מחדש בפתיחה הבאה, כל עוד היא פתוחה.
@@ -107,7 +144,7 @@ public class GeofenceReceiver extends BroadcastReceiver {
 
     private static void drop(Context context, String id) {
         LocationServices.getGeofencingClient(context)
-            .removeGeofences(Collections.singletonList(id));
+            .removeGeofences(java.util.Arrays.asList(id, id + GeofenceSync.OUTER_SUFFIX));
         GeofenceStore.forget(context, id);
     }
 
@@ -118,7 +155,12 @@ public class GeofenceReceiver extends BroadcastReceiver {
      * וההתראה נחסמה" - ומבחוץ שניהם נראים אותו דבר: שום דבר לא קרה.
      */
     private void remember(
-        Context context, JSONObject fence, String kind, boolean armed, boolean imprecise) {
+        Context context,
+        JSONObject fence,
+        String kind,
+        boolean armed,
+        boolean imprecise,
+        boolean notAway) {
         try {
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             JSONObject trigger = new JSONObject();
@@ -127,9 +169,11 @@ public class GeofenceReceiver extends BroadcastReceiver {
             trigger.put("kind", kind);
             trigger.put("armed", armed);
             trigger.put("imprecise", imprecise);
+            trigger.put("notAway", notAway);
             trigger.put(
                 "shown",
-                armed && !imprecise && manager != null && manager.areNotificationsEnabled());
+                armed && !imprecise && !notAway && manager != null
+                    && manager.areNotificationsEnabled());
             GeofenceStore.putLastTrigger(context, trigger);
         } catch (JSONException ignored) {
             // לתצוגה בלבד

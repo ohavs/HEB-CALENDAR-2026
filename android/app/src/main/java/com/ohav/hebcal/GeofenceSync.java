@@ -45,6 +45,13 @@ final class GeofenceSync {
      * חוזר היה עלול להפיל גדרות שכבר עבדו.
      */
     private static final long SAME_FENCES_MS = 30L * 60 * 1000;
+
+    /** הסיומת של הטבעת החיצונית שדורכת התראת הגעה. ראו `apply`. */
+    static final String OUTER_SUFFIX = "#out";
+    /** כמה רחוק צריך לצאת כדי שחזרה תיחשב הגעה */
+    static final double ARM_MARGIN_M = 400;
+    /** ויציאה נמדדת מעבר לשוליים, לא על הקו עצמו */
+    static final double LEAVE_MARGIN_M = 150;
     private GeofenceSync() {}
 
     /** מפתח היום בשעון המקומי, בדיוק כמו `dateKey()` בצד ה-web. */
@@ -105,16 +112,43 @@ final class GeofenceSync {
             return true;
         }
 
+        /*
+          שתי רשימות, ושתי בקשות נפרדות.
+
+          "כשאגיע הביתה" אינו "כשהמיקום ייכנס לעיגול". בבית, בלילה, המיקום
+          זז עשרות מטרים בלי שהמשתמש זז, ונקודה ליד הקו נכנסת ויוצאת - וכל
+          כניסה הייתה "הגעת". לכן לכל גדר הגעה יש טבעת חיצונית רחבה ממנה
+          ב-`ARM_MARGIN_M`: יציאה ממנה דורכת את ההגעה, וכניסה לגדר הפנימית
+          מצלצלת רק כשהיא דרוכה. מי שבאמת יצא - יצא מהטבעת; קפיצה של המיקום
+          בבית לא מגיעה אליה.
+
+          לטבעות יש בקשה משלהן עם INITIAL_TRIGGER_EXIT: מי שכבר רחוק כשהגדר
+          נרשמת ("כשאגיע לסופר", מהבית) צריך להיות דרוך מיד. בבקשה של הגדרות
+          עצמן אסור טריגר התחלתי - גדר יציאה הייתה יורה ברגע הרישום.
+        */
         List<Geofence> list = new ArrayList<>();
+        List<Geofence> rings = new ArrayList<>();
         for (int i = 0; i < fences.length(); i++) {
             JSONObject fence = fences.optJSONObject(i);
             if (fence == null) continue;
             // מה שכבר צלצל אינו נרשם שוב, גם כשהאפליקציה עדיין שולחת אותו
             if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) continue;
+            boolean leave = "leave".equals(fence.optString("kind"));
             int transition =
-                "leave".equals(fence.optString("kind"))
-                    ? Geofence.GEOFENCE_TRANSITION_EXIT
-                    : Geofence.GEOFENCE_TRANSITION_ENTER;
+                leave ? Geofence.GEOFENCE_TRANSITION_EXIT : Geofence.GEOFENCE_TRANSITION_ENTER;
+            double radius = fence.optDouble("radius", 150);
+            if (!leave) {
+                rings.add(
+                    new Geofence.Builder()
+                        .setRequestId(fence.optString("id") + OUTER_SUFFIX)
+                        .setCircularRegion(
+                            fence.optDouble("latitude"),
+                            fence.optDouble("longitude"),
+                            (float) (radius + ARM_MARGIN_M))
+                        .setExpirationDuration(EXPIRY_MS)
+                        .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
+                        .build());
+            }
             /*
               בלי `setLoiteringDelay`: הוא תקף רק יחד עם מעבר DWELL,
               ו-`build()` זורק בלעדיו - כשל בזמן ריצה שהקומפילציה אינה
@@ -126,7 +160,8 @@ final class GeofenceSync {
                     .setCircularRegion(
                         fence.optDouble("latitude"),
                         fence.optDouble("longitude"),
-                        (float) fence.optDouble("radius", 150))
+                        // יציאה נמדדת מעבר לשוליים, מאותה סיבה של הטבעת
+                        (float) (leave ? radius + LEAVE_MARGIN_M : radius))
                     .setExpirationDuration(EXPIRY_MS)
                     .setTransitionTypes(transition)
                     .build());
@@ -144,10 +179,19 @@ final class GeofenceSync {
                 .addGeofences(list)
                 .build();
 
+        GeofencingRequest ringRequest =
+            rings.isEmpty()
+                ? null
+                : new GeofencingRequest.Builder()
+                    .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_EXIT)
+                    .addGeofences(rings)
+                    .build();
+
         /*
           ההסרה וההוספה שתיהן אסינכרוניות, ושתיהן על אותו PendingIntent.
           בלי השרשור ההסרה הייתה עלולה להסתיים *אחרי* ההוספה ולמחוק את
-          מה שזה עתה נרשם - כשל שמופיע רק לפעמים, וזה הגרוע ביותר.
+          מה שזה עתה נרשם - כשל שמופיע רק לפעמים, וזה הגרוע ביותר. הטבעות
+          נוספות רק אחרי הגדרות, מאותה סיבה.
         */
         PendingIntent pending = pendingIntent(context);
         int count = list.size();
@@ -159,19 +203,29 @@ final class GeofenceSync {
                         .addGeofences(request, pending)
                         .addOnSuccessListener(
                             ok -> {
-                                GeofenceStore.markRegistered(context, signature);
-                                putStatus(context, true, count, null);
+                                if (ringRequest == null) {
+                                    registered(context, signature, count);
+                                    return;
+                                }
+                                client
+                                    .addGeofences(ringRequest, pending)
+                                    .addOnSuccessListener(o -> registered(context, signature, count))
+                                    .addOnFailureListener(e -> failed(context, count, e));
                             })
-                        .addOnFailureListener(
-                            e -> {
-                                GeofenceStore.clearRegistered(context);
-                                String code =
-                                    e instanceof ApiException
-                                        ? String.valueOf(((ApiException) e).getStatusCode())
-                                        : "error";
-                                putStatus(context, false, count, code);
-                            }));
+                        .addOnFailureListener(e -> failed(context, count, e)));
         return true;
+    }
+
+    private static void registered(Context context, String signature, int count) {
+        GeofenceStore.markRegistered(context, signature);
+        putStatus(context, true, count, null);
+    }
+
+    private static void failed(Context context, int count, Exception e) {
+        GeofenceStore.clearRegistered(context);
+        String code =
+            e instanceof ApiException ? String.valueOf(((ApiException) e).getStatusCode()) : "error";
+        putStatus(context, false, count, code);
     }
 
     private static void putStatus(Context context, boolean ok, int count, String error) {
