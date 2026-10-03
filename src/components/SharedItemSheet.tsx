@@ -64,6 +64,7 @@ function timingOf(item: SharedItem): TimingDraft {
     endTime: item.endTime ?? defaultEndFor(start),
     location: item.location ?? '',
     repeat: item.repeat ?? 'none',
+    repeatEvery: item.repeatEvery,
     reminderMinutes: item.reminderMinutes ?? null,
     notes: item.notes ?? '',
   };
@@ -184,6 +185,7 @@ export function SharedItemSheet({
       location: timing.location?.trim() || undefined,
       notes: timing.notes?.trim() || undefined,
       repeat: dated ? timing.repeat : 'none',
+      repeatEvery: dated && timing.repeat !== 'none' ? timing.repeatEvery : undefined,
     })
       .then(() => {
         announce(

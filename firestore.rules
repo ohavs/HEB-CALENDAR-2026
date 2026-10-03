@@ -33,10 +33,12 @@ service cloud.firestore {
         && (!('undated' in d) || d.undated is bool)
         // קטגוריה של תזכורת אישית - מזהה מתוך ההגדרות
         && (!('categoryId' in d) || (d.categoryId is string && d.categoryId.size() <= 64))
+        // "כל N" של חזרה - נכתב רק כשהוא גדול מ-1
+        && (!('repeatEvery' in d) || (d.repeatEvery is int && d.repeatEvery >= 1 && d.repeatEvery <= 99))
         && d.keys().hasOnly([
              'title', 'date', 'endDate', 'startTime', 'endTime', 'allDay',
              'location', 'placeId', 'placeTrigger', 'notes', 'color',
-             'reminderMinutes', 'repeat', 'exceptions', 'undated', 'categoryId',
+             'reminderMinutes', 'repeat', 'repeatEvery', 'exceptions', 'undated', 'categoryId',
              'createdAt', 'updatedAt', 'deleted'
            ]);
     }

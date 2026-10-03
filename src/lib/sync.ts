@@ -6,6 +6,7 @@
  * last-write-wins לפי updatedAt, עם סימני מחיקה (tombstones) כדי שמחיקה
  * במכשיר אחד תתפשט לשאר.
  */
+import { repeatEveryOf } from './recurrence';
 import type { Settings, UserEvent } from '@/types';
 import { stripUndefined } from './firestoreSafe';
 import { getFirebase, isFirebaseConfigured } from './firebase';
@@ -111,6 +112,7 @@ function toUserEvent(id: string, data: Record<string, unknown>): UserEvent | nul
     reminderMinutes:
       typeof data.reminderMinutes === 'number' ? data.reminderMinutes : null,
     repeat: (data.repeat as UserEvent['repeat']) ?? 'none',
+    repeatEvery: typeof data.repeatEvery === 'number' && data.repeatEvery > 1 ? data.repeatEvery : undefined,
     exceptions:
       data.exceptions && typeof data.exceptions === 'object'
         ? (data.exceptions as UserEvent['exceptions'])
@@ -152,6 +154,8 @@ function toDoc(ev: UserEvent): Record<string, unknown> {
       קודם. `set` מחליף את המסמך כולו, כך שהסרת קטגוריה מוחקת את השדה.
     */
     ...(ev.categoryId ? { categoryId: ev.categoryId } : {}),
+    // מאותו שיקול: רק כשהוא גדול מ-1, כך שאירוע רגיל אינו משתנה בענן
+    ...(ev.repeat !== 'none' && repeatEveryOf(ev) > 1 ? { repeatEvery: repeatEveryOf(ev) } : {}),
     createdAt: ev.createdAt,
     updatedAt: ev.updatedAt,
     deleted: ev.deleted === true,

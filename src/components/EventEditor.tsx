@@ -142,6 +142,7 @@ export function EventEditor({
         color: editing.color,
         reminderMinutes: editing.reminderMinutes,
         repeat: editing.repeat,
+        repeatEvery: editing.repeatEvery,
         endDate: editing.endDate,
         categoryId: editing.categoryId,
         // בטיוטה ולא נקרא מ-`editing` בשמירה: המתג "משויך ליום" משנה אותו

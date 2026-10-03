@@ -13,6 +13,7 @@ import {
   sortOccurrences,
   spanLengthOf,
   REPEAT_LABELS,
+  repeatLabel,
 } from './recurrence';
 import { dateKey, keyToDate } from './dates';
 import { event } from '@/test/factories';
@@ -599,5 +600,71 @@ describe('סימון כבוצע', () => {
     });
     expect(eventsOnDay([ev], keyToDate('2026-09-14'))[0].done).toBe(true);
     expect(eventsOnDay([ev], keyToDate('2026-09-21'))[0].done).toBe(false);
+  });
+});
+
+/*
+  "כל N". הבדיקות נשענות על תאריכים ידועים: ראש השנה תשפ״ז-תשפ״ט הם
+  12.9.2026, 2.10.2027 ו-21.9.2028.
+*/
+describe('חזרה כל N', () => {
+  it('כל 3 ימים', () => {
+    const ev = event({ date: '2026-09-13', repeat: 'daily', repeatEvery: 3 });
+    expect(keysFor(ev, '2026-09-13', '2026-09-22')).toEqual([
+      '2026-09-13',
+      '2026-09-16',
+      '2026-09-19',
+      '2026-09-22',
+    ]);
+  });
+
+  it('כל שבועיים - באותו יום בשבוע, ובשבוע שבין לבין לא', () => {
+    const ev = event({ date: '2026-09-13', repeat: 'weekly', repeatEvery: 2 });
+    expect(keysFor(ev, '2026-09-13', '2026-10-11')).toEqual([
+      '2026-09-13',
+      '2026-09-27',
+      '2026-10-11',
+    ]);
+  });
+
+  it('כל 3 חודשים מה-31 - חודש בלי 31 פשוט אינו מופע', () => {
+    const ev = event({ date: '2026-01-31', repeat: 'monthly', repeatEvery: 3 });
+    // אפריל אינו מגיע ל-31, ולכן המופע שלו אינו קיים; יולי ואוקטובר כן
+    expect(keysFor(ev, '2026-01-01', '2026-12-31')).toEqual([
+      '2026-01-31',
+      '2026-07-31',
+      '2026-10-31',
+    ]);
+  });
+
+  it('כל שנתיים לועזי', () => {
+    const ev = event({ date: '2026-09-13', repeat: 'yearly', repeatEvery: 2 });
+    expect(isOccurrenceKey(ev, '2027-09-13')).toBe(false);
+    expect(isOccurrenceKey(ev, '2028-09-13')).toBe(true);
+  });
+
+  it('כל שנתיים עברי - ראש השנה תשפ״ט ולא תשפ״ח', () => {
+    const ev = event({ date: '2026-09-12', repeat: 'hebrew-yearly', repeatEvery: 2 });
+    expect(isOccurrenceKey(ev, '2027-10-02')).toBe(false);
+    expect(isOccurrenceKey(ev, '2028-09-21')).toBe(true);
+  });
+
+  it('חסר, אפס או שבור נקרא כ-1', () => {
+    for (const repeatEvery of [undefined, 0, -3, Number.NaN]) {
+      const ev = event({ date: '2026-09-13', repeat: 'weekly', repeatEvery });
+      expect(isOccurrenceKey(ev, '2026-09-20')).toBe(true);
+    }
+  });
+});
+
+describe('repeatLabel', () => {
+  it('בעברית, כולל הזוגי', () => {
+    expect(repeatLabel({ repeat: 'monthly' })).toBe('כל חודש');
+    expect(repeatLabel({ repeat: 'monthly', repeatEvery: 2 })).toBe('כל חודשיים');
+    expect(repeatLabel({ repeat: 'monthly', repeatEvery: 3 })).toBe('כל 3 חודשים');
+    expect(repeatLabel({ repeat: 'daily', repeatEvery: 2 })).toBe('כל יומיים');
+    expect(repeatLabel({ repeat: 'weekly', repeatEvery: 5 })).toBe('כל 5 שבועות');
+    expect(repeatLabel({ repeat: 'hebrew-yearly', repeatEvery: 3 })).toBe('כל 3 שנים (עברי)');
+    expect(repeatLabel({ repeat: 'none', repeatEvery: 3 })).toBe('ללא חזרה');
   });
 });

@@ -15,6 +15,7 @@
  * מקום, והם פשוט מדולגים. אירוע בלי כותרת או בלי תאריך תקין מדולג גם
  * הוא, במקום להפיל את הייבוא כולו.
  */
+import { repeatEveryOf } from './recurrence';
 import type { DateKey, EventColor, UserEvent } from '@/types';
 import { addDays, dateKey, keyToDate } from './dates';
 
@@ -64,6 +65,7 @@ function icsStamp(at: number): string {
 
 const RRULE: Record<UserEvent['repeat'], string | null> = {
   none: null,
+  daily: 'FREQ=DAILY',
   weekly: 'FREQ=WEEKLY',
   monthly: 'FREQ=MONTHLY',
   yearly: 'FREQ=YEARLY',
@@ -98,7 +100,8 @@ function eventLines(ev: UserEvent): string[] {
   if (notes.length) lines.push(`DESCRIPTION:${escapeText(notes.join('\n'))}`);
 
   const rule = RRULE[ev.repeat];
-  if (rule) lines.push(`RRULE:${rule}`);
+  const every = repeatEveryOf(ev);
+  if (rule) lines.push(`RRULE:${rule}${every > 1 ? `;INTERVAL=${every}` : ''}`);
 
   // מופעים שבוטלו מיוצאים כ-EXDATE, שזו בדיוק המשמעות בתקן
   const cancelled = Object.entries(ev.exceptions ?? {})
@@ -196,6 +199,7 @@ function parseIcsDate(value: string): ParsedDate | null {
 }
 
 const FROM_RRULE: { test: RegExp; repeat: UserEvent['repeat'] }[] = [
+  { test: /FREQ=DAILY/i, repeat: 'daily' },
   { test: /FREQ=WEEKLY/i, repeat: 'weekly' },
   { test: /FREQ=MONTHLY/i, repeat: 'monthly' },
   { test: /FREQ=YEARLY/i, repeat: 'yearly' },
@@ -278,6 +282,9 @@ function buildEvent(
 
   const rrule = fields.RRULE?.value ?? '';
   const repeat = FROM_RRULE.find((r) => r.test.test(rrule))?.repeat ?? 'none';
+  // בלי זה "כל שבועיים" יובא כ"כל שבוע" - פי שניים מופעים, בשקט
+  const interval = Number(/INTERVAL=(\d+)/i.exec(rrule)?.[1] ?? 1);
+  const repeatEvery = repeat !== 'none' && interval > 1 ? repeatEveryOf({ repeatEvery: interval }) : 0;
 
   const exceptions: UserEvent['exceptions'] = {};
   for (const raw of exdates) {
@@ -299,6 +306,7 @@ function buildEvent(
     color: colorFor(title),
     reminderMinutes: null,
     repeat,
+    ...(repeatEvery > 1 ? { repeatEvery } : {}),
     ...(Object.keys(exceptions).length ? { exceptions } : {}),
   };
 }

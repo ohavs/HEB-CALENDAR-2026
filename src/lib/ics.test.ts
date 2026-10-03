@@ -60,6 +60,10 @@ describe('ייצוא', () => {
     expect(has(out, `DESCRIPTION:שורה${bs}nשנייה`)).toBe(true);
   });
 
+  it('"כל 3 חודשים" מיוצא עם INTERVAL', () => {
+    expect(has(toICS([event({ repeat: 'monthly', repeatEvery: 3 })]), 'RRULE:FREQ=MONTHLY;INTERVAL=3')).toBe(true);
+  });
+
   it('חזרה שבועית מיוצאת כ-RRULE', () => {
     expect(has(toICS([event({ repeat: 'weekly' })]), 'RRULE:FREQ=WEEKLY')).toBe(true);
   });
@@ -173,6 +177,27 @@ describe('ייבוא', () => {
     );
     expect(events[0].title).toBe('א; ב, ג');
     expect(events[0].notes).toBe('שורה\nשנייה');
+  });
+
+  it('INTERVAL נשמר: "כל שבועיים" אינו "כל שבוע"', () => {
+    const { events } = fromICS(
+      wrap(
+        ['BEGIN:VEVENT', 'SUMMARY:ועד', 'DTSTART;VALUE=DATE:20260913',
+         'RRULE:FREQ=WEEKLY;INTERVAL=2', 'END:VEVENT'].join('\r\n'),
+      ),
+    );
+    expect(events[0].repeat).toBe('weekly');
+    expect(events[0].repeatEvery).toBe(2);
+  });
+
+  it('FREQ=DAILY מתורגם לכל יום', () => {
+    const { events } = fromICS(
+      wrap(
+        ['BEGIN:VEVENT', 'SUMMARY:תרופה', 'DTSTART;VALUE=DATE:20260913',
+         'RRULE:FREQ=DAILY;INTERVAL=3', 'END:VEVENT'].join('\r\n'),
+      ),
+    );
+    expect(events[0]).toMatchObject({ repeat: 'daily', repeatEvery: 3 });
   });
 
   it('RRULE מתורגם לחזרה', () => {

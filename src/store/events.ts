@@ -38,6 +38,8 @@ export type EventDraft = {
   color: EventColor;
   reminderMinutes: number | null;
   repeat: UserEvent['repeat'];
+  /** כל כמה יחידות חזרה. חסר = 1 */
+  repeatEvery?: number;
   /** תזכורת בלי תאריך - חיה רק במסך התזכורות */
   undated?: true;
   /** קטגוריה של תזכורת, מתוך `settings.reminderCategories` */
@@ -117,7 +119,9 @@ export const useEventsStore = create<EventsStore>()(
           // הישנים מצביעים על תאריכים שכבר לא קיימים בה
           if (
             (patch.date !== undefined && patch.date !== existing.date) ||
-            (patch.repeat !== undefined && patch.repeat !== existing.repeat)
+            (patch.repeat !== undefined && patch.repeat !== existing.repeat) ||
+            // "כל חודש" שהפך ל"כל 3 חודשים" הוא סדרה אחרת באותה מידה
+            ('repeatEvery' in patch && (patch.repeatEvery ?? 1) !== (existing.repeatEvery ?? 1))
           ) {
             delete next.exceptions;
           }

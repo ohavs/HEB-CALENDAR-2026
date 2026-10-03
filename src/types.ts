@@ -47,6 +47,11 @@ export type UserEvent = {
   /** חזרתיות בסיסית */
   repeat: RepeatRule;
   /**
+   * כל כמה יחידות של `repeat` - "כל 3 חודשים". חסר פירושו 1, ונשמר רק
+   * כשהוא גדול מ-1: אירוע רגיל נכתב לענן בדיוק כמו לפני שהשדה היה קיים.
+   */
+  repeatEvery?: number;
+  /**
    * חריגים למופעים בודדים בסדרה, לפי התאריך המקורי של המופע.
    * ריק או חסר ברוב האירועים, ולכן לא נשמר כשאין בו צורך.
    */
@@ -69,7 +74,7 @@ export type UserEvent = {
   deleted?: boolean;
 };
 
-export type RepeatRule = 'none' | 'weekly' | 'monthly' | 'yearly' | 'hebrew-yearly';
+export type RepeatRule = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'hebrew-yearly';
 
 /**
  * חריג למופע יחיד בסדרה חוזרת.

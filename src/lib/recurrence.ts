@@ -64,23 +64,49 @@ function hebrewMonthMatches(baseMonth: number, baseLeap: boolean, hd: HDate): bo
 }
 
 /** האם לאירוע יש מופע בתאריך הנתון. */
+/** הגבול העליון של "כל N". מעבר לזה זו כבר לא חזרה אלא שני אירועים. */
+export const MAX_REPEAT_EVERY = 99;
+
+/** "כל N" כמספר תקין: 1 כשחסר או שבור, ובגבולות */
+export function repeatEveryOf(ev: { repeatEvery?: number }): number {
+  const n = ev.repeatEvery;
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 1) return 1;
+  return Math.min(MAX_REPEAT_EVERY, Math.floor(n));
+}
+
+/** ימים שלמים בין שני תאריכים מקומיים, עמיד למעבר שעון קיץ */
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((keyToDate(dateKey(b)).getTime() - keyToDate(dateKey(a)).getTime()) / 86_400_000);
+}
+
 function occursOn(ev: UserEvent, day: Date, baseDate: Date): boolean {
   if (day < baseDate) return false;
+  const every = repeatEveryOf(ev);
   switch (ev.repeat) {
     case 'none':
       return false; // מטופל בנפרד
+    case 'daily':
+      return daysBetween(baseDate, day) % every === 0;
     case 'weekly':
-      return day.getDay() === baseDate.getDay();
-    case 'monthly':
-      return day.getDate() === baseDate.getDate();
+      return day.getDay() === baseDate.getDay() && (daysBetween(baseDate, day) / 7) % every === 0;
+    case 'monthly': {
+      const months =
+        (day.getFullYear() - baseDate.getFullYear()) * 12 + (day.getMonth() - baseDate.getMonth());
+      return day.getDate() === baseDate.getDate() && months % every === 0;
+    }
     case 'yearly':
-      return day.getDate() === baseDate.getDate() && day.getMonth() === baseDate.getMonth();
+      return (
+        day.getDate() === baseDate.getDate() &&
+        day.getMonth() === baseDate.getMonth() &&
+        (day.getFullYear() - baseDate.getFullYear()) % every === 0
+      );
     case 'hebrew-yearly': {
       const baseH = new HDate(baseDate);
       const h = new HDate(day);
       return (
         h.getDate() === baseH.getDate() &&
-        hebrewMonthMatches(baseH.getMonth(), HDate.isLeapYear(baseH.getFullYear()), h)
+        hebrewMonthMatches(baseH.getMonth(), HDate.isLeapYear(baseH.getFullYear()), h) &&
+        (h.getFullYear() - baseH.getFullYear()) % every === 0
       );
     }
     default:
@@ -255,11 +281,44 @@ export function eventsOnDay(events: UserEvent[], day: Date): Occurrence[] {
 
 export const REPEAT_LABELS: Record<UserEvent['repeat'], string> = {
   none: 'ללא חזרה',
+  daily: 'כל יום',
   weekly: 'כל שבוע',
   monthly: 'כל חודש',
   yearly: 'כל שנה (לועזי)',
   'hebrew-yearly': 'כל שנה (עברי)',
 };
+
+/** היחידה בעברית: יחיד, זוגי ורבים - "כל יום", "כל יומיים", "כל 3 ימים" */
+const UNIT: Record<Exclude<UserEvent['repeat'], 'none'>, [string, string, string]> = {
+  daily: ['יום', 'יומיים', 'ימים'],
+  weekly: ['שבוע', 'שבועיים', 'שבועות'],
+  monthly: ['חודש', 'חודשיים', 'חודשים'],
+  yearly: ['שנה', 'שנתיים', 'שנים'],
+  'hebrew-yearly': ['שנה', 'שנתיים', 'שנים'],
+};
+
+/** שם היחידה לפי המספר, לשורה "כל [N] חודשים" */
+export function repeatUnitWord(repeat: UserEvent['repeat'], every: number): string {
+  if (repeat === 'none') return '';
+  const [one, two, many] = UNIT[repeat];
+  return every === 1 ? one : every === 2 ? two : many;
+}
+
+/**
+ * החזרה כמשפט: "כל חודש", "כל שבועיים", "כל 3 שנים (עברי)".
+ *
+ * מקור אחד לכל מקום שמציג חזרה - הטופס, תצוגת היום, מסך ההתנגשויות -
+ * כדי ש"כל 3 חודשים" לא יוצג במקום אחד כ"כל חודש".
+ */
+export function repeatLabel(ev: { repeat: UserEvent['repeat']; repeatEvery?: number }): string {
+  if (ev.repeat === 'none') return REPEAT_LABELS.none;
+  const every = repeatEveryOf(ev);
+  if (every === 1) return REPEAT_LABELS[ev.repeat];
+  const word = repeatUnitWord(ev.repeat, every);
+  const phrase = every === 2 ? `כל ${word}` : `כל ${every} ${word}`;
+  const suffix = ev.repeat === 'yearly' ? ' (לועזי)' : ev.repeat === 'hebrew-yearly' ? ' (עברי)' : '';
+  return phrase + suffix;
+}
 
 /* ==========================================================================
    אירועים רב־יומיים

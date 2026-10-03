@@ -83,6 +83,7 @@ function toItem(id: string, d: Record<string, unknown>): SharedItem | null {
     color: (d.color as EventColor) ?? 'violet',
     reminderMinutes: typeof d.reminderMinutes === 'number' ? d.reminderMinutes : null,
     repeat: (d.repeat as UserEvent['repeat']) ?? 'none',
+    repeatEvery: typeof d.repeatEvery === 'number' && d.repeatEvery > 1 ? d.repeatEvery : undefined,
     exceptions:
       d.exceptions && typeof d.exceptions === 'object'
         ? (d.exceptions as UserEvent['exceptions'])
@@ -116,6 +117,7 @@ function itemDoc(item: SharedItem): Record<string, unknown> {
     updatedAt: Date.now(),
   };
   if (item.endDate) out.endDate = item.endDate;
+  if (item.repeat !== 'none' && (item.repeatEvery ?? 1) > 1) out.repeatEvery = item.repeatEvery;
   if (item.location) out.location = item.location;
   if (item.notes) out.notes = item.notes;
   if (item.exceptions) out.exceptions = item.exceptions;

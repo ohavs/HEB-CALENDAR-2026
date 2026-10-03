@@ -9,7 +9,7 @@
 import { motion } from 'framer-motion';
 import { Bell, Check, MapPin, Repeat, Users } from 'lucide-react';
 import type { Occurrence } from '@/lib/recurrence';
-import { REPEAT_LABELS } from '@/lib/recurrence';
+import { repeatLabel } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { haptic } from '@/lib/native';
 import { REMINDER_OPTIONS } from '@/store/events';
@@ -33,7 +33,7 @@ export function DayEventDetail({
   const duration = timed && occ.endTime ? durationLabel(occ.startTime!, occ.endTime) : null;
   const reminder = reminderText(occ.reminderMinutes);
   const facts: { icon: typeof Bell; text: string }[] = [];
-  if (occ.repeat !== 'none') facts.push({ icon: Repeat, text: REPEAT_LABELS[occ.repeat] });
+  if (occ.repeat !== 'none') facts.push({ icon: Repeat, text: repeatLabel(occ) });
   if (reminder) facts.push({ icon: Bell, text: reminder });
   if (occ.shared) facts.push({ icon: Users, text: occ.shared.listName });
 

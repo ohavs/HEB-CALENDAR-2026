@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import { Check, CloudOff } from 'lucide-react';
 import type { UserEvent } from '@/types';
 import { useEventsStore, type SyncConflict } from '@/store/events';
-import { REPEAT_LABELS } from '@/lib/recurrence';
+import { repeatLabel } from '@/lib/recurrence';
 import { dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
 import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
@@ -29,7 +29,7 @@ const FIELDS: { key: keyof UserEvent; label: string; render: (ev: UserEvent) => 
   },
   { key: 'location', label: 'מקום', render: (e) => e.location || '—' },
   { key: 'notes', label: 'הערות', render: (e) => e.notes || '—' },
-  { key: 'repeat', label: 'חזרה', render: (e) => REPEAT_LABELS[e.repeat] },
+  { key: 'repeat', label: 'חזרה', render: (e) => repeatLabel(e) },
 ];
 
 function relativeTime(at: number): string {
