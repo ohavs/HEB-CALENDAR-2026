@@ -17,17 +17,10 @@ import {
   Clock,
   MapPin,
   Navigation,
-  Repeat,
   Tag,
 } from 'lucide-react';
 import type { DateKey, PlaceTrigger, UserEvent } from '@/types';
-import {
-  MAX_REPEAT_EVERY,
-  REPEAT_LABELS,
-  repeatEveryOf,
-  repeatLabel,
-  spanLengthOf,
-} from '@/lib/recurrence';
+import { spanLengthOf } from '@/lib/recurrence';
 import { REMINDER_OPTIONS, useEvents } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
@@ -48,7 +41,7 @@ import {
   type GeoPermission,
 } from '@/lib/native';
 import { LocationPicker } from './LocationPicker';
-import { NumberPickerSheet } from './ui/Picker';
+import { RepeatField } from './RepeatField';
 import { Segmented, Toggle } from './ui/controls';
 import {
   DateField,
@@ -433,30 +426,10 @@ export function EventFields({
             />
           )}
           {scheduled && (!reminder || draft.repeat !== 'none') && (
-            <SelectField<UserEvent['repeat']>
-              label="חזרה"
-              value={draft.repeat}
-              onChange={(repeat) =>
-                patch({ repeat, repeatEvery: repeat === 'none' ? undefined : draft.repeatEvery })
-              }
-              icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
-              options={(Object.keys(REPEAT_LABELS) as UserEvent['repeat'][]).map((r) => ({
-                value: r,
-                label: REPEAT_LABELS[r],
-              }))}
-              variant="grouped"
-            />
-          )}
-          {/*
-            "כל כמה" - שורה משלה ולא עוד אפשרויות ברשימה: "כל 3 חודשים"
-            ו"כל 5 שבועות" הם שילוב של יחידה ומספר, ורשימה שמונה את כולם
-            הייתה אינסופית. היחידה נבחרת למעלה, והמספר כאן.
-          */}
-          {scheduled && draft.repeat !== 'none' && (
-            <RepeatEveryRow
+            <RepeatField
               repeat={draft.repeat}
-              every={repeatEveryOf(draft)}
-              onChange={(every) => patch({ repeatEvery: every > 1 ? every : undefined })}
+              repeatEvery={draft.repeatEvery}
+              onChange={(next) => patch(next)}
             />
           )}
           {personal && !reminder && (
@@ -526,39 +499,5 @@ function BackgroundLocationHint() {
           : 'צריך הרשאת מיקום מדויק כדי לזהות הגעה ויציאה. הקשה כדי לאשר.'}
       </span>
     </button>
-  );
-}
-
-/** "תדירות: כל 3 חודשים" - הקשה פותחת גלגל של המספר */
-function RepeatEveryRow({
-  repeat,
-  every,
-  onChange,
-}: {
-  repeat: UserEvent['repeat'];
-  every: number;
-  onChange: (next: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <PickerField
-        label="תדירות"
-        display={repeatLabel({ repeat, repeatEvery: every })}
-        icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
-        onOpen={() => setOpen(true)}
-        variant="grouped"
-      />
-      <NumberPickerSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title="כל כמה"
-        subtitle={repeatLabel({ repeat, repeatEvery: every })}
-        value={every}
-        onChange={onChange}
-        min={1}
-        max={MAX_REPEAT_EVERY}
-      />
-    </>
   );
 }
