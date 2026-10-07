@@ -424,6 +424,22 @@ describe('הוידג׳ט והמסך מציגים אותו דבר', () => {
     expect(out.groups[0].items[0].title).toBe('בלי תאריך');
     expect(out.open).toBe(1);
   });
+
+  /* בוידג׳ט רואים כמה שורות בלבד, והתקרה נספרת לפי הסדר */
+  it('בוידג׳ט, מה שבלי תאריך יורד מתחת לימים', () => {
+    const mine = [
+      event({ date: '2026-09-14', undated: true, title: 'בלי תאריך' }),
+      event({ date: '2026-09-15', title: 'מחר' }),
+    ];
+    const out = buildRemindersWidget(
+      mine,
+      buildDays(NOW, addDays(NOW, 30), buildOptions() as never),
+      expandEvents(mine, NOW, addDays(NOW, 30)),
+      NOW,
+    );
+    expect(out.groups.map((g) => g.k)).toEqual(['2026-09-15', 'undated']);
+    expect(out.sources[0].groups.map((g) => g.k)).toEqual(['2026-09-15', 'undated']);
+  });
 });
 
 
@@ -531,6 +547,14 @@ describe('buildSharedWidget', () => {
     const out = build([shared({ date: '2026-09-14', undated: true, title: 'מתישהו' })]);
     expect(out.lists[0].groups[0].k).toBe('undated');
     expect(out.lists[0].groups[0].items[0].title).toBe('מתישהו');
+  });
+
+  it('פריט בלי תאריך יורד מתחת לימים', () => {
+    const out = build([
+      shared({ date: '2026-09-14', undated: true, title: 'מתישהו' }),
+      shared({ date: '2026-09-16', title: 'מאוחר' }),
+    ]);
+    expect(out.lists[0].groups.map((g) => g.k)).toEqual(['2026-09-16', 'undated']);
   });
 
   it('רשימה ריקה נשמרת, כדי שאפשר יהיה לבחור בה בהגדרת הוידג׳ט', () => {

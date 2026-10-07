@@ -262,6 +262,18 @@ function buildUpcoming(
 }
 
 /**
+ * בוידג׳ט, מה שבלי תאריך יורד לתחתית.
+ *
+ * במסך הקבוצה הזו בראש, כי שם היא נאספה לרשימה שהמשתמש מנהל. בוידג׳ט
+ * רואים רק כמה שורות, ומה שדוחק את "היום" ו"מחר" מתחת לקו הוא בדיוק
+ * מה שבא לראות. והתקרה (`MAX_REMINDERS`) נספרת לפי הסדר, ולכן בראש
+ * הקבוצה הזו גם אכלה את המקום של הפריטים עם התאריך.
+ */
+function undatedLast<T extends { key: string }>(groups: T[]): T[] {
+  return [...groups.filter((g) => g.key !== 'undated'), ...groups.filter((g) => g.key === 'undated')];
+}
+
+/**
  * בונה את נתוני וידג׳ט התזכורות.
  *
  * אותו מודל בדיוק של מסך התזכורות, ובכוונה: הוידג׳ט הוא חלון אל אותה
@@ -285,7 +297,9 @@ function groupsFor(
   let count = 0;
   let open = 0;
 
-  for (const group of buildReminderGroups(events, occurrences, days, now, REMINDER_HORIZON_DAYS)) {
+  for (const group of undatedLast(
+    buildReminderGroups(events, occurrences, days, now, REMINDER_HORIZON_DAYS),
+  )) {
     if (count >= MAX_REMINDERS) break;
     if (!group.items.length) continue;
 
@@ -599,12 +613,8 @@ export function buildSharedWidget(
     const groups: SharedWidgetGroup[] = [];
     let count = 0;
 
-    for (const group of buildReminderGroups(
-      list.items,
-      expand(list.items),
-      days,
-      now,
-      REMINDER_HORIZON_DAYS,
+    for (const group of undatedLast(
+      buildReminderGroups(list.items, expand(list.items), days, now, REMINDER_HORIZON_DAYS),
     )) {
       if (count >= MAX_SHARED_ITEMS) break;
       if (!group.items.length) continue;
