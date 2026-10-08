@@ -116,10 +116,17 @@ describe('buildRemindersWidget', () => {
     expect(out.groups.map((g) => g.k)).toEqual(['2026-09-14', '2026-09-16']);
   });
 
-  it('לכל קבוצה כיתוב מוכן ותאריך עברי', () => {
+  it('לכל קבוצה כיתוב מוכן ותאריך לועזי', () => {
     const out = withEvents(event({ date: '2026-09-14' }));
     expect(out.groups[0].label).toBe('היום');
-    expect(out.groups[0].hebrew).toMatch(/[א-ת]/);
+    expect(out.groups[0].hebrew).toBe('14 בספטמבר');
+  });
+
+  /* מעבר למחרתיים הכיתוב כבר נושא את התאריך */
+  it('התאריך אינו נכפל כשהכיתוב כבר נושא אותו', () => {
+    const out = withEvents(event({ date: '2026-09-20' }));
+    expect(out.groups[0].label).toMatch(/20 בספטמבר/);
+    expect(out.groups[0].hebrew).toBe('');
   });
 
   it('מזהה הפריט מאפשר לחזור למופע', () => {

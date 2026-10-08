@@ -21,6 +21,7 @@ import { expandEvents, type Occurrence } from './recurrence';
 import {
   addDays,
   dateKey,
+  keyToDate,
   monthLabel,
   relativeDayLabel,
   startOfDay,
@@ -103,7 +104,11 @@ export type ReminderGroup = {
   k: DateKey;
   /** "היום", "מחר", "יום שני, 21 בספטמבר" */
   label: string;
-  /** התאריך העברי, שורה משנית */
+  /**
+   * שורה משנית: התאריך הלועזי, "8 באוקטובר" - ריקה כשהכיתוב כבר נושא
+   * אותו. השם `hebrew` נשאר מהימים שבהם היה כאן התאריך העברי, כי המעטפת
+   * המותקנת קוראת אותו בשמו.
+   */
   hebrew: string;
   items: WidgetReminder[];
 };
@@ -269,6 +274,17 @@ function buildUpcoming(
  * מה שבא לראות. והתקרה (`MAX_REMINDERS`) נספרת לפי הסדר, ולכן בראש
  * הקבוצה הזו גם אכלה את המקום של הפריטים עם התאריך.
  */
+/**
+ * השורה המשנית של קבוצה בוידג׳ט התזכורות - התאריך הלועזי.
+ *
+ * רק ליד "היום", "מחר" ושכניהם: מעבר להם הכיתוב הוא כבר "יום שני,
+ * 21 בספטמבר", ותאריך נוסף היה כופל אותו.
+ */
+function groupDateLine(key: string, label: string): string {
+  if (key === 'undated' || /\d/.test(label)) return '';
+  return gregorianLabel(keyToDate(key as DateKey));
+}
+
 function undatedLast<T extends { key: string }>(groups: T[]): T[] {
   return [...groups.filter((g) => g.key !== 'undated'), ...groups.filter((g) => g.key === 'undated')];
 }
@@ -319,7 +335,12 @@ function groupsFor(
     }
     if (!items.length) continue;
 
-    groups.push({ k: group.key as DateKey, label: group.label, hebrew: group.hebrew, items });
+    groups.push({
+      k: group.key as DateKey,
+      label: group.label,
+      hebrew: groupDateLine(group.key, group.label),
+      items,
+    });
   }
 
   return { groups, open };
