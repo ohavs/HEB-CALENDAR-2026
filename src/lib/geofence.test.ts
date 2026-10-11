@@ -361,6 +361,27 @@ describe('buildFences', () => {
       expect(moved).not.toBe(a);
     });
 
+    /* מה שצלצל נזכר לפי המזהה, ולכן סבב חדש חייב מזהה חדש */
+    it('חוזרת שנפתחה שוב נרשמת כסבב חדש', () => {
+      const doneAt = new Date(2026, 6, 1).getTime();
+      const ev = undated({
+        id: 'r1',
+        repeat: 'monthly',
+        exceptions: { '2026-09-01': { done: true, doneAt } },
+      });
+      const fences = buildFences([HOME], [], NOW, [ev]);
+      expect(fences).toHaveLength(1);
+      expect(fences[0].id).toBe(`r1~${doneAt}|home|arrive`);
+    });
+
+    it('חוזרת שעוד לא נפתחה אינה נרשמת', () => {
+      const ev = undated({
+        repeat: 'monthly',
+        exceptions: { '2026-09-01': { done: true, doneAt: NOW.getTime() } },
+      });
+      expect(buildFences([HOME], [], NOW, [ev])).toEqual([]);
+    });
+
     it('אירוע עם תאריך אינו נרשם פעמיים דרך הרשימה הזו', () => {
       expect(buildFences([HOME], [], NOW, [undated({ undated: undefined })])).toEqual([]);
     });

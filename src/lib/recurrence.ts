@@ -355,3 +355,65 @@ function maxSpanDays(ev: UserEvent): number {
   }
   return longest;
 }
+
+/* ==========================================================================
+   תזכורת בלי תאריך שחוזרת
+   ========================================================================== */
+
+/**
+ * מתי תזכורת בלי תאריך שחוזרת נפתחת שוב, אחרי שסומנה ב-`doneAt`.
+ *
+ * לתזכורת כזו אין יום שממנו אפשר לספור, ולכן החזרה נספרת מהסימון: "פילטר
+ * למכונת קפה כל חודשיים" חוזר חודשיים אחרי שהוחלף, לא חודשיים אחרי
+ * שנכתב. היא נפתחת בתחילת היום, כי שעה אין לה. שנה עברית נספרת כשנה
+ * לועזית - הפער של כמה ימים אינו משנה לתזכורת שאין לה יום.
+ */
+export function returnsAt(ev: Pick<UserEvent, 'repeat' | 'repeatEvery'>, doneAt: number): number {
+  const every = repeatEveryOf(ev);
+  const d = new Date(doneAt);
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const months = (n: number) => {
+    // ה-31 בחודש שאין בו 31 נופל לסוף החודש, ולא גולש לחודש הבא
+    const last = new Date(day.getFullYear(), day.getMonth() + n + 1, 0).getDate();
+    return new Date(day.getFullYear(), day.getMonth() + n, Math.min(day.getDate(), last));
+  };
+  switch (ev.repeat) {
+    case 'daily':
+      return addDays(day, every).getTime();
+    case 'weekly':
+      return addDays(day, 7 * every).getTime();
+    case 'monthly':
+      return months(every).getTime();
+    case 'yearly':
+    case 'hebrew-yearly':
+      return months(12 * every).getTime();
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
+/**
+ * האם תזכורת בלי תאריך סגורה עכשיו.
+ *
+ * בלי חזרה - כל עוד היא מסומנת. עם חזרה - רק עד `returnsAt`, ואז היא
+ * פתוחה שוב בלי שאיש נגע בה. הסימון עצמו נשאר במקומו, ולכן אין כאן
+ * כתיבה: סימון חדש פשוט דורס את החותמת.
+ */
+export function undatedDone(
+  ev: Pick<UserEvent, 'date' | 'exceptions' | 'repeat' | 'repeatEvery' | 'updatedAt'>,
+  now = Date.now(),
+): boolean {
+  const exception = ev.exceptions?.[ev.date];
+  if (!exception?.done) return false;
+  if (ev.repeat === 'none') return true;
+  return now < returnsAt(ev, exception.doneAt ?? ev.updatedAt);
+}
+
+/** "נפתחת שוב חודשיים אחרי שסומנה כבוצעה" - מה שהחזרה אומרת בלי יום */
+export function undatedRepeatHint(repeat: UserEvent['repeat'], repeatEvery?: number): string {
+  if (repeat === 'none') return '';
+  const every = repeatEveryOf({ repeatEvery });
+  const word = repeatUnitWord(repeat, every);
+  const span = every > 2 ? `${every} ${word}` : word;
+  return `נפתחת שוב ${span} אחרי שסומנה כבוצעה.`;
+}

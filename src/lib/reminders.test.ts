@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { buildReminderGroups, pendingCount, sweepDone, undatedReminders } from './reminders';
-import { expandEvents } from './recurrence';
+import { expandEvents, returnsAt, undatedRepeatHint } from './recurrence';
 import { buildDays } from './hebrew';
 import { addDays, dateKey } from './dates';
 import { buildOptions, event } from '@/test/factories';
@@ -224,5 +224,52 @@ describe('sweepDone', () => {
   it('מחזיר מזהים, ולא אירועים', () => {
     const item = marked(2 * DAY, { id: 'abc' });
     expect(sweepDone([item], 1, NOW)).toEqual(['abc']);
+  });
+});
+
+/*
+  תזכורת בלי יום שחוזרת נספרת מהסימון: "פילטר כל חודשיים" שהוחלף ב-14
+  בספטמבר נפתח שוב ב-14 בנובמבר, בלי שאיש נגע בו.
+*/
+describe('תזכורת בלי תאריך שחוזרת', () => {
+  const doneAt = new Date(2026, 8, 14, 20, 0).getTime();
+  const filter = event({
+    date: TODAY,
+    undated: true,
+    title: 'פילטר',
+    repeat: 'monthly',
+    repeatEvery: 2,
+    exceptions: { [TODAY]: { done: true, doneAt } },
+  });
+
+  it('סגורה עד שעובר המרווח', () => {
+    expect(undatedReminders([filter], new Date(2026, 10, 13, 23, 0))[0].done).toBe(true);
+  });
+
+  it('נפתחת שוב בתחילת היום שבו המרווח נגמר', () => {
+    expect(undatedReminders([filter], new Date(2026, 10, 14, 0, 1))[0].done).toBe(false);
+  });
+
+  it('בלי חזרה נשארת סגורה', () => {
+    const once = { ...filter, repeat: 'none' as const, repeatEvery: undefined };
+    expect(undatedReminders([once], new Date(2027, 5, 1))[0].done).toBe(true);
+  });
+
+  it('חזרה חודשית מה-31 נופלת לסוף החודש הקצר', () => {
+    const at = new Date(2026, 0, 31, 9, 0).getTime();
+    expect(returnsAt({ repeat: 'monthly', repeatEvery: 1 }, at)).toBe(new Date(2026, 1, 28).getTime());
+  });
+
+  it('שבועית נספרת בשבועות', () => {
+    expect(returnsAt({ repeat: 'weekly', repeatEvery: 3 }, doneAt)).toBe(new Date(2026, 9, 5).getTime());
+  });
+
+  it('אינה נמחקת בניקוי האוטומטי', () => {
+    expect(sweepDone([filter], 1, new Date(2026, 9, 1).getTime())).toEqual([]);
+  });
+
+  it('ההסבר בטופס אומר את המרווח', () => {
+    expect(undatedRepeatHint('monthly', 2)).toBe('נפתחת שוב חודשיים אחרי שסומנה כבוצעה.');
+    expect(undatedRepeatHint('weekly', 3)).toBe('נפתחת שוב 3 שבועות אחרי שסומנה כבוצעה.');
   });
 });

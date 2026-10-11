@@ -12,7 +12,7 @@
  * הרשימה. שיוך ליום הוא כיבוי הדגל, וביטול שיוך הוא הדלקה שלו.
  */
 import type { DateKey, DayInfo, UserEvent } from '@/types';
-import type { Occurrence } from './recurrence';
+import { undatedDone, type Occurrence } from './recurrence';
 import { addDays, dateKey, relativeDayLabel, startOfDay } from './dates';
 
 /** כמה ימים קדימה נאספים פריטים משויכים */
@@ -73,14 +73,14 @@ function itemFromOccurrence(occ: Occurrence): ReminderItem {
   };
 }
 
-function itemFromEvent(ev: UserEvent): ReminderItem {
+function itemFromEvent(ev: UserEvent, now: number): ReminderItem {
   return {
     key: ev.id,
     baseId: ev.id,
     sourceKey: ev.date,
     title: ev.title,
     time: ev.allDay ? '' : (ev.startTime ?? ''),
-    done: ev.exceptions?.[ev.date]?.done === true,
+    done: undatedDone(ev, now),
     color: ev.color,
     hasPlace: Boolean(ev.placeId && ev.placeTrigger),
     hasAlarm: ev.reminderMinutes !== null,
@@ -107,12 +107,12 @@ function sinkDone(items: ReminderItem[]): ReminderItem[] {
 }
 
 /** התזכורות שאינן משויכות ליום, החדשות למעלה והבוצעו בתחתית. */
-export function undatedReminders(events: UserEvent[]): ReminderItem[] {
+export function undatedReminders(events: UserEvent[], now = new Date()): ReminderItem[] {
   return sinkDone(
     events
       .filter((ev) => ev.undated && !ev.deleted)
       .sort((a, b) => b.createdAt - a.createdAt)
-      .map(itemFromEvent),
+      .map((ev) => itemFromEvent(ev, now.getTime())),
   );
 }
 
@@ -131,7 +131,7 @@ export function buildReminderGroups(
 ): ReminderGroup[] {
   const groups: ReminderGroup[] = [];
 
-  const undated = undatedReminders(events);
+  const undated = undatedReminders(events, now);
   if (undated.length) {
     groups.push({
       key: 'undated',

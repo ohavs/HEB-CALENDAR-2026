@@ -184,8 +184,9 @@ export function SharedItemSheet({
       endTime: dated && !timing.allDay ? timing.endTime : null,
       location: timing.location?.trim() || undefined,
       notes: timing.notes?.trim() || undefined,
-      repeat: dated ? timing.repeat : 'none',
-      repeatEvery: dated && timing.repeat !== 'none' ? timing.repeatEvery : undefined,
+      // גם בלי יום: אז היא נספרת מהסימון כבוצע (`returnsAt`)
+      repeat: timing.repeat,
+      repeatEvery: timing.repeat !== 'none' ? timing.repeatEvery : undefined,
     })
       .then(() => {
         announce(

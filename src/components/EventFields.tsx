@@ -20,7 +20,7 @@ import {
   Tag,
 } from 'lucide-react';
 import type { DateKey, PlaceTrigger, UserEvent } from '@/types';
-import { spanLengthOf } from '@/lib/recurrence';
+import { spanLengthOf, undatedRepeatHint } from '@/lib/recurrence';
 import { REMINDER_OPTIONS, useEvents } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
@@ -186,9 +186,9 @@ export function EventFields({
   };
   /**
    * תזכורת ולא אירוע. תזכורת היא רגע: שעה אחת במקום התחלה וסיום, והשעה
-   * היא ההתראה עצמה - ולכן אין "כמה דקות לפני", אין פרישה על כמה ימים,
-   * ואין חזרה אלא אם היא כבר חוזרת (כדי שאפשר יהיה לכבות אותה). הטופס
-   * המלא נשאר לאירוע בלוח, ששם כל השאלות האלה באמת נשאלות.
+   * היא ההתראה עצמה - ולכן אין "כמה דקות לפני" ואין פרישה על כמה ימים.
+   * חזרה יש תמיד, גם בלי יום: "פילטר כל חודשיים" אינו צריך תאריך, והוא
+   * נספר מהסימון כבוצעה (`returnsAt`). הטופס המלא נשאר לאירוע בלוח.
    */
   reminder?: boolean;
   /**
@@ -408,7 +408,7 @@ export function EventFields({
         )}
       </FieldGroup>
 
-      {(category || (reminder ? scheduled && draft.repeat !== 'none' : scheduled || personal)) && (
+      {(category || reminder || scheduled || personal) && (
         <FieldGroup>
           {category && (
             <SelectField<string>
@@ -425,12 +425,17 @@ export function EventFields({
               }
             />
           )}
-          {scheduled && (!reminder || draft.repeat !== 'none') && (
+          {(scheduled || reminder) && (
             <RepeatField
               repeat={draft.repeat}
               repeatEvery={draft.repeatEvery}
               onChange={(next) => patch(next)}
             />
+          )}
+          {reminder && !scheduled && draft.repeat !== 'none' && (
+            <p className="px-4 pb-3.5 text-caption leading-relaxed text-muted">
+              {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
+            </p>
           )}
           {personal && !reminder && (
             <SelectField<string>

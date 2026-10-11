@@ -15,7 +15,7 @@
  */
 import type { PlaceTrigger, SavedPlace, UserEvent } from '@/types';
 import { isNative, readNativePosition, watchNativePosition } from './native';
-import type { Occurrence } from './recurrence';
+import { undatedDone, type Occurrence } from './recurrence';
 import { dateKey } from './dates';
 
 /** שוליים סביב הרדיוס, כדי שלא יהיו התראות כפולות על הגבול */
@@ -267,12 +267,18 @@ export function buildFences(
   for (const ev of undated) {
     if (fences.length >= MAX_FENCES) break;
     if (!ev.undated || ev.deleted || !ev.placeId || !ev.placeTrigger) continue;
-    if (ev.exceptions?.[ev.date]?.done) continue;
+    if (undatedDone(ev, now.getTime())) continue;
     const place = byId.get(ev.placeId);
     if (!place) continue;
     const kind = ev.placeTrigger;
+    /*
+      תזכורת חוזרת שנפתחה שוב היא סבב חדש. הצד הנייטיבי זוכר מה צלצל
+      לפי המזהה, ובלי הסבב במזהה היא לא הייתה נדרכת שוב לעולם.
+    */
+    const doneAt = ev.repeat !== 'none' ? ev.exceptions?.[ev.date]?.doneAt : undefined;
+    const base = doneAt ? `${ev.id}~${doneAt}` : ev.id;
     fences.push({
-      id: `${ev.id}|${place.id}|${kind}`,
+      id: `${base}|${place.id}|${kind}`,
       latitude: place.latitude,
       longitude: place.longitude,
       radius: place.radius,

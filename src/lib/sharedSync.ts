@@ -435,10 +435,12 @@ export async function setItemDone(
 ): Promise<void> {
   const { db: store } = requireUser();
   const exceptions = { ...(item.exceptions ?? {}) };
-  if (done) exceptions[sourceKey] = { ...(exceptions[sourceKey] ?? {}), done: true };
+  // החותמת היא ממנה פריט חוזר בלי יום נספר עד שהוא נפתח שוב (`returnsAt`)
+  if (done) exceptions[sourceKey] = { ...(exceptions[sourceKey] ?? {}), done: true, doneAt: Date.now() };
   else {
     const rest = { ...(exceptions[sourceKey] ?? {}) };
     delete rest.done;
+    delete rest.doneAt;
     if (Object.keys(rest).length) exceptions[sourceKey] = rest;
     else delete exceptions[sourceKey];
   }

@@ -16,6 +16,7 @@
  * ל-Firestore יושב ב-`sharedSync.ts`, וכך אפשר לבדוק את ההיגיון בלי רשת.
  */
 import type { DateKey, EventColor, UserEvent } from '@/types';
+import { undatedDone } from './recurrence';
 
 /** תפקיד ברשימה. הבעלים היחיד שיכול למחוק אותה ולהסיר אחרים. */
 export type ListRole = 'owner' | 'member';
@@ -183,7 +184,7 @@ export function countByCategory(
   const bump = (key: CategoryFilter) => out.set(key, (out.get(key) ?? 0) + 1);
   for (const item of items) {
     if (item.deleted) continue;
-    if (item.exceptions?.[item.date]?.done) continue;
+    if (item.undated ? undatedDone(item) : item.exceptions?.[item.date]?.done) continue;
     // פריט עתידי אינו "פתוח" - הוא פשוט עוד לא הגיע
     if (!item.undated && item.date > todayKey) continue;
     bump(null);
