@@ -72,6 +72,7 @@ function lastTriggerText(t: GeofenceStatus['lastTrigger']): string | null {
   const when = `${relativeDayLabel(new Date(t.at), new Date(), true)} ${formatTime(t.at)}`;
   const what = `${t.kind === 'leave' ? 'יציאה' : 'הגעה'} - ${t.title}`;
   if (t.notAway) return `${what} (${when}) לא צלצלה: לא יצאת מהאזור לפני כן`;
+  if (t.quiet) return `${what} (${when}) לא צלצלה: כבר צלצלה או בוצעה בסבב הזה של החזרה`;
   if (t.imprecise) return `${what} (${when}) לא צלצלה: המיקום לא היה מדויק מספיק כדי לדעת`;
   if (!t.armed) return `זוהתה ${what} (${when}), אבל לא ביום של התזכורת`;
   if (!t.shown) return `זוהתה ${what} (${when}), אבל ההתראות חסומות`;

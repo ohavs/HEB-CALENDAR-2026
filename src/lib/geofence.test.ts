@@ -361,25 +361,39 @@ describe('buildFences', () => {
       expect(moved).not.toBe(a);
     });
 
-    /* מה שצלצל נזכר לפי המזהה, ולכן סבב חדש חייב מזהה חדש */
-    it('חוזרת שנפתחה שוב נרשמת כסבב חדש', () => {
-      const doneAt = new Date(2026, 6, 1).getTime();
-      const ev = undated({
-        id: 'r1',
-        repeat: 'monthly',
-        exceptions: { '2026-09-01': { done: true, doneAt } },
-      });
-      const fences = buildFences([HOME], [], NOW, [ev]);
-      expect(fences).toHaveLength(1);
-      expect(fences[0].id).toBe(`r1~${doneAt}|home|arrive`);
+    /*
+      חוזרת צלצלה רק בפעם הראשונה: הצד הנייטיבי זכר אותה כ"צלצלה", והסבב
+      הבא חיכה לאפליקציה שתיפתח. עכשיו היא נושאת את החזרה, והמקלט סופר
+      סבבים בעצמו.
+    */
+    it('חוזרת נושאת את החזרה, במזהה יציב', () => {
+      const ev = undated({ id: 'r1', repeat: 'daily' });
+      const [fence] = buildFences([HOME], [], NOW, [ev]);
+      expect(fence.id).toBe('r1|home|arrive');
+      expect(fence.repeat).toEqual({ unit: 'daily', every: 1 });
+      expect(fence.quietUntil).toBeUndefined();
     });
 
-    it('חוזרת שעוד לא נפתחה אינה נרשמת', () => {
+    it('חוזרת שסומנה נשארת רשומה, ושקטה עד הסבב הבא', () => {
+      const doneAt = new Date(2026, 8, 20, 9, 0).getTime();
       const ev = undated({
         repeat: 'monthly',
-        exceptions: { '2026-09-01': { done: true, doneAt: NOW.getTime() } },
+        repeatEvery: 2,
+        exceptions: { '2026-09-01': { done: true, doneAt } },
       });
-      expect(buildFences([HOME], [], NOW, [ev])).toEqual([]);
+      const [fence] = buildFences([HOME], [], NOW, [ev]);
+      expect(fence.repeat).toEqual({ unit: 'monthly', every: 2 });
+      expect(fence.quietUntil).toBe(new Date(2026, 10, 20).getTime());
+    });
+
+    it('שנה עברית נשלחת כשנה, כמו ב-returnsAt', () => {
+      const [fence] = buildFences([HOME], [], NOW, [undated({ repeat: 'hebrew-yearly' })]);
+      expect(fence.repeat?.unit).toBe('yearly');
+    });
+
+    it('בלי חזרה אין שדה חזרה, ומעטפת ישנה רואה בדיוק מה שראתה', () => {
+      const [fence] = buildFences([HOME], [], NOW, [undated()]);
+      expect(fence.repeat).toBeUndefined();
     });
 
     it('אירוע עם תאריך אינו נרשם פעמיים דרך הרשימה הזו', () => {

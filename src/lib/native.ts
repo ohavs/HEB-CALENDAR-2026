@@ -468,6 +468,8 @@ export type GeofenceStatus = {
     imprecise?: boolean;
     /** "הגעה" בלי שהמשתמש יצא קודם מהאזור - קפיצה של המיקום, לא הגעה */
     notAway?: boolean;
+    /** תזכורת חוזרת שכבר צלצלה בסבב הזה, או שסומנה בו כבוצעה */
+    quiet?: boolean;
   };
   /** כמה גדרות שמורות בצד הנייטיבי */
   stored?: number;

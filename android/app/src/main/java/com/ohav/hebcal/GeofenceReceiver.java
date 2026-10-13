@@ -83,7 +83,8 @@ public class GeofenceReceiver extends BroadcastReceiver {
             if (geofence.getRequestId().endsWith(GeofenceSync.OUTER_SUFFIX)) continue;
             JSONObject fence = GeofenceStore.find(context, geofence.getRequestId());
             if (fence == null) continue;
-            if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) {
+            boolean repeating = GeofenceStore.isRepeating(fence);
+            if (!repeating && GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) {
                 drop(context, geofence.getRequestId());
                 continue;
             }
@@ -104,7 +105,7 @@ public class GeofenceReceiver extends BroadcastReceiver {
             */
             if (where != null && where.hasAccuracy()
                 && where.getAccuracy() > Math.max(fence.optDouble("radius", 150), MIN_ACCURACY_M)) {
-                remember(context, fence, kind, armedToday, true, false);
+                remember(context, fence, kind, armedToday, true, false, false);
                 continue;
             }
 
@@ -119,19 +120,28 @@ public class GeofenceReceiver extends BroadcastReceiver {
                 // והקפיצה הבאה בבית לא תיחשב חזרה
                 GeofenceStore.setArmed(context, fence.optString("id"), false);
                 if (!wasAway) {
-                    remember(context, fence, kind, armedToday, false, true);
+                    remember(context, fence, kind, armedToday, false, true, false);
                     continue;
                 }
             }
 
-            remember(context, fence, kind, armedToday, false, false);
             /*
-              תזכורת בלי תאריך (`anyDay`) דרוכה בכל יום. היא עדיין חד־פעמית
-              כאן - והאפליקציה רושמת אותה מחדש בפתיחה הבאה, כל עוד היא פתוחה.
+              חוזרת מצלצלת פעם אחת בכל סבב, וזה גם מה שמגן עליה מקפיצות:
+              "יצאת מהבית" שקפץ בלילה לא יחזור עד הסבב הבא.
             */
-            if (!armedToday) continue;
+            boolean quiet =
+                repeating && armedToday
+                    && System.currentTimeMillis() < GeofenceStore.repeatOpensAt(context, fence);
+            remember(context, fence, kind, armedToday, false, false, quiet);
+            if (!armedToday || quiet) continue;
 
             notify(context, fence);
+
+            // חוזרת נשארת רשומה: הסבב הבא שלה מגיע בלי שהאפליקציה תיפתח
+            if (repeating) {
+                GeofenceStore.markRepeatFired(context, fence.optString("id"));
+                continue;
+            }
 
             /*
               חד־פעמי: התזכורת נעשתה. הגדר מוסרת, ו"צלצלה" נרשם - הסרה לבדה לא
@@ -160,7 +170,8 @@ public class GeofenceReceiver extends BroadcastReceiver {
         String kind,
         boolean armed,
         boolean imprecise,
-        boolean notAway) {
+        boolean notAway,
+        boolean quiet) {
         try {
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             JSONObject trigger = new JSONObject();
@@ -170,9 +181,10 @@ public class GeofenceReceiver extends BroadcastReceiver {
             trigger.put("armed", armed);
             trigger.put("imprecise", imprecise);
             trigger.put("notAway", notAway);
+            trigger.put("quiet", quiet);
             trigger.put(
                 "shown",
-                armed && !imprecise && !notAway && manager != null
+                armed && !imprecise && !notAway && !quiet && manager != null
                     && manager.areNotificationsEnabled());
             GeofenceStore.putLastTrigger(context, trigger);
         } catch (JSONException ignored) {

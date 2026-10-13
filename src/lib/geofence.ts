@@ -15,7 +15,7 @@
  */
 import type { PlaceTrigger, SavedPlace, UserEvent } from '@/types';
 import { isNative, readNativePosition, watchNativePosition } from './native';
-import { undatedDone, type Occurrence } from './recurrence';
+import { repeatEveryOf, returnsAt, undatedDone, type Occurrence } from './recurrence';
 import { dateKey } from './dates';
 
 /** שוליים סביב הרדיוס, כדי שלא יהיו התראות כפולות על הגבול */
@@ -203,6 +203,15 @@ export type NativeFence = {
    * שבו האפליקציה נפתחה, ולא שותקת לגמרי.
    */
   anyDay?: boolean;
+  /**
+   * תזכורת בלי יום שחוזרת. המקלט אינו זוכר אותה כ"צלצלה" לתמיד, אלא
+   * מצלצל בהגעה הראשונה בכל סבב - מתחילת היום של הצלצול הקודם ועוד
+   * המרווח, באותו חשבון של `returnsAt`. בלי זה היא צלצלה פעם אחת בלבד,
+   * כי הסבב הבא חיכה לאפליקציה שתיפתח ותרשום אותה מחדש.
+   */
+  repeat?: { unit: 'daily' | 'weekly' | 'monthly' | 'yearly'; every: number };
+  /** סומנה כבוצעה בסבב הזה: שקטה עד הרגע הזה (ms) */
+  quietUntil?: number;
   title: string;
   body: string;
   /** תג ההתראה, לקביעת הערוץ בצד הנייטיבי */
@@ -267,18 +276,29 @@ export function buildFences(
   for (const ev of undated) {
     if (fences.length >= MAX_FENCES) break;
     if (!ev.undated || ev.deleted || !ev.placeId || !ev.placeTrigger) continue;
-    if (undatedDone(ev, now.getTime())) continue;
+    const repeating = ev.repeat !== 'none';
+    /*
+      חוזרת נרשמת גם כשסומנה: הסבב הבא נפתח בלי שהאפליקציה תיפתח, ולכן
+      הגדר נשארת אצל מערכת ההפעלה ורק שותקת עד `quietUntil`.
+    */
+    if (!repeating && undatedDone(ev, now.getTime())) continue;
     const place = byId.get(ev.placeId);
     if (!place) continue;
     const kind = ev.placeTrigger;
-    /*
-      תזכורת חוזרת שנפתחה שוב היא סבב חדש. הצד הנייטיבי זוכר מה צלצל
-      לפי המזהה, ובלי הסבב במזהה היא לא הייתה נדרכת שוב לעולם.
-    */
-    const doneAt = ev.repeat !== 'none' ? ev.exceptions?.[ev.date]?.doneAt : undefined;
-    const base = doneAt ? `${ev.id}~${doneAt}` : ev.id;
+    const exception = ev.exceptions?.[ev.date];
+    const quietUntil =
+      repeating && exception?.done ? returnsAt(ev, exception.doneAt ?? ev.updatedAt) : 0;
     fences.push({
-      id: `${base}|${place.id}|${kind}`,
+      ...(repeating
+        ? {
+            repeat: {
+              unit: ev.repeat === 'hebrew-yearly' ? 'yearly' : (ev.repeat as 'daily'),
+              every: repeatEveryOf(ev),
+            },
+            ...(quietUntil > now.getTime() ? { quietUntil } : {}),
+          }
+        : {}),
+      id: `${ev.id}|${place.id}|${kind}`,
       latitude: place.latitude,
       longitude: place.longitude,
       radius: place.radius,

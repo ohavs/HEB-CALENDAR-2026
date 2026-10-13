@@ -7,6 +7,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Calendar;
+
 /**
  * הגדרות כפי שהאפליקציה רשמה אותן.
  *
@@ -31,6 +33,8 @@ final class GeofenceStore {
     private static final String FIRED = "fired";
     /** גדרות הגעה שהמשתמש כבר יצא מהטבעת שלהן. ראו `GeofenceSync.apply`. */
     private static final String ARMED = "armed";
+    /** תזכורת חוזרת בלי יום: מזהה ← מתי צלצלה לאחרונה. ראו `repeatOpensAt`. */
+    private static final String REPEAT_FIRED = "repeat_fired";
     /** אחרי כמה זמן נשכח מה שצלצל - הרבה אחרי שהמופע עצמו כבר עבר */
     private static final long FIRED_TTL_MS = 45L * 24 * 60 * 60 * 1000;
 
@@ -207,5 +211,68 @@ final class GeofenceStore {
             if (fence != null && !id.equals(fence.optString("id"))) kept.put(fence);
         }
         write(context, kept);
+    }
+
+    /**
+     * תזכורת בלי יום שחוזרת.
+     *
+     * היא אינה נרשמת כ"צלצלה" לתמיד - זה מה ששתק אותה אחרי הפעם הראשונה,
+     * כי הסבב הבא חיכה שהאפליקציה תיפתח. במקום זה נזכר מתי צלצלה, והיא
+     * מצלצלת שוב בהגעה הראשונה של הסבב הבא.
+     */
+    static boolean isRepeating(JSONObject fence) {
+        return fence.optJSONObject("repeat") != null;
+    }
+
+    static void markRepeatFired(Context context, String id) {
+        JSONObject map = readObject(context, REPEAT_FIRED);
+        if (map == null) map = new JSONObject();
+        try {
+            map.put(id, System.currentTimeMillis());
+        } catch (JSONException ignored) {
+            return;
+        }
+        prefs(context).edit().putString(REPEAT_FIRED, map.toString()).apply();
+    }
+
+    /**
+     * מתי מותר לה לצלצל שוב: הסבב שאחרי הצלצול האחרון, ולא לפני סוף השקט
+     * של מי שסימן אותה כבוצעה (`quietUntil`).
+     */
+    static long repeatOpensAt(Context context, JSONObject fence) {
+        long quiet = fence.optLong("quietUntil", 0);
+        JSONObject map = readObject(context, REPEAT_FIRED);
+        long last = map == null ? 0 : map.optLong(fence.optString("id"), 0);
+        long next = last > 0 ? nextPeriod(last, fence.optJSONObject("repeat")) : 0;
+        return Math.max(quiet, next);
+    }
+
+    /**
+     * תחילת היום ועוד המרווח - אותו חשבון של `returnsAt` ב-`recurrence.ts`.
+     * `Calendar.add` מצמיד את ה-31 לסוף חודש קצר, בדיוק כמו שם.
+     */
+    static long nextPeriod(long from, JSONObject repeat) {
+        int every = repeat == null ? 1 : Math.max(1, repeat.optInt("every", 1));
+        String unit = repeat == null ? "daily" : repeat.optString("unit", "daily");
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(from);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        switch (unit) {
+            case "weekly":
+                cal.add(Calendar.DAY_OF_MONTH, 7 * every);
+                break;
+            case "monthly":
+                cal.add(Calendar.MONTH, every);
+                break;
+            case "yearly":
+                cal.add(Calendar.YEAR, every);
+                break;
+            default:
+                cal.add(Calendar.DAY_OF_MONTH, every);
+        }
+        return cal.getTimeInMillis();
     }
 }

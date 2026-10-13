@@ -131,8 +131,10 @@ final class GeofenceSync {
         for (int i = 0; i < fences.length(); i++) {
             JSONObject fence = fences.optJSONObject(i);
             if (fence == null) continue;
-            // מה שכבר צלצל אינו נרשם שוב, גם כשהאפליקציה עדיין שולחת אותו
-            if (GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) continue;
+            // מה שכבר צלצל אינו נרשם שוב, גם כשהאפליקציה עדיין שולחת אותו.
+            // חוזרת נשארת רשומה תמיד - הסבב שלה נבדק במקלט
+            if (!GeofenceStore.isRepeating(fence)
+                && GeofenceStore.isFired(context, GeofenceStore.firedKey(fence))) continue;
             boolean leave = "leave".equals(fence.optString("kind"));
             int transition =
                 leave ? Geofence.GEOFENCE_TRANSITION_EXIT : Geofence.GEOFENCE_TRANSITION_ENTER;
