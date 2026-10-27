@@ -6,6 +6,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import java.lang.ref.WeakReference;
+
 /**
  * הגשר בין האפליקציה לוידג׳טים.
  *
@@ -14,6 +16,24 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "HebWidgets")
 public class HebWidgetsPlugin extends Plugin {
+
+    /**
+     * המופע החי, כשהאפליקציה רצה. המקלט של הוידג׳ט רץ באותו תהליך, וכך
+     * הוא מודיע לדף מיד על סימון - ולא רק בחזרה לחזית. חלש, כדי לא
+     * להחזיק Activity שנסגרה.
+     */
+    private static WeakReference<HebWidgetsPlugin> live = new WeakReference<>(null);
+
+    @Override
+    public void load() {
+        live = new WeakReference<>(this);
+    }
+
+    /** הוידג׳ט הוסיף פעולה לתור. שקט כשהאפליקציה אינה רצה. */
+    static void inboxChanged() {
+        HebWidgetsPlugin plugin = live.get();
+        if (plugin != null) plugin.notifyListeners("inbox", new JSObject());
+    }
 
     /** מקבל את תמונות המצב ומרענן את מה שמוצג במסך הבית. */
     @PluginMethod
@@ -30,6 +50,8 @@ public class HebWidgetsPlugin extends Plugin {
         WidgetStore.write(getContext(), WidgetStore.KEY_REMINDERS, reminders);
         WidgetStore.write(getContext(), WidgetStore.KEY_SHABBAT, shabbat);
         WidgetStore.write(getContext(), WidgetStore.KEY_SHARED, shared);
+        // פרסום שנבנה לפני שהתור יושם אינו דורס את מה שנלחץ בוידג׳ט
+        WidgetActionReceiver.overlayPending(getContext());
         WidgetStore.refreshAll(getContext());
         call.resolve();
     }

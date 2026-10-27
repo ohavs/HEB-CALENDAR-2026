@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- התצוגה המקדימה של וידג׳ט הרשימה המשותפת בבורר של המשגר - ראו
+     widget_preview.xml. אותן מידות של widget_shared, עם רשימה לדוגמה. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:layoutDirection="rtl"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_preview_shared_title"
+            android:textColor="@color/widget_ink"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/widget_preview_shared_sub"
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout style="@style/WidgetPreviewHeader">
+            <TextView style="@style/WidgetPreviewHeaderLabel" android:text="@string/widget_preview_undated" />
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewItem">
+            <TextView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared1" />
+            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared1_who" />
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewItem">
+            <TextView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared2" />
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewItem">
+            <TextView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared3" />
+            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared3_who" />
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewItem">
+            <TextView style="@style/WidgetPreviewCheck"
+                android:background="@drawable/widget_check_on"
+                android:text="✓" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared4" android:textColor="@color/widget_faint" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

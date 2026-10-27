@@ -123,6 +123,11 @@ final class WidgetStore {
         return raw == null ? "[]" : raw;
     }
 
+    /** הפעולות שממתינות, בלי לרוקן את התור. */
+    static synchronized JSONArray pending(Context context) {
+        return readInboxArray(context);
+    }
+
     private static JSONArray readInboxArray(Context context) {
         String raw = read(context, KEY_INBOX);
         if (raw == null) return new JSONArray();
@@ -153,16 +158,25 @@ final class WidgetStore {
             ShabbatWidgetProvider.renderAll(app, manager, shabbatIds);
         }
 
+        /*
+          הציור קודם להודעה על הרשימה, ולא אחריה: ציור מלא מחבר מחדש את
+          המתאם של הרשימה, והודעה שקדמה לו עלולה ללכת לאיבוד - והרשימה
+          נשארת עם השורות מלפני הלחיצה.
+        */
         int[] reminderIds = manager.getAppWidgetIds(new ComponentName(app, RemindersWidgetProvider.class));
         if (reminderIds.length > 0) {
-            manager.notifyAppWidgetViewDataChanged(reminderIds, R.id.reminders_list);
             RemindersWidgetProvider.renderAll(app, manager, reminderIds);
+            manager.notifyAppWidgetViewDataChanged(reminderIds, R.id.reminders_list);
         }
 
         int[] sharedIds = manager.getAppWidgetIds(new ComponentName(app, SharedWidgetProvider.class));
         if (sharedIds.length > 0) {
-            manager.notifyAppWidgetViewDataChanged(sharedIds, R.id.shared_list);
             SharedWidgetProvider.renderAll(app, manager, sharedIds);
+            manager.notifyAppWidgetViewDataChanged(sharedIds, R.id.shared_list);
+        }
+
+        if (calendarIds.length + shabbatIds.length + reminderIds.length + sharedIds.length > 0) {
+            WidgetDays.scheduleMidnight(app);
         }
     }
 }

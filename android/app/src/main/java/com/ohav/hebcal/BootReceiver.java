@@ -15,8 +15,20 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+
+        /*
+          גם התראת החצות של הוידג׳טים נמחקת באתחול, ושינוי שעון או אזור
+          זמן מזיז אותה. ציור מחדש קובע אותה מחדש (WidgetStore.refreshAll).
+        */
+        if (Intent.ACTION_TIME_CHANGED.equals(action)
+            || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
+            WidgetStore.refreshAll(context);
+            return;
+        }
+
         if (!Intent.ACTION_BOOT_COMPLETED.equals(action)
             && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) return;
         GeofenceSync.apply(context, GeofenceStore.read(context), true);
+        WidgetStore.refreshAll(context);
     }
 }

@@ -32,7 +32,7 @@ import {
   parseSharedRef,
   type WidgetAction,
 } from '@/lib/widgetData';
-import { publishWidgets, takeWidgetActions } from '@/lib/widgetBridge';
+import { onWidgetInbox, publishWidgets, takeWidgetActions } from '@/lib/widgetBridge';
 
 /** מאחדים פרסומים צפופים: שינוי אחד של המשתמש מרעיד כמה עדכוני חנות. */
 const DEBOUNCE_MS = 400;
@@ -59,9 +59,15 @@ export function useWidgets(): void {
       const city = findCity(settings.cityId);
       const options = { ...toFilters(settings), city };
 
-      // טווח אחד שמכסה גם את רשת החודש וגם את אופק התזכורות
+      /*
+        טווח אחד שמכסה את רשת החודש, את אופק התזכורות ואת רשת החודש
+        הבא - שהוידג׳ט עובר אליה לבד כשהחודש מתחלף.
+      */
       const from = grid[0] < now ? grid[0] : now;
-      const to = addDays(now, REMINDER_HORIZON_DAYS + 25);
+      const nextGrid = monthGridDays(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+      const horizon = addDays(now, REMINDER_HORIZON_DAYS + 25);
+      const nextEnd = nextGrid[nextGrid.length - 1];
+      const to = nextEnd > horizon ? nextEnd : horizon;
       const days = buildDays(from, to, options, month);
       const occurrences = expandEvents(events, from, to);
 
@@ -160,7 +166,16 @@ export function useWidgets(): void {
       if (document.visibilityState === 'visible') drain();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    /*
+      סימון בוידג׳ט בזמן שהאפליקציה חיה ברקע מגיע מיד, ולא בחזרה לחזית.
+      אחרת כל פרסום שקרה בינתיים - סנכרון, פריט ברשימה משותפת - נבנה
+      ממצב שעוד לא ראה את הסימון.
+    */
+    const stop = onWidgetInbox(drain);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      stop();
+    };
     // ההגדרות נקראות בתוך apply, אבל אין טעם לרשום מאזין מחדש בכל שינוי שלהן
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

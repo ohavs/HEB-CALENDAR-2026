@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- תא יום. עיגול "היום" יושב מאחורי המספר, ולכן הוא FrameLayout. -->
+<!-- תא יום. עיגול "היום" יושב מאחורי המספר, ולכן הוא FrameLayout.
+     הגובה שהוא צריך - עם התאריך העברי ובלעדיו - רשום ב-ROW_FULL
+     וב-ROW_PLAIN ב-CalendarWidgetProvider. שינוי כאן מחייב שינוי שם. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/cell_root"
     android:layout_width="0dp"
@@ -9,8 +11,8 @@
 
     <ImageView
         android:id="@+id/cell_today"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:layout_gravity="center_horizontal|top"
         android:layout_marginTop="1dp"
         android:background="@drawable/widget_cell_today"
@@ -25,7 +27,7 @@
         <TextView
             android:id="@+id/cell_num"
             android:layout_width="wrap_content"
-            android:layout_height="26dp"
+            android:layout_height="24dp"
             android:gravity="center"
             android:textColor="@color/widget_ink"
             android:textSize="13sp" />
@@ -36,6 +38,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/widget_faint"
             android:textSize="9sp"
+            android:includeFontPadding="false"
             android:maxLines="1" />
 
         <LinearLayout

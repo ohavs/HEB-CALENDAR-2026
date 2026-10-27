@@ -14,6 +14,6 @@
     android:widgetCategory="home_screen"
     android:configure="com.ohav.hebcal.SharedWidgetConfigActivity"
     android:initialLayout="@layout/widget_shared"
-    android:previewLayout="@layout/widget_shared"
+    android:previewLayout="@layout/widget_shared_preview"
     android:description="@string/widget_shared_label"
     android:updatePeriodMillis="1800000" />

@@ -12,7 +12,7 @@
  * הפלאגין הוא מקומי ולא חבילה: כל מה שהוא עושה הוא לכתוב, לקרוא ולבקש
  * מהמערכת לצייר מחדש - ולזה לא צריך תלות חיצונית.
  */
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { isNative } from './native';
 import {
   parseInbox,
@@ -33,6 +33,8 @@ type HebWidgetsPlugin = {
   }): Promise<void>;
   /** מחזיר את תור הפעולות שהוידג׳ט צבר, ומרוקן אותו */
   takeInbox(): Promise<{ actions: string }>;
+  /** נורה כשהוידג׳ט הוסיף פעולה לתור, אם האפליקציה חיה באותו רגע */
+  addListener(event: 'inbox', listener: () => void): Promise<PluginListenerHandle>;
 };
 
 const HebWidgets = registerPlugin<HebWidgetsPlugin>('HebWidgets');
@@ -71,4 +73,27 @@ export async function takeWidgetActions(): Promise<WidgetAction[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * מאזין לפעולות חדשות בתור בזמן שהאפליקציה חיה. מחזיר ביטול.
+ *
+ * הרישום אסינכרוני, ולכן ביטול שמגיע לפניו נרשם ומבוצע כשהוא מסתיים.
+ */
+export function onWidgetInbox(listener: () => void): () => void {
+  if (!isNative()) return () => {};
+  let handle: PluginListenerHandle | null = null;
+  let stopped = false;
+  HebWidgets.addListener('inbox', listener)
+    .then((h) => {
+      if (stopped) void h.remove();
+      else handle = h;
+    })
+    .catch(() => {
+      /* מעטפת ישנה בלי האירוע: התור עדיין נקרא בחזרה לחזית */
+    });
+  return () => {
+    stopped = true;
+    void handle?.remove();
+  };
 }

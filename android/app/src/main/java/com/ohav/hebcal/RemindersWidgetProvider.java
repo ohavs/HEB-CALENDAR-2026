@@ -32,9 +32,15 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
     static final int MIN_WIDTH_FOR_COUNT = 200;
     static final int MIN_WIDTH_FOR_TITLE = 150;
 
+    /*
+      העדכון התקופתי מודיע גם לרשימה: היא נבנית בשירות נפרד, וציור
+      הכותרת לבדו היה משאיר בה את "מחר" של אתמול.
+    */
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         renderAll(context, manager, ids);
+        manager.notifyAppWidgetViewDataChanged(ids, R.id.reminders_list);
+        WidgetDays.scheduleMidnight(context);
     }
 
     /**
@@ -84,9 +90,14 @@ public class RemindersWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.rem_title, source.optString("label"));
         }
 
-        int open = source != null
-            ? source.optInt("open", 0)
-            : (data == null ? 0 : data.optInt("open", 0));
+        /*
+          נספר כאן ולא נלקח מ-`open`: המונה שנכתב בזמן הפרסום כולל גם
+          ימים שעברו מאז, והרשימה כבר אינה מציגה אותם.
+        */
+        JSONArray groups = source != null
+            ? source.optJSONArray("groups")
+            : (data == null ? null : data.optJSONArray("groups"));
+        int open = WidgetDays.openIn(groups);
         views.setTextViewText(
             R.id.rem_count,
             open == 0 ? "" : context.getResources().getQuantityString(R.plurals.widget_open, open, open)

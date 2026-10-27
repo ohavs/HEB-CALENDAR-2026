@@ -21,10 +21,13 @@ import { expandEvents, type Occurrence } from './recurrence';
 import {
   addDays,
   dateKey,
+  dayTitleLabel,
   keyToDate,
+  monthGridDays,
   monthLabel,
   relativeDayLabel,
   startOfDay,
+  weekdayDateLabel,
   GREG_MONTHS_HE,
   WEEKDAYS_HE,
 } from './dates';
@@ -71,23 +74,52 @@ export type WidgetUpcoming = {
   k: DateKey;
   /** "היום", "מחר", או "14 בספטמבר" */
   day: string;
+  /** הכיתוב כשהיום כבר אינו קרוב: "יום שני, 14 בספטמבר". ראו `nearLabels` */
+  far: string;
   title: string;
   /** שעה, או ריק לאירוע של כל היום ולמועד */
   time: string;
   holiday?: true;
 };
 
-export type CalendarWidgetData = {
-  updatedAt: number;
-  today: DateKey;
+/** חודש אחד ברשת. */
+export type CalendarWidgetMonth = {
   /** "ספטמבר 2026" */
   month: string;
   /** "אלול תשפ״ו – תשרי תשפ״ז" */
   hebrewMonth: string;
-  weekdays: string[];
   cells: WidgetCell[];
-  upcoming: WidgetUpcoming[];
 };
+
+export type CalendarWidgetData = CalendarWidgetMonth & {
+  updatedAt: number;
+  today: DateKey;
+  /** ראו `nearLabels` */
+  near: string[];
+  weekdays: string[];
+  upcoming: WidgetUpcoming[];
+  /**
+   * החודש הבא, מוכן מראש.
+   *
+   * הוידג׳ט עובר אליו לבד כשהחודש מתחלף, כי האפליקציה אינה נפתחת
+   * בחצות של הראשון לחודש - ובלעדיו הרשת הייתה נשארת על החודש שעבר
+   * עד הפתיחה הבאה.
+   */
+  next?: CalendarWidgetMonth;
+};
+
+/**
+ * הכיתובים של "היום", "מחר" ו"מחרתיים", לפי המרחק בימים.
+ *
+ * תמונת המצב נכתבת כשהאפליקציה פתוחה, והוידג׳ט מצייר אותה גם ימים
+ * אחר כך. כיתוב ערוך אחד היה קופא: תזכורת של מחרתיים נשארה "מחרתיים"
+ * גם למחרת, עד שהאפליקציה נפתחה. לכן כל יום נוסע עם שני כיתובים -
+ * הקרוב מכאן, הרחוק (`far`) על היום עצמו - והמעטפת בוחרת לפי המרחק
+ * מהיום *שלה*. היא סופרת ימים ומשווה מחרוזות; הניסוח כולו נשאר כאן.
+ */
+function nearLabels(now: Date): string[] {
+  return [0, 1, 2].map((i) => relativeDayLabel(addDays(now, i), now));
+}
 
 export type WidgetReminder = {
   /** `baseId|sourceKey` - המזהה שחוזר מהוידג׳ט בסימון */
@@ -110,6 +142,10 @@ export type ReminderGroup = {
    * המותקנת קוראת אותו בשמו.
    */
   hebrew: string;
+  /** הכיתוב כשהיום אינו קרוב, וריק לקבוצה בלי תאריך. ראו `nearLabels` */
+  far: string;
+  /** השורה המשנית כשהכיתוב הוא אחד הקרובים */
+  date: string;
   items: WidgetReminder[];
 };
 
@@ -144,6 +180,8 @@ export type ReminderSource = {
 
 export type RemindersWidgetData = {
   updatedAt: number;
+  /** ראו `nearLabels` */
+  near: string[];
   /**
    * הקבוצות של המקור האישי.
    *
@@ -209,7 +247,26 @@ export function buildCalendarWidget(
   now = new Date(),
 ): CalendarWidgetData {
   const todayKey = dateKey(now);
+  const nextMonth = new Date(month.getFullYear(), month.getMonth() + 1, 1);
 
+  return {
+    updatedAt: Date.now(),
+    today: todayKey,
+    near: nearLabels(now),
+    ...monthData(month, gridDays, days, occurrences, todayKey),
+    weekdays: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
+    upcoming: buildUpcoming(days, occurrences, now),
+    next: monthData(nextMonth, monthGridDays(nextMonth), days, occurrences, todayKey),
+  };
+}
+
+function monthData(
+  month: Date,
+  gridDays: Date[],
+  days: Map<DateKey, DayInfo>,
+  occurrences: Map<DateKey, Occurrence[]>,
+  todayKey: DateKey,
+): CalendarWidgetMonth {
   const cells: WidgetCell[] = gridDays.map((date) => {
     const k = dateKey(date);
     const info = days.get(k);
@@ -225,15 +282,7 @@ export function buildCalendarWidget(
     return cell;
   });
 
-  return {
-    updatedAt: Date.now(),
-    today: todayKey,
-    month: monthLabel(month),
-    hebrewMonth: hebrewMonthSpanLabel(month),
-    weekdays: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'],
-    cells,
-    upcoming: buildUpcoming(days, occurrences, now),
-  };
+  return { month: monthLabel(month), hebrewMonth: hebrewMonthSpanLabel(month), cells };
 }
 
 /** השורות הקרובות: אירועים ומועדים מהיום והלאה, מעורבבים לפי תאריך. */
@@ -250,16 +299,23 @@ function buildUpcoming(
     const k = dateKey(date);
     const day = days.get(k);
     if (!day) continue;
-    const label = relativeDayLabel(date);
+    const label = relativeDayLabel(date, now);
+    const far = dayTitleLabel(date);
 
     for (const holiday of day.holidays) {
       if (!cellKind(holiday.kind)) continue;
-      out.push({ k, day: label, title: holiday.title, time: '', holiday: true });
+      out.push({ k, day: label, far, title: holiday.title, time: '', holiday: true });
       if (out.length >= MAX_UPCOMING) return out;
     }
     for (const occ of occurrences.get(k) ?? []) {
       if (occ.done) continue;
-      out.push({ k, day: label, title: occ.title, time: occ.allDay ? '' : (occ.startTime ?? '') });
+      out.push({
+        k,
+        day: label,
+        far,
+        title: occ.title,
+        time: occ.allDay ? '' : (occ.startTime ?? ''),
+      });
       if (out.length >= MAX_UPCOMING) return out;
     }
   }
@@ -335,10 +391,13 @@ function groupsFor(
     }
     if (!items.length) continue;
 
+    const undated = group.key === 'undated';
     groups.push({
       k: group.key as DateKey,
       label: group.label,
       hebrew: groupDateLine(group.key, group.label),
+      far: undated ? '' : weekdayDateLabel(keyToDate(group.key as DateKey)),
+      date: undated ? '' : gregorianLabel(keyToDate(group.key as DateKey)),
       items,
     });
   }
@@ -404,7 +463,13 @@ export function buildRemindersWidget(
     }
   }
 
-  return { updatedAt: Date.now(), groups: mine.groups, open: mine.open, sources };
+  return {
+    updatedAt: Date.now(),
+    near: nearLabels(now),
+    groups: mine.groups,
+    open: mine.open,
+    sources,
+  };
 }
 
 /* ==========================================================================
@@ -416,6 +481,13 @@ export type ShabbatWidgetEntry = {
   title: string;
   /** "היום", "מחר", "יום שישי, 18 בספטמבר" */
   day: string;
+  /** הכיתוב כשהיום אינו קרוב, "יום שישי". ראו `nearLabels` */
+  dayFar: string;
+  /**
+   * מתי הרשומה כבר מאחורינו - רגע ההבדלה, או סוף יום היציאה כשאין זמן.
+   * המעטפת מדלגת עליה בעצמה, כדי שבמוצאי שבת יופיע כבר השבוע הבא.
+   */
+  until: number;
   /**
    * התאריך העברי של ערב הכניסה.
    *
@@ -456,6 +528,8 @@ export type ShabbatWidgetEntry = {
 
 export type ShabbatWidgetData = {
   updatedAt: number;
+  /** ראו `nearLabels` */
+  near: string[];
   /** העיר שלפיה חושבו הזמנים */
   city: string;
   entries: ShabbatWidgetEntry[];
@@ -518,6 +592,8 @@ export function buildShabbatWidget(
     const item: ShabbatWidgetEntry = {
       title: entry.title,
       day: dayName(entry.startDate, now),
+      dayFar: `יום ${WEEKDAYS_HE[entry.startDate.getDay()]}`,
+      until: entry.havdalah?.at ?? addDays(startOfDay(entry.endDate), 1).getTime(),
       hebrew: hebrewLabel(entry.startDate),
       sub: `${gregorianLabel(entry.startDate)} · ${hebrewLabel(entry.startDate)}`,
       ...occasionLabelsFor(entry),
@@ -530,7 +606,7 @@ export function buildShabbatWidget(
     out.push(item);
   }
 
-  return { updatedAt: Date.now(), city: cityName, entries: out };
+  return { updatedAt: Date.now(), near: nearLabels(now), city: cityName, entries: out };
 }
 
 /** הסוג היחיד שהצד הנייטיבי מכיר. קיים כדי שהחוזה יישאר במקום אחד. */
@@ -562,7 +638,10 @@ export type SharedWidgetItem = {
 export type SharedWidgetGroup = {
   k: DateKey | 'undated';
   label: string;
+  /** התאריך העברי - קבוע ליום, ולכן אינו מתחלף כמו הכיתוב */
   hebrew: string;
+  /** הכיתוב כשהיום אינו קרוב, וריק לקבוצה בלי תאריך. ראו `nearLabels` */
+  far: string;
   items: SharedWidgetItem[];
 };
 
@@ -576,6 +655,8 @@ export type SharedWidgetList = {
 
 export type SharedWidgetData = {
   updatedAt: number;
+  /** ראו `nearLabels` */
+  near: string[];
   lists: SharedWidgetList[];
   /** כבוי כשאין חשבון: הוידג׳ט מציג "התחברו" במקום "אין פריטים" */
   signedIn: boolean;
@@ -658,13 +739,19 @@ export function buildSharedWidget(
       }
       if (!items.length) continue;
 
-      groups.push({ k: group.key, label: group.label, hebrew: group.hebrew, items });
+      groups.push({
+        k: group.key,
+        label: group.label,
+        hebrew: group.hebrew,
+        far: group.key === 'undated' ? '' : weekdayDateLabel(keyToDate(group.key)),
+        items,
+      });
     }
 
     out.push({ id: list.id, name: list.name, categories: list.categories, groups });
   }
 
-  return { updatedAt: Date.now(), lists: out, signedIn };
+  return { updatedAt: Date.now(), near: nearLabels(now), lists: out, signedIn };
 }
 
 export type WidgetPayload = {

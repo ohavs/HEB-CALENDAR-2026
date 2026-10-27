@@ -136,13 +136,16 @@
             </intent-filter>
         </receiver>
 
-        <!-- אנדרואיד מוחק את הגדרות באתחול; כאן הן נרשמות מחדש -->
+        <!-- אנדרואיד מוחק את הגדרות באתחול; כאן הן נרשמות מחדש. שינוי
+             שעון או אזור זמן מזיז את חצות, ואיתו את "היום" בוידג׳טים. -->
         <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
 
@@ -152,6 +155,7 @@
             <intent-filter>
                 <action android:name="com.ohav.hebcal.TOGGLE_DONE" />
                 <action android:name="com.ohav.hebcal.TOGGLE_SHARED_DONE" />
+                <action android:name="com.ohav.hebcal.WIDGETS_MIDNIGHT" />
             </intent-filter>
         </receiver>
 

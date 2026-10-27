@@ -10,6 +10,9 @@ import android.widget.RemoteViews;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * וידג׳ט זמני השבת: הכניסה והיציאה הקרובות, ומה שבא אחריהן.
  *
@@ -37,6 +40,7 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         renderAll(context, manager, ids);
+        WidgetDays.scheduleMidnight(context);
     }
 
     @Override
@@ -71,9 +75,9 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
     private static void draw(Context context, AppWidgetManager manager, int id) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat);
         JSONObject data = WidgetStore.readJson(context, WidgetStore.KEY_SHABBAT);
-        JSONArray entries = data == null ? null : data.optJSONArray("entries");
+        List<JSONObject> entries = upcoming(data);
 
-        if (entries == null || entries.length() == 0) {
+        if (entries.isEmpty()) {
             views.setTextViewText(R.id.sh_title, context.getString(R.string.widget_empty_title));
             views.setTextViewText(R.id.sh_day, "");
             views.setTextViewText(R.id.sh_candles, "--:--");
@@ -84,9 +88,9 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
             return;
         }
 
-        JSONObject next = entries.optJSONObject(0);
+        JSONObject next = entries.get(0);
         views.setTextViewText(R.id.sh_title, next.optString("title"));
-        views.setTextViewText(R.id.sh_day, dayLine(next));
+        views.setTextViewText(R.id.sh_day, dayLine(data, next));
         views.setTextViewText(R.id.sh_candles, orDash(next.optString("candles")));
         views.setTextViewText(R.id.sh_havdalah, orDash(next.optString("havdalah")));
         /*
@@ -119,13 +123,12 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
 
         // כמה שורות נוספות נכנסות בגובה שהמשתמש נתן בפועל
         int room = (minHeight - MIN_HEIGHT_FOR_CITY - TIMES_HEIGHT / 2) / ROW_HEIGHT;
-        int extra = Math.max(0, Math.min(room, entries.length() - 1));
+        int extra = Math.max(0, Math.min(room, entries.size() - 1));
 
         views.removeAllViews(R.id.sh_more);
         views.setViewVisibility(R.id.sh_more, extra > 0 ? View.VISIBLE : View.GONE);
         for (int i = 1; i <= extra; i++) {
-            JSONObject entry = entries.optJSONObject(i);
-            if (entry == null) continue;
+            JSONObject entry = entries.get(i);
             RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_shabbat_row);
             row.setTextViewText(R.id.row_title, entry.optString("title"));
             row.setTextViewText(R.id.row_day, subLine(entry));
@@ -153,9 +156,37 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
         return sub.isEmpty() ? entry.optString("hebrew") : sub;
     }
 
+    /**
+     * הרשומות שעוד לפנינו.
+     *
+     * האפליקציה כבר דילגה על מה שהסתיים כשפרסמה, אבל הוידג׳ט מצייר את
+     * הפרסום הזה גם אחרי צאת השבת - ובלי הדילוג כאן, במוצאי שבת עמדה
+     * בראשו השבת שזה עתה יצאה, עד שהאפליקציה נפתחה. `until` חסר במסמך
+     * ישן, ואז הכול נשאר.
+     */
+    private static List<JSONObject> upcoming(JSONObject data) {
+        List<JSONObject> out = new ArrayList<>();
+        JSONArray entries = data == null ? null : data.optJSONArray("entries");
+        long now = System.currentTimeMillis();
+        for (int i = 0; entries != null && i < entries.length(); i++) {
+            JSONObject entry = entries.optJSONObject(i);
+            if (entry == null) continue;
+            long until = entry.optLong("until", 0);
+            if (until > 0 && until < now) continue;
+            out.add(entry);
+        }
+        return out;
+    }
+
     /** "היום · 18 בספטמבר · י״ז באלול" - בשורה אחת */
-    private static String dayLine(JSONObject entry) {
-        String day = entry.optString("day");
+    private static String dayLine(JSONObject data, JSONObject entry) {
+        // "מחר" שנכתב ביום חמישי הוא "היום" ביום שישי - ראו WidgetDays
+        String day = WidgetDays.label(
+            data,
+            entry.optString("k"),
+            entry.optString("dayFar"),
+            entry.optString("day")
+        );
         String sub = subLine(entry);
         if (day.isEmpty()) return sub;
         if (sub.isEmpty()) return day;

@@ -18,6 +18,6 @@
     android:configure="com.ohav.hebcal.RemindersWidgetConfigActivity"
     android:widgetFeatures="reconfigurable|configuration_optional"
     android:initialLayout="@layout/widget_reminders"
-    android:previewLayout="@layout/widget_reminders"
+    android:previewLayout="@layout/widget_reminders_preview"
     android:description="@string/widget_reminders_label"
     android:updatePeriodMillis="1800000" />

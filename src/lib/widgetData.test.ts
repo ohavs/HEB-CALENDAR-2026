@@ -609,3 +609,109 @@ describe('parseInbox - סימון משותף', () => {
     expect(parseInbox(JSON.stringify([{ type: 'shared-done', done: true, at: 1 }]))).toHaveLength(0);
   });
 });
+
+/*
+  הוידג׳ט מצייר את אותו פרסום גם ימים אחרי שנכתב. כל יום נוסע עם
+  הכיתוב הקרוב (`near`, לפי המרחק) והרחוק (`far`), והמעטפת בוחרת לפי
+  התאריך שלה - ראו WidgetDays.java. מה שנבדק כאן הוא שהבחירה הזו נותנת
+  בדיוק את מה שהאפליקציה הייתה כותבת באותו יום.
+*/
+describe('כיתובים שאינם קופאים', () => {
+  const days = realDays(NOW, addDays(NOW, 30));
+  const LATER = new Date(2026, 8, 16, 9, 0);
+
+  /** מה שהמעטפת מציגה ביום `viewed`, מתוך מה שנכתב ב-NOW */
+  function shownOn(viewed: Date, k: string, near: string[], far: string) {
+    const offset = Math.round(
+      (keyToDate(k as DateKey).getTime() - keyToDate(dateKey(viewed)).getTime()) / 86_400_000,
+    );
+    return offset >= 0 && offset < near.length ? near[offset] : far;
+  }
+
+  it('near הוא היום, מחר ומחרתיים', () => {
+    const out = buildRemindersWidget([], days, new Map(), NOW);
+    expect(out.near).toEqual(['היום', 'מחר', 'מחרתיים']);
+  });
+
+  it('תזכורת של מחרתיים היא "היום" כשמגיע היום - בלי פרסום חדש', () => {
+    const events = [event({ date: '2026-09-16' })];
+    const out = buildRemindersWidget(events, days, expandEvents(events, NOW, addDays(NOW, 30)), NOW);
+    const group = out.groups[0];
+    expect(group.label).toBe('מחרתיים');
+    expect(shownOn(LATER, group.k, out.near, group.far)).toBe('היום');
+  });
+
+  it('far הוא בדיוק מה שהאפליקציה כותבת ליום רחוק', () => {
+    const events = [event({ date: '2026-09-20' })];
+    const occ = expandEvents(events, NOW, addDays(NOW, 30));
+    const written = buildRemindersWidget(events, days, occ, NOW).groups[0];
+    // מנקודת המבט של יום רחוק עוד יותר - שם הכיתוב שנכתב אינו יחסי
+    expect(written.far).toBe(written.label);
+  });
+
+  it('השורה המשנית ליד כיתוב קרוב היא התאריך הלועזי', () => {
+    const events = [event({ date: '2026-09-20' })];
+    const occ = expandEvents(events, NOW, addDays(NOW, 30));
+    const group = buildRemindersWidget(events, days, occ, NOW).groups[0];
+    expect(group.hebrew).toBe('');
+    expect(group.date).toBe('20 בספטמבר');
+  });
+
+  it('לקבוצה בלי תאריך אין כיתוב רחוק', () => {
+    const out = buildRemindersWidget([event({ undated: true })], days, new Map(), NOW);
+    const undated = out.groups.find((g) => g.k === ('undated' as DateKey));
+    expect(undated?.far).toBe('');
+  });
+
+  it('גם ברשימה הקרובה של הלוח', () => {
+    const events = [event({ date: '2026-09-20', title: 'פגישה' })];
+    const occ = expandEvents(events, NOW, addDays(NOW, 45));
+    const grid = monthGridDays(MONTH);
+    const out = buildCalendarWidget(MONTH, grid, realDays(NOW, addDays(NOW, 45)), occ, NOW);
+    const row = out.upcoming.find((u) => u.title === 'פגישה');
+    expect(row?.far).toBe('יום ראשון, 20 בספטמבר');
+    expect(shownOn(new Date(2026, 8, 19), row!.k, out.near, row!.far)).toBe('מחר');
+  });
+
+  it('ברשימה המשותפת', () => {
+    const items = [{ ...event({ date: '2026-09-20' }), createdBy: 'me' }];
+    const out = buildSharedWidget(
+      [{ id: 'l1', name: 'א', categories: [], items, who: () => '' }],
+      days,
+      (list) => expandEvents(list, NOW, addDays(NOW, 30)),
+      true,
+      NOW,
+    );
+    expect(out.near).toEqual(['היום', 'מחר', 'מחרתיים']);
+    expect(out.lists[0].groups[0].far).toBe('ראשון, 20 בספטמבר');
+  });
+
+  it('בשבת: יום הכניסה, ומתי הרשומה כבר מאחורינו', () => {
+    const out = buildShabbatWidget(upcomingShabbatot(NOW, 8, buildOptions() as never), 'ירושלים', NOW);
+    const first = out.entries[0];
+    expect(first.dayFar).toMatch(/^יום /);
+    expect(first.until).toBeGreaterThan(NOW.getTime());
+    // ההבדלה אחרי הכניסה, ולא באותו יום
+    expect(first.until).toBeGreaterThan(keyToDate(first.k).getTime() + 86_400_000);
+  });
+});
+
+describe('החודש הבא בוידג׳ט הלוח', () => {
+  const grid = monthGridDays(MONTH);
+  const days = realDays(grid[0], addDays(grid[grid.length - 1], 45));
+
+  it('נוסע מוכן, כדי שהרשת תתחלף בראשון לחודש בלי האפליקציה', () => {
+    const out = buildCalendarWidget(MONTH, grid, days, new Map(), NOW);
+    expect(out.next?.month).toContain('אוקטובר');
+    expect(out.next?.cells).toHaveLength(42);
+    const first = out.next?.cells.find((c) => !c.out);
+    expect(first?.k).toBe('2026-10-01');
+  });
+
+  it('המועדים מסומנים גם בו: שמיני עצרת, 3 באוקטובר', () => {
+    // שמיני עצרת תשפ״ז: 22 בתשרי → 3 באוקטובר 2026
+    const out = buildCalendarWidget(MONTH, grid, days, new Map(), NOW);
+    const cell = out.next?.cells.find((c) => c.k === '2026-10-03');
+    expect(cell?.kind).toBe('yomtov');
+  });
+});

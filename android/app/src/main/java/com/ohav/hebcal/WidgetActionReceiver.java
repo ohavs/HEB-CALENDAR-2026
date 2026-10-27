@@ -42,6 +42,16 @@ public class WidgetActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+
+        /*
+          היום התחלף: "היום" ו"מחר" נגזרים בזמן הציור (WidgetDays), ולכן
+          מספיק לצייר מחדש - והציור קובע את חצות הבאה.
+        */
+        if (WidgetDays.ACTION_MIDNIGHT.equals(action)) {
+            WidgetStore.refreshAll(context);
+            return;
+        }
+
         if (!ACTION_TOGGLE.equals(action) && !ACTION_TOGGLE_SHARED.equals(action)) return;
 
         String ref = intent.getStringExtra(EXTRA_REF);
@@ -84,6 +94,51 @@ public class WidgetActionReceiver extends BroadcastReceiver {
         */
         queueToggle(context, shared ? "shared-done" : "done", ref, next);
         WidgetStore.refreshAll(context);
+        HebWidgetsPlugin.inboxChanged();
+    }
+
+    /**
+     * מחיל על תמונת מצב שזה עתה פורסמה את הסימונים שעוד ממתינים בתור.
+     *
+     * האפליקציה יכולה לפרסם בזמן שהתור מלא: היא חיה ברקע, וסנכרון או
+     * פריט חדש ברשימה משותפת מפעילים פרסום ממצב שעוד לא ראה את הסימון.
+     * בלי זה הפרסום דרס את הלחיצה - התיבה חזרה ריקה והפריט חזר למקומו,
+     * עד שהאפליקציה נפתחה ויישמה את התור. זה היה ה"לא תמיד יורד למטה".
+     *
+     * הערך נקבע כפי שנרשם, ולא מתהפך: הפרסום אולי כבר כולל אותו.
+     */
+    static void overlayPending(Context context) {
+        JSONArray inbox = WidgetStore.pending(context);
+        if (inbox.length() == 0) return;
+
+        JSONObject reminders = WidgetStore.readJson(context, WidgetStore.KEY_REMINDERS);
+        JSONObject sharedDoc = WidgetStore.readJson(context, WidgetStore.KEY_SHARED);
+        boolean touchedReminders = false;
+        boolean touchedShared = false;
+
+        try {
+            for (int i = 0; i < inbox.length(); i++) {
+                JSONObject action = inbox.optJSONObject(i);
+                if (action == null) continue;
+                String type = action.optString("type");
+                if (!"done".equals(type) && !"shared-done".equals(type)) continue;
+                String ref = action.optString("ref");
+                if (ref.isEmpty()) continue;
+                boolean done = action.optBoolean("done", false);
+                // התור לפי הסדר: לחיצה מאוחרת על אותו פריט גוברת
+                if (setDone(reminders, ref, done)) touchedReminders = true;
+                if (setDone(sharedDoc, ref, done)) touchedShared = true;
+            }
+            if (touchedReminders) {
+                recount(reminders);
+                WidgetStore.write(context, WidgetStore.KEY_REMINDERS, reminders.toString());
+            }
+            if (touchedShared) {
+                WidgetStore.write(context, WidgetStore.KEY_SHARED, sharedDoc.toString());
+            }
+        } catch (JSONException ignored) {
+            // התמונה נשארת כפי שפורסמה; התור עדיין ייושם באפליקציה
+        }
     }
 
     /**

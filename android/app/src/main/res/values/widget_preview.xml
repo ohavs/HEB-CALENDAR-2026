@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  התצוגות המקדימות ברשימת הוידג׳טים של המשגר (previewLayout).
+
+  המשגר מצייר אותן כמו שהן, בלי להריץ אף שורה שלנו. כשהיא הצביעה על
+  הפריסה האמיתית, הוצגו בבורר מסגרות ריקות: הכיתובים שם נקבעים בזמן
+  ריצה, ובפריסה עצמה אין כלום. כאן הכול כתוב מראש, בחודש ובפריטים
+  לדוגמה.
+-->
+<resources>
+    <string name="widget_preview_month">ספטמבר</string>
+    <string name="widget_preview_hebrew_month">אלול – תשרי</string>
+    <string name="widget_preview_up1_day">היום</string>
+    <string name="widget_preview_up1_title">ארוחת ערב אצל סבתא</string>
+    <string name="widget_preview_up1_time">19:30</string>
+    <string name="widget_preview_up2_day">יום שני, 21 בספטמבר</string>
+    <string name="widget_preview_up2_title">יום כיפור</string>
+
+    <string name="widget_preview_reminders_count">3 פתוחות</string>
+    <string name="widget_preview_today">היום</string>
+    <string name="widget_preview_today_date">15 בספטמבר</string>
+    <string name="widget_preview_tomorrow">מחר</string>
+    <string name="widget_preview_tomorrow_date">16 בספטמבר</string>
+    <string name="widget_preview_rem1">להתקשר לאינסטלטור</string>
+    <string name="widget_preview_rem1_time">10:00</string>
+    <string name="widget_preview_rem2">לקנות חלות</string>
+    <string name="widget_preview_rem3">לאסוף את הילדים</string>
+    <string name="widget_preview_rem3_time">16:30</string>
+    <string name="widget_preview_rem4">פילטר למכונת קפה</string>
+
+    <string name="widget_preview_candles">18:14</string>
+    <string name="widget_preview_havdalah">19:27</string>
+    <string name="widget_preview_shabbat_day">יום שישי · 18 בספטמבר · ז׳ בתשרי</string>
+    <string name="widget_preview_shabbat_title">שבת שובה</string>
+    <string name="widget_preview_city">ירושלים</string>
+
+    <string name="widget_preview_shared_title">קניות</string>
+    <string name="widget_preview_shared_sub">סופר</string>
+    <string name="widget_preview_undated">בלי תאריך</string>
+    <string name="widget_preview_shared1">חלב</string>
+    <string name="widget_preview_shared1_who">דנה</string>
+    <string name="widget_preview_shared2">עגבניות</string>
+    <string name="widget_preview_shared3">נייר טואלט</string>
+    <string name="widget_preview_shared3_who">יוסי</string>
+    <string name="widget_preview_shared4">שקיות אשפה</string>
+
+    <style name="WidgetPreviewRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">horizontal</item>
+    </style>
+
+    <style name="WidgetPreviewCell">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center_horizontal|top</item>
+    </style>
+
+    <style name="WidgetPreviewNum">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">22dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/widget_ink</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="WidgetPreviewHeb">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/widget_faint</item>
+        <item name="android:textSize">9sp</item>
+    </style>
+
+    <style name="WidgetPreviewDots">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingTop">1dp</item>
+    </style>
+
+    <style name="WidgetPreviewDot">
+        <item name="android:layout_width">4dp</item>
+        <item name="android:layout_height">4dp</item>
+        <item name="android:layout_marginStart">1dp</item>
+        <item name="android:layout_marginEnd">1dp</item>
+    </style>
+
+    <!-- שורות הרשימות, באותן מידות של widget_reminder_item -->
+    <style name="WidgetPreviewItem">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingTop">7dp</item>
+        <item name="android:paddingBottom">7dp</item>
+    </style>
+
+    <style name="WidgetPreviewCheck">
+        <item name="android:layout_width">22dp</item>
+        <item name="android:layout_height">22dp</item>
+        <item name="android:layout_marginEnd">10dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/widget_on_accent</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:background">@drawable/widget_check_off</item>
+    </style>
+
+    <style name="WidgetPreviewTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textColor">@color/widget_ink</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="WidgetPreviewTime">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:textColor">@color/widget_muted</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="WidgetPreviewHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">2dp</item>
+    </style>
+
+    <style name="WidgetPreviewHeaderLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/widget_accent</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="WidgetPreviewHeaderDate">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:textColor">@color/widget_faint</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+</resources>

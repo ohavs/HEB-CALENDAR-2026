@@ -16,6 +16,6 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/widget_calendar"
-    android:previewLayout="@layout/widget_calendar"
+    android:previewLayout="@layout/widget_calendar_preview"
     android:description="@string/widget_calendar_label"
     android:updatePeriodMillis="1800000" />

@@ -91,6 +91,8 @@ public class SharedWidgetService extends RemoteViewsService {
                 if (group == null) continue;
                 JSONArray items = group.optJSONArray("items");
                 if (items == null || items.length() == 0) continue;
+                // יום שעבר מאז הפרסום אינו "היום" של אף אחד - ראו WidgetDays
+                if (WidgetDays.isPast(group.optString("k"))) continue;
 
                 /*
                   הכותרת נוספת רק אחרי שנמצא פריט ששרד את הסינון, אחרת
@@ -106,8 +108,8 @@ public class SharedWidgetService extends RemoteViewsService {
                     if (!headerAdded) {
                         rows.add(new Row(
                             Row.HEADER,
-                            group.optString("label"),
-                            group.optString("hebrew"),
+                            WidgetDays.groupLabel(data, group),
+                            WidgetDays.groupLine(data, group),
                             null,
                             false
                         ));

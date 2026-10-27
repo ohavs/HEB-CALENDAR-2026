@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  התצוגה המקדימה של וידג׳ט הלוח בבורר של המשגר - ראו widget_preview.xml.
+  אותן מידות של widget_calendar ושל התאים, עם חודש לדוגמה. נוצרה פעם אחת
+  בסקריפט; מה שמשתנה בפריסה האמיתית צריך להשתנות גם כאן.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:layoutDirection="rtl"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_preview_month"
+            android:textColor="@color/widget_ink"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_preview_hebrew_month"
+            android:textColor="@color/widget_muted"
+            android:textSize="12sp"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="א"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ב"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ג"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ד"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ה"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ו"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="ש"
+            android:textColor="@color/widget_faint"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout style="@style/WidgetPreviewRow">
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="30" android:textColor="@color/widget_faint" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="31" android:textColor="@color/widget_faint" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="1" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ט" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="2" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ׳" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="3" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״א" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="4" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ב" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="5" android:textColor="@color/widget_accent" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ג" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewRow">
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="6" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ד" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="7" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ה" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="8" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ו" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="9" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ז" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="10" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ח" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="11" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="כ״ט" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="12" android:textColor="@color/widget_accent" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="א׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewRow">
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="13" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ב׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="14" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ג׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_fast" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="15" android:layout_width="22dp" android:background="@drawable/widget_cell_today" android:textColor="@color/widget_on_accent" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ד׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="16" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ה׳" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="17" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ו׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="18" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ז׳" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="19" android:textColor="@color/widget_accent" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ח׳" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewRow">
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="20" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ט׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="21" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י׳" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="22" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״א" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="23" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ב" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="24" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ג" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="25" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ד" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="26" android:textColor="@color/widget_accent" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ט״ו" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout style="@style/WidgetPreviewRow">
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="27" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="ט״ז" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="28" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ז" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="29" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ח" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="30" />
+                <TextView style="@style/WidgetPreviewHeb" android:text="י״ט" />
+                <LinearLayout style="@style/WidgetPreviewDots">
+                    <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="1" android:textColor="@color/widget_faint" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="2" android:textColor="@color/widget_faint" />
+            </LinearLayout>
+            <LinearLayout style="@style/WidgetPreviewCell">
+                <TextView style="@style/WidgetPreviewNum" android:text="3" android:textColor="@color/widget_faint" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <ImageView
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/widget_dot_event" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="7dp"
+                android:text="@string/widget_preview_up1_day"
+                android:textColor="@color/widget_muted"
+                android:textSize="11sp"
+                android:maxLines="1" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/widget_preview_up1_title"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/widget_preview_up1_time"
+                android:textColor="@color/widget_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <ImageView
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/widget_dot_holiday" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="7dp"
+                android:text="@string/widget_preview_up2_day"
+                android:textColor="@color/widget_muted"
+                android:textSize="11sp"
+                android:maxLines="1" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/widget_preview_up2_title"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

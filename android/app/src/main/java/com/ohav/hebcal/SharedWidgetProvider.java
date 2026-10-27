@@ -28,9 +28,12 @@ public class SharedWidgetProvider extends AppWidgetProvider {
     /** מתחת לרוחב הזה יורדת שורת הקטגוריה מהכותרת */
     static final int MIN_WIDTH_FOR_SUBTITLE = 180;
 
+    /** העדכון התקופתי מודיע גם לרשימה - ראו RemindersWidgetProvider. */
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         renderAll(context, manager, ids);
+        manager.notifyAppWidgetViewDataChanged(ids, R.id.shared_list);
+        WidgetDays.scheduleMidnight(context);
     }
 
     @Override

@@ -12,6 +12,6 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/widget_shabbat"
-    android:previewLayout="@layout/widget_shabbat"
+    android:previewLayout="@layout/widget_shabbat_preview"
     android:description="@string/widget_shabbat_label"
     android:updatePeriodMillis="1800000" />
