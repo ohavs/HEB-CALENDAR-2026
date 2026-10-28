@@ -9,7 +9,7 @@
  * מה שאינו חל על שניהם נשלט מבחוץ: התראת מקום ותזכורת קיימות רק לאירוע
  * אישי. שדה שמוצג ואינו עושה דבר גרוע משדה שאינו מוצג.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Bell,
   CalendarDays,
@@ -25,12 +25,7 @@ import { REMINDER_OPTIONS, useEvents } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
-import {
-  dayForTime,
-  reminderEndTime,
-  shiftEndWithStart,
-  suggestReminderTime,
-} from '@/lib/reminderCompose';
+import { shiftEndWithStart } from '@/lib/reminderCompose';
 import { ICON, STROKE } from '@/lib/motion';
 import {
   geoPermission,
@@ -48,7 +43,6 @@ import {
   FieldGroup,
   PickerField,
   SelectField,
-  SingleTimeRow,
   TextArea,
   TimeRangeRow,
 } from './ui/fields';
@@ -153,7 +147,6 @@ export function EventFields({
   whenToggle,
   category,
   reminder = false,
-  onDated,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -169,8 +162,8 @@ export function EventFields({
    */
   scheduled?: boolean;
   /**
-   * שורה שנפתחת בראש קבוצת ה"מתי" - המתג "משויך ליום" של פריט משותף.
-   * הוא שייך לשאלה "מתי", ולכן יושב בתוך הקופסה שלה ולא מעליה.
+   * שורה שנפתחת בראש קבוצת ה"מתי" - המתג "תאריך ושעה" של תזכורת ושל פריט
+   * משותף. הוא שייך לשאלה "מתי", ולכן יושב בתוך הקופסה שלה ולא מעליה.
    */
   whenToggle?: ReactNode;
   /**
@@ -185,18 +178,12 @@ export function EventFields({
     onCreate?: (name: string) => string | null;
   };
   /**
-   * תזכורת ולא אירוע. תזכורת היא רגע: שעה אחת במקום התחלה וסיום, והשעה
-   * היא ההתראה עצמה - ולכן אין "כמה דקות לפני" ואין פרישה על כמה ימים.
-   * חזרה יש תמיד, גם בלי יום: "פילטר כל חודשיים" אינו צריך תאריך, והוא
-   * נספר מהסימון כבוצעה (`returnsAt`). הטופס המלא נשאר לאירוע בלוח.
+   * תזכורת ולא אירוע. כשיש לה יום, השדות הם בדיוק אלה של אירוע - כשהיו
+   * לה שדות משלה (שעה אחת, בלי פרישה) שני הטפסים נקראו כשתי אפליקציות.
+   * מה שנשאר שונה הוא רק מה שאין לו מתי: חזרה גם בלי יום ("פילטר כל
+   * חודשיים", נספר מהסימון כבוצעה - `returnsAt`), והתראת מקום בלי יום.
    */
   reminder?: boolean;
-  /**
-   * שעה נבחרה לתזכורת בלי יום. שורת השעה מוצגת תמיד, גם בלי יום - ושעה
-   * בלי יום אינה שעה, ולכן היא משייכת את התזכורת ליום הקרוב שבו השעה עוד
-   * לפנינו (`dayForTime`). מי שמחזיק את "משויך ליום" מעדכן את עצמו כאן.
-   */
-  onDated?: () => void;
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -229,33 +216,6 @@ export function EventFields({
   */
   const hasPlaceAlert = personal && (scheduled || reminder) && Boolean(savedPlace);
 
-  /**
-   * שעת התזכורת. `allDay` נגזר ממנה ולא נקבע לבד - אותו כלל של
-   * `buildReminderDraft` - וכך גם ההתראה: יש שעה, מתריעים בה.
-   */
-  /*
-    היום נקבע מהשעה כל עוד המשתמש לא בחר יום בעצמו. הגלגל כותב בכל גלילה,
-    והפתיחה כבר שייכה את התזכורת ליום של השעה המוצעת - בלי זה, גלילה
-    מ-18:30 ל-08:00 בערב הייתה משאירה אותה על היום, בשעה שכבר עברה.
-  */
-  const autoDay = useRef(false);
-  const setReminderTime = (time: string | null) => {
-    if (time !== null && !scheduled) {
-      autoDay.current = true;
-      onDated?.();
-    }
-    const assign = time !== null && autoDay.current;
-    patch({
-      ...(assign ? { date: dayForTime(time, new Date()) } : {}),
-      allDay: time === null,
-      startTime: time ?? draft.startTime,
-      endTime: time ? reminderEndTime(time) : draft.endTime,
-      ...(personal ? { reminderMinutes: time ? 0 : null } : {}),
-    });
-  };
-  // בלי יום השעה המוצעת היא של היום: הבחירה עצמה תשייך ליום הנכון
-  const isToday = !scheduled || draft.date === dateKey(new Date());
-
   /*
     שלוש קבוצות ושדה אחד, לפי השאלה שכל אחת עונה עליה: מתי, איפה, ומה
     עוד. כל קבוצה היא קופסה אחת עם קווים דקים, כך שהטופס קצר בלי שאף
@@ -263,35 +223,10 @@ export function EventFields({
   */
   return (
     <>
-      {(scheduled || whenToggle || reminder) && (
+      {(scheduled || whenToggle) && (
         <FieldGroup>
           {whenToggle}
-          {reminder && (
-            <>
-              {scheduled && (
-                <DateField
-                  label="תאריך"
-                  value={draft.date}
-                  onChange={(d) => {
-                    autoDay.current = false;
-                    patch({ date: d });
-                  }}
-                  icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-                  hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-                  variant="grouped"
-                />
-              )}
-              <SingleTimeRow
-                icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
-                label={personal ? 'שעת התראה' : 'שעה'}
-                value={!scheduled || draft.allDay ? null : draft.startTime}
-                suggested={suggestReminderTime(new Date(), isToday)}
-                onChange={setReminderTime}
-                emptyLabel={personal ? 'בלי התראה' : 'בלי שעה'}
-              />
-            </>
-          )}
-          {scheduled && !reminder && (
+          {scheduled && (
             <>
               <DateField
                 label={multiDay ? 'מתאריך' : 'תאריך'}
@@ -350,8 +285,8 @@ export function EventFields({
 
               {/*
                 השעות נשארות על המסך גם כש"כל היום" דלוק, מעומעמות ולא
-                לחיצות. כשהן נעלמו לגמרי, מי שפתח תזכורת (שהיא אירוע של כל
-                היום) לא ראה שום רמז לכך שיש בכלל שעות.
+                לחיצות. כשהן נעלמו לגמרי, מי שפתח אירוע של כל היום לא ראה
+                שום רמז לכך שיש בכלל שעות.
               */}
               <TimeRangeRow
                 icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
@@ -437,7 +372,8 @@ export function EventFields({
               {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
             </p>
           )}
-          {personal && !reminder && (
+          {/* בלי יום אין רגע להקדים אליו */}
+          {personal && scheduled && (
             <SelectField<string>
               label="תזכורת"
               value={String(draft.reminderMinutes)}

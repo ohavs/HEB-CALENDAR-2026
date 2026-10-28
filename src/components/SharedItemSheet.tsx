@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, EyeOff } from 'lucide-react';
+import { CalendarClock, EyeOff } from 'lucide-react';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel, newId } from '@/lib/sharedLists';
@@ -253,10 +253,10 @@ export function SharedItemSheet({
         </div>
 
         {/*
-          אותם שדות בדיוק כמו בתזכורת אישית: יום, שעה אחת, מקום והערות.
-          מקום והערות מוצגים גם בלי יום. בלי התראה ובלי התראת מקום - הן
-          נקבעות במכשיר לפי האירועים האישיים בלבד, ובפריט משותף לא היו
-          מצלצלות; לכן השורה נקראת "שעה" ולא "שעת התראה".
+          אותם שדות בדיוק כמו בתזכורת אישית, ולכן כמו באירוע: מתג "תאריך
+          ושעה", ומתחתיו יום, פרישה ושעות. מקום והערות מוצגים גם בלי יום.
+          בלי התראה ובלי התראת מקום - הן נקבעות במכשיר לפי האירועים
+          האישיים בלבד, ובפריט משותף לא היו מצלצלות.
         */}
         <EventFields
           draft={timing}
@@ -264,7 +264,6 @@ export function SharedItemSheet({
           personal={false}
           reminder
           scheduled={dated}
-          onDated={() => setDated(true)}
           category={{
             value: category,
             onChange: setCategory,
@@ -277,8 +276,8 @@ export function SharedItemSheet({
           whenToggle={
             <ToggleRow
               grouped
-              icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-              label="משויך ליום"
+              icon={<CalendarClock size={ICON.md} strokeWidth={STROKE} />}
+              label="תאריך ושעה"
               checked={dated}
               onChange={setDated}
             />

@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Trash2 } from 'lucide-react';
+import { CalendarClock, Trash2 } from 'lucide-react';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { EVENT_COLORS, useEventsStore, type EventDraft } from '@/store/events';
@@ -82,9 +82,9 @@ export function EventEditor({
   /** אירוע קיים לעריכה, או null ליצירה */
   editing: Occurrence | UserEvent | null;
   /**
-   * נפתח ממסך התזכורות. אותו אירוע ואותה שמירה, אבל טופס של תזכורת:
-   * שעת התראה אחת, בלי סיום, בלי "כמה דקות לפני" ובלי חזרה. ראו
-   * `reminder` ב-`EventFields`.
+   * נפתח ממסך התזכורות. אותו אירוע, אותה שמירה ואותם שדות - ההבדל היחיד
+   * הוא המתג "תאריך ושעה", כי לתזכורת מותר להיות בלי יום. ראו `reminder`
+   * ב-`EventFields`.
    */
   reminder?: boolean;
 }) {
@@ -145,7 +145,7 @@ export function EventEditor({
         repeatEvery: editing.repeatEvery,
         endDate: editing.endDate,
         categoryId: editing.categoryId,
-        // בטיוטה ולא נקרא מ-`editing` בשמירה: המתג "משויך ליום" משנה אותו
+        // בטיוטה ולא נקרא מ-`editing` בשמירה: המתג "תאריך ושעה" משנה אותו
         undated: 'undated' in editing && editing.undated ? true : undefined,
       };
       setDraft(loaded);
@@ -194,20 +194,18 @@ export function EventEditor({
       startTime: draft.allDay ? null : draft.startTime,
       endTime: draft.allDay ? null : draft.endTime,
     };
-    if (!reminder) return base;
+    if (!draft.undated) return base;
     /*
-      בתזכורת השעה היא ההתראה. זה נקבע כאן ולא רק בשדה, כי תזכורת שקיבלה
-      שעה בעורך הישן נשארה עם `reminderMinutes: null` - שעה על המסך, ושום
-      התראה במכשיר. שמירה אחת מתקנת אותה.
+      כיבוי "תאריך ושעה" אינו מנקה את הטיוטה, כדי שהדלקה חוזרת תחזיר את
+      מה שנבחר. הניקוי קורה כאן: שעה, פרישה והתראה בלי יום אינן כלום.
     */
-    const timed = !draft.undated && !draft.allDay;
     return {
       ...base,
-      allDay: !timed,
-      startTime: timed ? base.startTime : null,
-      endTime: timed ? base.endTime : null,
+      allDay: true,
+      startTime: null,
+      endTime: null,
       endDate: undefined,
-      reminderMinutes: timed ? 0 : null,
+      reminderMinutes: null,
     };
   };
 
@@ -408,24 +406,30 @@ export function EventEditor({
           draft={draft}
           patch={patch}
           reminder={reminder}
-          scheduled={!reminder || !draft.undated}
-          onDated={() => patch({ undated: undefined })}
+          scheduled={!draft.undated}
           whenToggle={
             reminder ? (
               <ToggleRow
                 grouped
-                icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
-                label="משויך ליום"
+                icon={<CalendarClock size={ICON.md} strokeWidth={STROKE} />}
+                label="תאריך ושעה"
                 checked={!draft.undated}
                 onChange={(on) => {
-                  if (on) {
-                    // היום שנשמר לה עלול להיות מלפני שבוע; תזכורת ששובצה לעבר לא תצלצל
-                    const today = dateKey(new Date());
-                    patch({ undated: undefined, date: draft.date < today ? today : draft.date });
+                  if (!on) {
+                    patch({ undated: true });
                     return;
                   }
-                  // "שעה בלי יום אינה שעה" - אותו כלל של ההוספה המהירה
-                  patch({ undated: true, allDay: true, reminderMinutes: null });
+                  /*
+                    היום שנשמר לה עלול להיות מלפני שבוע; תזכורת ששובצה לעבר
+                    לא תצלצל. ההתראה נדלקת יחד עם היום - תזכורת שנשמרה בלי
+                    יום אין לה התראה, ויום בלי התראה הוא תזכורת שלא מזכירה.
+                  */
+                  const today = dateKey(new Date());
+                  patch({
+                    undated: undefined,
+                    date: draft.date < today ? today : draft.date,
+                    reminderMinutes: draft.reminderMinutes ?? 0,
+                  });
                 }}
               />
             ) : undefined
