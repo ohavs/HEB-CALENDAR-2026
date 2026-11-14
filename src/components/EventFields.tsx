@@ -10,23 +10,23 @@
  * אישי. שדה שמוצג ואינו עושה דבר גרוע משדה שאינו מוצג.
  */
 import { useEffect, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
-  CalendarDays,
   CalendarRange,
-  Clock,
   MapPin,
   Navigation,
+  FilePen,
   Tag,
 } from '@/components/ui/icons';
 import type { DateKey, PlaceTrigger, UserEvent } from '@/types';
-import { spanLengthOf, undatedRepeatHint } from '@/lib/recurrence';
+import { undatedRepeatHint } from '@/lib/recurrence';
 import { REMINDER_OPTIONS, useEvents } from '@/store/events';
 import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
-import { hebrewDateParts } from '@/lib/hebrew';
 import { shiftEndWithStart } from '@/lib/reminderCompose';
-import { ICON } from '@/lib/motion';
+import { shortDateLabel, whenSummary } from '@/lib/whenSummary';
+import { ENTER, EXIT, GLIDE, ICON } from '@/lib/motion';
 import {
   geoPermission,
   haptic,
@@ -37,15 +37,11 @@ import {
 } from '@/lib/native';
 import { LocationPicker } from './LocationPicker';
 import { RepeatField } from './RepeatField';
-import { Segmented, Toggle } from './ui/controls';
-import {
-  DateField,
-  FieldGroup,
-  PickerField,
-  SelectField,
-  TextArea,
-  TimeRangeRow,
-} from './ui/fields';
+import { Segmented } from './ui/controls';
+import { DayStrip } from './ui/DayStrip';
+import { TimeTiles } from './ui/TimeTiles';
+import { TileStrip } from './ui/tiles';
+import { FieldGroup, FormSection, PickerField, SelectField, TextAreaRow } from './ui/fields';
 
 /** ברירת המחדל, כשאיש לא אמר שעה */
 export const DEFAULT_START = '09:00';
@@ -65,29 +61,29 @@ export function defaultEndFor(start: string): string {
 }
 
 /**
- * שורת מתג. קודם כל בוליאני ישב בכרטיס בגובה 60px, ושני מתגים לקחו
- * חמישית מהמסך בשביל שתי מילים.
+ * "בלי תאריך | עם תאריך" - בראש קבוצת ה"מתי" של תזכורת ושל פריט משותף.
+ *
+ * מתג מצב ולא מתג דלוק־כבוי: שני המצבים הם תשובות שוות לשאלה "מתי",
+ * ותזכורת בלי תאריך אינה תזכורת "כבויה". אותו רכיב בשני הטפסים, כדי
+ * שיאמר אותו דבר בשניהם.
  */
-export function ToggleRow({
-  icon,
-  label,
-  checked,
+export function DatedSwitch({
+  dated,
   onChange,
-  grouped = false,
 }: {
-  icon: ReactNode;
-  label: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  /** בתוך `FieldGroup` - בלי קופסה משלה */
-  grouped?: boolean;
+  dated: boolean;
+  onChange: (dated: boolean) => void;
 }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-2 ${grouped ? '' : 'rounded-2xl bg-well'}`}>
-      <span className="shrink-0 text-muted">{icon}</span>
-      <span className="flex-1 text-label font-medium text-ink">{label}</span>
-      <Toggle label={label} checked={checked} onChange={onChange} />
-    </div>
+    <Segmented<'undated' | 'dated'>
+      label="תאריך ושעה"
+      value={dated ? 'dated' : 'undated'}
+      onChange={(v) => onChange(v === 'dated')}
+      options={[
+        { value: 'undated', label: 'בלי תאריך' },
+        { value: 'dated', label: 'עם תאריך' },
+      ]}
+    />
   );
 }
 
@@ -112,8 +108,8 @@ function ChipToggle({
         void haptic('light');
         onChange(!checked);
       }}
-      className={`focus-ring flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-medium transition-colors ${
-        checked ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
+      className={`focus-ring flex h-10 items-center gap-1.5 rounded-full px-3.5 text-label font-medium transition-colors ${
+        checked ? 'bg-inverse text-on-inverse' : 'bg-surface text-muted'
       }`}
     >
       {icon}
@@ -121,6 +117,20 @@ function ChipToggle({
     </button>
   );
 }
+
+/**
+ * התזכורות שבשורה. חמש ולא כל תשע: אלה שנבחרות באמת, ו"עוד" לשאר.
+ * 15 דקות ולא 10, כי זו ברירת המחדל של אירוע חדש - ברירת מחדל שיושבת
+ * מאחורי "עוד" נראית כמו בחירה שמישהו עשה.
+ */
+const QUICK_REMINDERS: (number | null)[] = [null, 0, 15, 60, 1440];
+const SHORT_REMINDER_LABEL: Record<string, string> = {
+  null: 'בלי',
+  0: 'בזמן',
+  15: '15 דק׳',
+  60: 'שעה לפני',
+  1440: 'יום לפני',
+};
 
 /** מה שהשדות קוראים וכותבים - החלק המשותף לאירוע ולפריט משותף */
 export type TimingDraft = {
@@ -189,14 +199,13 @@ export function EventFields({
   const places = settings.places;
   const allEvents = useEvents();
   const [locationOpen, setLocationOpen] = useState(false);
+  /** איזה קצה של הפרישה הרצועה בוחרת, באירוע של כמה ימים */
+  const [spanEdge, setSpanEdge] = useState<'from' | 'to'>('to');
 
-  const eventDate = keyToDate(draft.date);
-  const hebrew = hebrewDateParts(eventDate);
   /** המקום השמור שנבחר, אם נבחר כזה */
   const savedPlace = draft.placeId ? places.find((pl) => pl.id === draft.placeId) : undefined;
   const multiDay = Boolean(draft.endDate && draft.endDate > draft.date);
-  const spanDays = spanLengthOf({ date: draft.date, endDate: draft.endDate });
-  const spanHint = multiDay ? `${spanDays} ימים` : '';
+  const editingEnd = multiDay && spanEdge === 'to';
 
   /**
    * שינוי שעת ההתחלה מזיז גם את שעת הסיום, כדי לשמור על המשך.
@@ -210,141 +219,218 @@ export function EventFields({
     patch({ startTime: value, endTime: shiftEndWithStart(from, end, value) });
   };
 
+  const setAllDay = (allDay: boolean) => {
+    // כיבוי "כל היום" הופך את מה שהשדות הראו לערך אמיתי בטיוטה
+    if (allDay) {
+      patch({ allDay });
+      return;
+    }
+    const start = draft.startTime ?? DEFAULT_START;
+    patch({ allDay, startTime: start, endTime: draft.endTime ?? defaultEndFor(start) });
+  };
+
+  const setMultiDay = (on: boolean) => {
+    setSpanEdge('to');
+    patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined });
+  };
+
+  const pickDay = (key: DateKey) => {
+    if (editingEnd) {
+      patch({ endDate: key });
+      return;
+    }
+    // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
+    patch({ date: key, endDate: draft.endDate && draft.endDate < key ? key : draft.endDate });
+  };
+
   /*
     בתזכורת גם בלי יום: "כשאגיע לסופר" היא בדיוק תזכורת שאין לה תאריך.
     באירוע ביומן ההתראה דרוכה ביום שלו, ובלי יום אין לה מתי.
   */
   const hasPlaceAlert = personal && (scheduled || reminder) && Boolean(savedPlace);
+  const reminderValue = String(draft.reminderMinutes);
+  const showRepeatGroup = scheduled || reminder;
 
   /*
-    שלוש קבוצות ושדה אחד, לפי השאלה שכל אחת עונה עליה: מתי, איפה, ומה
-    עוד. כל קבוצה היא קופסה אחת עם קווים דקים, כך שהטופס קצר בלי שאף
-    שורה תקטן - ובלי לדחוס הכול לקופסה אחת שבה כבר לא רואים מה שייך למה.
+    שלוש קבוצות, לפי השאלה שכל אחת עונה עליה: מתי, חזרה ותזכורת, ואיפה
+    ומה. כל קבוצה היא קופסה אחת עם כותרת קטנה מעליה, כך שהשורות גדולות
+    בלי שהטופס יתארך - ובלי לדחוס הכול לקופסה אחת שבה כבר לא רואים מה
+    שייך למה.
   */
   return (
     <>
       {(scheduled || whenToggle) && (
-        <FieldGroup>
-          {whenToggle}
-          {scheduled && (
-            <>
-              <DateField
-                label={multiDay ? 'מתאריך' : 'תאריך'}
-                value={draft.date}
-                onChange={(d) =>
-                  // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
-                  patch({ date: d, endDate: draft.endDate && draft.endDate < d ? d : draft.endDate })
-                }
-                icon={<CalendarDays size={ICON.md} />}
-                hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
-                variant="grouped"
-              />
-
-              {/*
-                שני מתגים של "איך המועד בנוי" כצ׳יפים בשורה אחת. כשורות
-                מלאות הם לקחו יותר מקום מהתאריך עצמו, ורוב האירועים אינם
-                משתמשים באף אחד מהם.
-              */}
-              <div className="flex gap-2 px-4 py-2.5">
-                <ChipToggle
-                  icon={<Clock size={ICON.xs} />}
-                  label="כל היום"
-                  checked={draft.allDay}
-                  onChange={(allDay) => {
-                    // כיבוי המתג הופך את מה שהשדות הראו לערך אמיתי בטיוטה
-                    if (allDay) {
-                      patch({ allDay });
-                      return;
-                    }
-                    const start = draft.startTime ?? DEFAULT_START;
-                    patch({ allDay, startTime: start, endTime: draft.endTime ?? defaultEndFor(start) });
-                  }}
+        <FormSection title="מתי">
+          <div className="space-y-3 overflow-hidden rounded-group bg-well p-3">
+            {whenToggle}
+            {scheduled && (
+              <>
+                {/*
+                  "בשעות" ו"כל היום" הם שתי תשובות לאותה שאלה, ולכן מתג
+                  מצב ולא צ׳יפ דלוק־כבוי. במצב "כל היום" השעות מתקפלות:
+                  המתג עצמו אומר שיש שעות, ואריחים מעומעמים בגודל כזה היו
+                  תופסים חצי מסך בשביל רמז.
+                */}
+                <Segmented<'timed' | 'allDay'>
+                  label="סוג המועד"
+                  value={draft.allDay ? 'allDay' : 'timed'}
+                  onChange={(v) => setAllDay(v === 'allDay')}
+                  options={[
+                    { value: 'timed', label: 'בשעות' },
+                    { value: 'allDay', label: 'כל היום' },
+                  ]}
                 />
-                {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
-                <ChipToggle
-                  icon={<CalendarRange size={ICON.xs} />}
-                  label="כמה ימים"
-                  checked={multiDay}
-                  onChange={(on) =>
-                    patch({ endDate: on ? dateKey(addDays(keyToDate(draft.date), 1)) : undefined })
+
+                <DayStrip
+                  value={editingEnd ? (draft.endDate ?? draft.date) : draft.date}
+                  onChange={pickDay}
+                  min={editingEnd ? draft.date : undefined}
+                  range={multiDay ? { from: draft.date, to: draft.endDate! } : undefined}
+                  label={editingEnd ? 'יום הסיום' : 'תאריך'}
+                  headerEnd={
+                    /* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */
+                    <ChipToggle
+                      icon={<CalendarRange size={ICON.sm} />}
+                      label="כמה ימים"
+                      checked={multiDay}
+                      onChange={setMultiDay}
+                    />
                   }
                 />
-              </div>
 
-              {multiDay && (
-                <DateField
-                  label="עד תאריך"
-                  value={draft.endDate ?? draft.date}
-                  onChange={(endDate) => patch({ endDate })}
-                  icon={<CalendarRange size={ICON.md} />}
-                  hint={spanHint}
-                  min={draft.date}
-                  variant="grouped"
-                />
-              )}
+                {/*
+                  רצועה אחת לשני הקצוות: המתג אומר איזה מהם הקשה תזיז.
+                  שתי רצועות היו מכפילות את גובה הקבוצה בשביל אירוע שרוב
+                  האנשים יוצרים פעם בחודש.
+                */}
+                {multiDay && (
+                  <Segmented<'from' | 'to'>
+                    size="sm"
+                    label="איזה יום לבחור"
+                    value={spanEdge}
+                    onChange={setSpanEdge}
+                    options={[
+                      { value: 'from', label: `התחלה · ${shortDateLabel(draft.date)}` },
+                      { value: 'to', label: `סיום · ${shortDateLabel(draft.endDate!)}` },
+                    ]}
+                  />
+                )}
 
-              {/*
-                השעות נשארות על המסך גם כש"כל היום" דלוק, מעומעמות ולא
-                לחיצות. כשהן נעלמו לגמרי, מי שפתח אירוע של כל היום לא ראה
-                שום רמז לכך שיש בכלל שעות.
-              */}
-              <TimeRangeRow
-                icon={<Clock size={ICON.md} />}
-                label="שעות"
-                start={draft.startTime ?? DEFAULT_START}
-                end={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
-                onStart={onStartChange}
-                onEnd={(endTime) => patch({ endTime })}
-                disabled={draft.allDay}
-              />
-            </>
-          )}
-        </FieldGroup>
-      )}
+                <AnimatePresence initial={false}>
+                  {!draft.allDay && (
+                    <motion.div
+                      key="times"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0, transition: { height: GLIDE, opacity: EXIT } }}
+                      transition={{ height: GLIDE, opacity: ENTER }}
+                      className="overflow-hidden"
+                    >
+                      <TimeTiles
+                        start={draft.startTime ?? DEFAULT_START}
+                        end={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
+                        onStart={onStartChange}
+                        onEnd={(endTime) => patch({ endTime })}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-      <FieldGroup>
-        <PickerField
-          label="מקום"
-          display={draft.location || 'לא הוגדר'}
-          icon={<MapPin size={ICON.md} />}
-          hint={savedPlace ? 'מקום שמור' : undefined}
-          onOpen={() => setLocationOpen(true)}
-          variant="grouped"
-        />
-
-        {/*
-          התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
-          ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
-        */}
-        {hasPlaceAlert && savedPlace && (
-          <div className="px-4 py-3">
-            <span className="mb-2.5 flex items-center gap-2 text-caption font-medium text-muted">
-              <Navigation size={ICON.xs} />
-              תזכורת כשאני
-            </span>
-            <Segmented<'none' | PlaceTrigger>
-              value={draft.placeTrigger ?? 'none'}
-              onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
-              options={[
-                { value: 'none', label: 'בלי' },
-                { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
-                { value: 'leave', label: `יוצא מ${savedPlace.name}` },
-              ]}
-            />
-            {draft.placeTrigger && <BackgroundLocationHint />}
-            {draft.placeTrigger && (
-              <p className="mt-2.5 text-caption leading-relaxed text-muted">
-                {reminder && !scheduled
-                  ? 'ההתראה דרוכה כל עוד התזכורת לא סומנה כבוצעה.'
-                  : 'ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.'}
-              </p>
+                <p className="px-1 text-caption leading-relaxed text-muted" aria-live="polite">
+                  {whenSummary(draft)}
+                </p>
+              </>
             )}
           </div>
-        )}
-      </FieldGroup>
+        </FormSection>
+      )}
 
-      {(category || reminder || scheduled || personal) && (
+      {showRepeatGroup && (
+        <FormSection title={personal && scheduled ? 'חזרה ותזכורת' : 'חזרה'}>
+          <FieldGroup>
+            <RepeatField
+              repeat={draft.repeat}
+              repeatEvery={draft.repeatEvery}
+              onChange={(next) => patch(next)}
+            />
+            {reminder && !scheduled && draft.repeat !== 'none' && (
+              <p className="px-4 py-3 text-caption leading-relaxed text-muted">
+                {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
+              </p>
+            )}
+            {/* בלי יום אין רגע להקדים אליו */}
+            {personal && scheduled && (
+              <div className="space-y-2.5 px-4 pb-3.5 pt-3">
+                <span className="flex items-center gap-3.5 text-body font-medium text-ink">
+                  <span className="flex w-6 justify-center text-muted [&_svg]:h-5 [&_svg]:w-5">
+                    <Bell size={ICON.lg} />
+                  </span>
+                  תזכורת
+                </span>
+                <TileStrip<string>
+                  label="תזכורת"
+                  value={reminderValue}
+                  onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
+                  options={QUICK_REMINDERS.map((m) => ({
+                    value: String(m),
+                    label: SHORT_REMINDER_LABEL[String(m)],
+                  }))}
+                  more={{
+                    label: 'עוד…',
+                    title: 'תזכורת',
+                    options: REMINDER_OPTIONS.map((o) => ({
+                      value: String(o.value),
+                      label: o.label,
+                    })),
+                  }}
+                />
+              </div>
+            )}
+          </FieldGroup>
+        </FormSection>
+      )}
+
+      <FormSection title="איפה ומה">
         <FieldGroup>
+          <PickerField
+            label="מקום"
+            display={draft.location || 'לא הוגדר'}
+            icon={<MapPin size={ICON.md} />}
+            hint={savedPlace ? 'מקום שמור' : undefined}
+            onOpen={() => setLocationOpen(true)}
+            variant="grouped"
+          />
+
+          {/*
+            התראת מיקום אפשרית רק כשהמקום הוא מקום שמור: לטקסט חופשי
+            ("אצל סבתא") אין נקודת ציון, ואין על מה לגדר.
+          */}
+          {hasPlaceAlert && savedPlace && (
+            <div className="px-4 py-3">
+              <span className="mb-2.5 flex items-center gap-2 text-caption font-medium text-muted">
+                <Navigation size={ICON.xs} />
+                תזכורת כשאני
+              </span>
+              <Segmented<'none' | PlaceTrigger>
+                value={draft.placeTrigger ?? 'none'}
+                onChange={(v) => patch({ placeTrigger: v === 'none' ? undefined : v })}
+                options={[
+                  { value: 'none', label: 'בלי' },
+                  { value: 'arrive', label: `מגיע ל${savedPlace.name}` },
+                  { value: 'leave', label: `יוצא מ${savedPlace.name}` },
+                ]}
+              />
+              {draft.placeTrigger && <BackgroundLocationHint />}
+              {draft.placeTrigger && (
+                <p className="mt-2.5 text-caption leading-relaxed text-muted">
+                  {reminder && !scheduled
+                    ? 'ההתראה דרוכה כל עוד התזכורת לא סומנה כבוצעה.'
+                    : 'ההתראה דרוכה ביום האירוע בלבד, ונשלחת פעם אחת.'}
+                </p>
+              )}
+            </div>
+          )}
+
           {category && (
             <SelectField<string>
               label="קטגוריה"
@@ -360,39 +446,16 @@ export function EventFields({
               }
             />
           )}
-          {(scheduled || reminder) && (
-            <RepeatField
-              repeat={draft.repeat}
-              repeatEvery={draft.repeatEvery}
-              onChange={(next) => patch(next)}
-            />
-          )}
-          {reminder && !scheduled && draft.repeat !== 'none' && (
-            <p className="px-4 pb-3.5 text-caption leading-relaxed text-muted">
-              {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
-            </p>
-          )}
-          {/* בלי יום אין רגע להקדים אליו */}
-          {personal && scheduled && (
-            <SelectField<string>
-              label="תזכורת"
-              value={String(draft.reminderMinutes)}
-              onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-              icon={<Bell size={ICON.md} />}
-              options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
-              variant="grouped"
-            />
-          )}
-        </FieldGroup>
-      )}
 
-      <TextArea
-        label="הערות"
-        value={draft.notes ?? ''}
-        onChange={(notes) => patch({ notes })}
-        placeholder="פרטים נוספים"
-        rows={2}
-      />
+          <TextAreaRow
+            icon={<FilePen size={ICON.md} />}
+            label="הערות"
+            value={draft.notes ?? ''}
+            onChange={(notes) => patch({ notes })}
+            placeholder="הערות"
+          />
+        </FieldGroup>
+      </FormSection>
 
       <LocationPicker
         open={locationOpen}
@@ -431,7 +494,7 @@ function BackgroundLocationHint() {
         if (!geo.foreground) void requestGeoForeground().then(setGeo);
         else void openAppSettings();
       }}
-      className="focus-ring mt-2.5 flex w-full items-start gap-2 rounded-xl bg-brand-soft px-3 py-2.5 text-right text-caption leading-relaxed text-brand-ink"
+      className="focus-ring mt-2.5 flex w-full items-start gap-2 rounded-tile bg-surface px-3 py-2.5 text-right text-caption leading-relaxed text-ink"
     >
       <Navigation size={ICON.xs} className="mt-0.5 shrink-0" />
       <span>

@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, Trash2 } from '@/components/ui/icons';
+import { Check, Plus, Trash2 } from '@/components/ui/icons';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useEventsStore, type EventDraft } from '@/store/events';
@@ -14,13 +14,15 @@ import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
 import { MAX_REMINDER_CATEGORIES } from './ReminderCategoriesSheet';
 import { newId } from '@/lib/sharedLists';
-import { DEFAULT_START, EventFields, ToggleRow, defaultEndFor } from './EventFields';
+import { DEFAULT_START, DatedSwitch, EventFields, defaultEndFor } from './EventFields';
 import { dateKey, keyToDate, dayTitleLabel } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { isDraftDirty } from '@/lib/draftDirty';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
+import { FormSection, TitleField } from './ui/fields';
+import { shortWhenLabel } from '@/lib/whenSummary';
 import { ICON } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
@@ -323,7 +325,7 @@ export function EventEditor({
             className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
               !isSeriesMember && confirmDelete
                 ? 'bg-danger text-on-danger'
-                : 'bg-well text-danger'
+                : 'bg-danger-soft text-danger'
             }`}
           >
             <Trash2 size={ICON.md} />
@@ -334,45 +336,40 @@ export function EventEditor({
       footer={
         <PrimaryButton onClick={onSave} disabled={!draft.title.trim()}>
           {/* כפתור מושבת שאומר למה עדיף על כפתור מושבת ששותק */}
-          {!draft.title.trim()
-            ? reminder
-              ? 'צריך שם לתזכורת'
-              : 'צריך שם לאירוע'
-            : editing
-              ? 'שמירת שינויים'
-              : reminder
-                ? 'הוספת תזכורת'
-                : 'יצירת אירוע'}
+          {!draft.title.trim() ? (
+            reminder ? (
+              'צריך שם לתזכורת'
+            ) : (
+              'צריך שם לאירוע'
+            )
+          ) : (
+            <>
+              {editing ? <Check size={ICON.lg} weight="bold" /> : <Plus size={ICON.lg} weight="bold" />}
+              {/*
+                הכפתור אומר את התוצאה: מי שלוחץ רואה לאיזה יום ושעה זה
+                נכתב, בלי לגלול חזרה לראש הטופס כדי לוודא.
+              */}
+              <span className="truncate">
+                {editing ? 'שמירת שינויים' : reminder ? 'הוספת תזכורת' : 'יצירת אירוע'}
+                {!draft.undated && (
+                  <span className="tnum font-medium opacity-75">
+                    {' · '}
+                    {shortWhenLabel(draft.date, draft.allDay ? null : draft.startTime)}
+                  </span>
+                )}
+              </span>
+            </>
+          )}
         </PrimaryButton>
       }
     >
-      <div className="space-y-2.5 pb-2">
-        {/*
-          הכותרת היא השדה היחיד שחובה למלא, ולכן היא בולטת - אבל דרך
-          הטיפוגרפיה ולא דרך צורה חריגה.
-
-          קודם היא הייתה קו תחתון בלבד. הקו נראה כמו שובר בפריסה, וגרוע
-          מזה: ל-`field-reset` יש טבעת מיקוד מלבנית משלה, ולשדה בלי
-          קופסה היא צפה סביב הטקסט כמלבן חד באמצע מסך מעוגל. עכשיו יש
-          קופסה אמיתית עם `focus-within`, כמו בכל שדה אחר, והגודל
-          והמשקל הם שאומרים "כאן מתחילים".
-        */}
-        <div className="field-shell rounded-2xl bg-well px-4">
-          <input
-            type="text"
-            value={draft.title}
-            onChange={(e) => patch({ title: e.target.value })}
-            placeholder={reminder ? 'מה להזכיר' : 'שם האירוע'}
-            autoComplete="off"
-            aria-label={reminder ? 'כותרת התזכורת' : 'כותרת האירוע'}
-            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
-          />
-        </div>
-
-        {/* צבע - אותה שורה של כל האפליקציה. יורדת לתחתית הטופס בשלב 4 */}
-        <div className="rounded-group bg-well px-2 py-1">
-          <ColorRow value={draft.color} onChange={(color) => patch({ color })} />
-        </div>
+      <div className="space-y-5 pb-2">
+        <TitleField
+          value={draft.title}
+          onChange={(title) => patch({ title })}
+          placeholder={reminder ? 'מה להזכיר' : 'שם האירוע'}
+          label={reminder ? 'כותרת התזכורת' : 'כותרת האירוע'}
+        />
 
         <EventFields
           draft={draft}
@@ -381,11 +378,8 @@ export function EventEditor({
           scheduled={!draft.undated}
           whenToggle={
             reminder ? (
-              <ToggleRow
-                grouped
-                icon={<CalendarClock size={ICON.md} />}
-                label="תאריך ושעה"
-                checked={!draft.undated}
+              <DatedSwitch
+                dated={!draft.undated}
                 onChange={(on) => {
                   if (!on) {
                     patch({ undated: true });
@@ -424,6 +418,16 @@ export function EventEditor({
               : undefined
           }
         />
+
+        {/*
+          צבע בתחתית: הוא נבחר אחרון, אם בכלל - רוב האירועים נשארים בצבע
+          ברירת המחדל. בראש הטופס הוא דחק את "מתי" מתחת לקו המסך.
+        */}
+        <FormSection title="צבע">
+          <div className="rounded-group bg-well px-2 py-1">
+            <ColorRow value={draft.color} onChange={(color) => patch({ color })} />
+          </div>
+        </FormSection>
       </div>
 
       <ScopeSheet

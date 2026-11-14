@@ -20,6 +20,8 @@ import {
 import { ICON, TAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { PickerField } from './ui/fields';
+import { PrimaryButton } from './ui/controls';
+import { TileGrid } from './ui/tiles';
 import { Sheet } from './ui/Sheet';
 
 type Rule = UserEvent['repeat'];
@@ -70,52 +72,32 @@ export function RepeatField({
         variant="grouped"
       />
       <Sheet open={open} onClose={() => setOpen(false)} title="חזרה">
-        <div className="space-y-2 pb-4">
-          {PRESETS.map((rule) => {
-            const active = rule === repeat && !custom;
-            return (
-              <motion.button
-                key={rule}
-                type="button"
-                whileTap={{ scale: 0.99 }}
-                transition={TAP}
-                onClick={() => {
-                  set(rule, 1);
-                  setOpen(false);
-                }}
-                aria-pressed={active}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-right transition-colors ${
-                  active ? 'bg-brand-soft' : 'bg-well'
-                }`}
-              >
-                <span
-                  className={`min-w-0 flex-1 text-body font-medium ${
-                    active ? 'text-brand-ink' : 'text-ink'
-                  }`}
-                >
-                  {REPEAT_LABELS[rule]}
-                </span>
-                {active && <Check size={ICON.lg} weight="bold" className="shrink-0 text-brand" />}
-              </motion.button>
-            );
-          })}
+        <div className="space-y-3 pb-4">
+          {/*
+            אריחים ולא רשימה: שש אפשרויות ברשימה לקחו את כל גובה החלונית,
+            ו"מותאם אישית" נדחק מתחת לקו המסך - בדיוק האפשרות שצריך לחפש.
+          */}
+          <TileGrid<Rule>
+            label="חזרה"
+            value={custom ? null : repeat}
+            options={PRESETS.map((rule) => ({ value: rule, label: REPEAT_LABELS[rule] }))}
+            onChange={(rule) => {
+              set(rule, 1);
+              setOpen(false);
+            }}
+          />
 
           {/* מותאם אישית: המשפט עצמו, המספר, והיחידה - כולם יחד */}
           <section
             aria-label="מותאם אישית"
-            className={`space-y-3 rounded-2xl px-4 py-4 transition-colors ${
-              custom ? 'bg-brand-soft' : 'bg-well'
+            className={`space-y-3 rounded-field px-4 py-4 transition-shadow ${
+              custom ? 'bg-well shadow-[inset_0_0_0_2px_rgb(var(--c-ink))]' : 'bg-well'
             }`}
           >
             <div className="flex items-center gap-3">
               <span className="min-w-0 flex-1">
                 <span className="block text-caption font-medium text-muted">מותאם אישית</span>
-                <span
-                  className={`mt-0.5 block text-body font-semibold ${
-                    custom ? 'text-brand-ink' : 'text-ink'
-                  }`}
-                  aria-live="polite"
-                >
+                <span className="mt-0.5 block text-body font-semibold text-ink" aria-live="polite">
                   {custom ? repeatLabel({ repeat, repeatEvery }) : 'כל כמה ימים, שבועות או חודשים'}
                 </span>
               </span>
@@ -144,8 +126,8 @@ export function RepeatField({
                       set(unit, custom ? every : 2);
                     }}
                     aria-pressed={active}
-                    className={`focus-ring rounded-full px-3 py-1.5 text-caption font-medium transition-colors ${
-                      active ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
+                    className={`focus-ring h-10 rounded-full px-3.5 text-label font-medium transition-colors ${
+                      active ? 'bg-inverse text-on-inverse' : 'bg-surface text-muted'
                     }`}
                   >
                     {unitChip(unit)}
@@ -156,15 +138,10 @@ export function RepeatField({
           </section>
 
           {custom && (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.98 }}
-              transition={TAP}
-              onClick={() => setOpen(false)}
-              className="focus-ring w-full rounded-2xl bg-brand py-3.5 text-label font-semibold text-on-inverse"
-            >
+            <PrimaryButton onClick={() => setOpen(false)}>
+              <Check size={ICON.lg} weight="bold" />
               {repeatLabel({ repeat, repeatEvery })}
-            </motion.button>
+            </PrimaryButton>
           )}
         </div>
       </Sheet>

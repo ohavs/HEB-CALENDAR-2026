@@ -10,13 +10,11 @@ import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from './icons';
 import {
-  DatePickerSheet,
   NumberPickerSheet,
   OptionPickerSheet,
   TimePickerSheet,
   type PickerOption,
 } from './Picker';
-import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON, TAP } from '@/lib/motion';
 
 /* ------------------------------ מעטפת שדה ------------------------------ */
@@ -86,71 +84,95 @@ export function FieldGroup({ children }: { children: ReactNode }) {
 }
 
 /**
- * התחלה וסיום בשורה אחת: "09:00 – 10:00".
+ * קבוצה בטופס עם כותרת קטנה מעליה: "מתי", "חזרה ותזכורת", "איפה ומה".
  *
- * שתי שורות נפרדות אמרו פעמיים "שעה", וכל אחת לקחה גובה של שורה מלאה
- * בשביל חמישה תווים. כאן שני הערכים נלחצים כל אחד לבד.
+ * הכותרת היא מה שמאפשר לשורות עצמן להיות גדולות: כשברור לאיזו שאלה
+ * הקופסה עונה, כל שורה בה אינה צריכה להסביר את עצמה.
  */
-export function TimeRangeRow({
+export function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2" aria-label={title}>
+      <h3 className="px-4 text-caption font-semibold text-muted">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * כותרת של טופס - שדה גדול בלי מסגרת.
+ *
+ * זה השדה היחיד שחובה למלא, ולכן הוא הטקסט הגדול בטופס ולא עוד קופסה
+ * בין קופסאות. הקופסה מופיעה רק בפוקוס (`focus-within`), כדי שיהיה ברור
+ * איפה מקלידים - ו-`field-shell` מצייר את טבעת המיקוד על הצורה המעוגלת
+ * ולא מלבן סביב הטקסט.
+ */
+export function TitleField({
+  value,
+  onChange,
+  placeholder,
+  label,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  /** שם לקורא מסך */
+  label: string;
+}) {
+  return (
+    /*
+      הגודל והמשקל על המעטפת ולא על השדה: `.field-reset` קובע
+      `font: inherit` וגובר על מחלקות באותו אלמנט, ולכן שדה שנשא
+      `text-heading` עצמו יצא בגודל של גוף הטקסט.
+    */
+    <div className="field-shell rounded-field px-4 text-heading font-bold transition-colors focus-within:bg-well">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+        aria-label={label}
+        className="field-reset w-full bg-transparent py-3 text-ink placeholder:font-semibold placeholder:text-faint"
+      />
+    </div>
+  );
+}
+
+/**
+ * הערות כשורה בתוך `FieldGroup`, עם אייקון כמו שאר השורות.
+ *
+ * טבעת המיקוד פנימית (`inset`): הקבוצה חותכת את מה שחורג ממנה, וטבעת
+ * חיצונית הייתה נקטעת בפינה המעוגלת של השורה האחרונה.
+ */
+export function TextAreaRow({
   icon,
   label,
-  start,
-  end,
-  onStart,
-  onEnd,
-  disabled = false,
+  value,
+  onChange,
+  placeholder,
+  rows = 2,
 }: {
-  icon?: ReactNode;
+  icon: ReactNode;
   label: string;
-  start: string;
-  end: string;
-  onStart: (next: string) => void;
-  onEnd: (next: string) => void;
-  /** "כל היום": השעות נשארות על המסך, מעומעמות, כרמז שהן קיימות */
-  disabled?: boolean;
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  rows?: number;
 }) {
-  const [open, setOpen] = useState<'start' | 'end' | null>(null);
-  const value = (which: 'start' | 'end', text: string, aria: string) => (
-    <button
-      type="button"
-      onClick={() => setOpen(which)}
-      aria-label={`${aria} ${text}`}
-      className="tnum focus-ring rounded-tile px-2.5 py-1.5 text-body font-semibold text-ink active:bg-hairline"
-    >
-      {text}
-    </button>
-  );
   return (
-    <>
-      <div
-        className={`flex min-h-[56px] items-center gap-3.5 px-4 py-1.5 transition-opacity ${
-          disabled ? 'pointer-events-none opacity-40' : ''
-        }`}
-        aria-hidden={disabled}
-      >
-        {icon && <RowIcon>{icon}</RowIcon>}
-        <span className="flex-1 text-body font-medium text-ink">{label}</span>
-        <span className="flex items-center gap-0.5">
-          {value('start', start, 'התחלה')}
-          <span className="text-faint">–</span>
-          {value('end', end, 'סיום')}
-        </span>
-      </div>
-      <TimePickerSheet
-        open={open === 'start'}
-        onClose={() => setOpen(null)}
-        title="התחלה"
-        value={start}
-        onChange={onStart}
+    <label className="field-shell flex min-h-[56px] items-start gap-3.5 px-4 py-3.5 text-body leading-relaxed focus-within:!shadow-[inset_0_0_0_2px_rgb(var(--c-ink)/0.3)]">
+      <span className="pt-0.5">
+        <RowIcon>{icon}</RowIcon>
+      </span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        aria-label={label}
+        className="field-reset min-w-0 flex-1 resize-none bg-transparent p-0 text-ink placeholder:text-faint"
       />
-      <TimePickerSheet
-        open={open === 'end'}
-        onClose={() => setOpen(null)}
-        title="סיום"
-        value={end}
-        onChange={onEnd}
-      />
-    </>
+    </label>
   );
 }
 
@@ -330,57 +352,6 @@ export function SelectField<T extends string | number>({
         options={options}
         onChange={onChange}
         create={create}
-      />
-    </>
-  );
-}
-
-/* ------------------------------- תאריך ------------------------------- */
-
-/** "18 בספטמבר 2026" */
-export function formatDateHe(key: string): string {
-  const [y, m, d] = key.split('-').map(Number);
-  if (!Number.isFinite(d)) return 'בחירת תאריך';
-  return `${d} ב${GREG_MONTHS_HE[m - 1]} ${y}`;
-}
-
-export function DateField({
-  label,
-  value,
-  onChange,
-  icon,
-  hint,
-  min,
-  variant,
-}: {
-  label: string;
-  /** YYYY-MM-DD */
-  value: string;
-  onChange: (next: string) => void;
-  icon?: ReactNode;
-  hint?: ReactNode;
-  /** התאריך המוקדם ביותר שאפשר לבחור */
-  min?: string;
-  variant?: FieldVariant;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <PickerField
-        label={label}
-        display={formatDateHe(value)}
-        icon={icon}
-        hint={hint}
-        variant={variant}
-        onOpen={() => setOpen(true)}
-      />
-      <DatePickerSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={label}
-        value={value}
-        onChange={onChange}
-        min={min}
       />
     </>
   );

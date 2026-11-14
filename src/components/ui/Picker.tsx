@@ -23,10 +23,12 @@ import {
   isSameDay,
   keyToDate,
   monthGridDays,
+  monthKey,
   orderedWeekdays,
 } from '@/lib/dates';
 import { useDateMarkers } from '@/hooks/useDateMarkers';
-import { ICON, TAP } from '@/lib/motion';
+import { usePageDirection } from '@/hooks/usePageDirection';
+import { ENTER, ICON, SNAP, TAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 
 /* ==========================================================================
@@ -174,14 +176,19 @@ function WheelColumn({
 function WheelFrame({
   children,
   ltr = false,
+  onWell = false,
 }: {
   children: React.ReactNode;
   ltr?: boolean;
+  /** יושב בתוך קופסה בגוון `well`, ולכן הרצועה צריכה גוון אחר */
+  onWell?: boolean;
 }) {
   return (
     <div className="relative flex items-stretch gap-2" dir={ltr ? 'ltr' : undefined}>
       <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-field bg-well"
+        className={`pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-field ${
+          onWell ? 'bg-surface' : 'bg-well'
+        }`}
         style={{ height: ITEM_H }}
       />
       {children}
@@ -246,6 +253,54 @@ export function NumberPickerSheet({
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 
+/**
+ * גלגל השעה עצמו, בלי חלונית - כדי שהטופס יוכל לפרוש אותו במקום.
+ *
+ * בטופס האירוע השעה נבחרת מתחת לאריחים ולא בגיליון נוסף: גיליון מעל
+ * גיליון מסתיר בדיוק את מה שהשעה משנה - את הסיום ואת שורת הסיכום.
+ */
+export function TimeWheel({
+  value,
+  onChange,
+  minuteStep = 1,
+  onWell = false,
+}: {
+  /** HH:mm */
+  value: string;
+  onChange: (next: string) => void;
+  minuteStep?: number;
+  /** ראו `WheelFrame` */
+  onWell?: boolean;
+}) {
+  const [h, m] = value.split(':');
+  const minutes = useMemo(
+    () =>
+      Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) =>
+        String(i * minuteStep).padStart(2, '0'),
+      ),
+    [minuteStep],
+  );
+  // אם השעה שנשמרה אינה על הרשת, מוסיפים אותה כדי לא לאבד אותה
+  const minuteItems = minutes.includes(m)
+    ? minutes
+    : [...minutes, m].sort((a, b) => Number(a) - Number(b));
+
+  return (
+    /* שעות משמאל, דקות מימין - 23:15 נקרא כמו בשעון */
+    <WheelFrame ltr onWell={onWell}>
+      <WheelColumn items={HOURS} value={h} onChange={(next) => onChange(`${next}:${m}`)} />
+      <span
+        aria-hidden="true"
+        /* relative: הרצועה ממוקמת absolute, ובלי זה היא נצבעת מעל הנקודתיים */
+        className="pointer-events-none relative flex w-3 shrink-0 items-center justify-center text-display font-bold text-muted"
+      >
+        :
+      </span>
+      <WheelColumn items={minuteItems} value={m} onChange={(next) => onChange(`${h}:${next}`)} />
+    </WheelFrame>
+  );
+}
+
 export function TimePickerSheet({
   open,
   onClose,
@@ -264,38 +319,10 @@ export function TimePickerSheet({
   onChange: (next: string) => void;
   minuteStep?: number;
 }) {
-  const [h, m] = value.split(':');
-  const minutes = useMemo(
-    () =>
-      Array.from({ length: Math.ceil(60 / minuteStep) }, (_, i) =>
-        String(i * minuteStep).padStart(2, '0'),
-      ),
-    [minuteStep],
-  );
-  // אם השעה שנשמרה אינה על הרשת, מוסיפים אותה כדי לא לאבד אותה
-  const minuteItems = minutes.includes(m)
-    ? minutes
-    : [...minutes, m].sort((a, b) => Number(a) - Number(b));
-
   return (
     <Sheet open={open} onClose={onClose} title={title} subtitle={subtitle}>
       <div className="pb-4">
-        {/* שעות משמאל, דקות מימין - 23:15 נקרא כמו בשעון */}
-        <WheelFrame ltr>
-          <WheelColumn items={HOURS} value={h} onChange={(next) => onChange(`${next}:${m}`)} />
-          <span
-            aria-hidden="true"
-            /* relative: הרצועה ממוקמת absolute, ובלי זה היא נצבעת מעל הנקודתיים */
-            className="pointer-events-none relative flex w-3 shrink-0 items-center justify-center text-display font-bold text-muted"
-          >
-            :
-          </span>
-          <WheelColumn
-            items={minuteItems}
-            value={m}
-            onChange={(next) => onChange(`${h}:${next}`)}
-          />
-        </WheelFrame>
+        <TimeWheel value={value} onChange={onChange} minuteStep={minuteStep} />
       </div>
     </Sheet>
   );
@@ -464,132 +491,174 @@ export function DatePickerSheet({
   /** התאריך המוקדם ביותר שאפשר לבחור (YYYY-MM-DD) */
   min?: string;
 }) {
+  return (
+    <Sheet open={open} onClose={onClose} title={title}>
+      <div className="pb-4">
+        <MonthCalendar
+          value={value}
+          min={min}
+          onChange={(key) => {
+            onChange(key);
+            onClose();
+          }}
+        />
+      </div>
+    </Sheet>
+  );
+}
+
+/**
+ * חודש מלא לבחירת יום - בגיליון, או פרוש בתוך הטופס מתחת לרצועת הימים.
+ *
+ * החודש המוצג נגזר מהערך בכל פעם שהוא משתנה מבחוץ, כך שבחירה ברצועה
+ * מזיזה גם את החודש הפרוש.
+ */
+export function MonthCalendar({
+  value,
+  onChange,
+  min,
+  range,
+  onWell = false,
+}: {
+  /** YYYY-MM-DD */
+  value: string;
+  onChange: (next: string) => void;
+  /** התאריך המוקדם ביותר שאפשר לבחור (YYYY-MM-DD) */
+  min?: string;
+  /** פרישה של אירוע רב־יומי, לסימון הימים שבתוכה */
+  range?: { from: string; to: string };
+  /** פרוש בתוך קופסה בגוון `well` - הכפתורים והמועדים מקבלים גוון אחר */
+  onWell?: boolean;
+}) {
+  const raised = onWell ? 'bg-surface' : 'bg-well';
   const selected = keyToDate(value);
   const [month, setMonth] = useState(
     () => new Date(selected.getFullYear(), selected.getMonth(), 1),
   );
 
-  // כשנפתח מחדש, חוזרים לחודש של הערך הנבחר
   useEffect(() => {
-    if (open) setMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+    setMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, value]);
+  }, [value]);
 
   const days = useMemo(() => monthGridDays(month), [month]);
   const markers = useDateMarkers(days);
+  const direction = usePageDirection(monthKey(month));
   const today = new Date();
   const weekdays = orderedWeekdays();
 
-  return (
-    <Sheet open={open} onClose={onClose} title={title}>
-      <div className="pb-4">
-        {/* ניווט חודשים */}
-        <div className="mb-4 flex items-center justify-between">
-          {/* ב-RTL הזמן זורם שמאלה: אחורה בימין, קדימה בשמאל */}
-          <button
-            type="button"
-            aria-label="החודש הקודם"
-            onClick={() => setMonth((m) => addMonths(m, -1))}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
-          >
-            <ChevronRight size={ICON.lg} />
-          </button>
-          <span className="text-title font-semibold text-ink">
-            {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
-          </span>
-          <button
-            type="button"
-            aria-label="החודש הבא"
-            onClick={() => setMonth((m) => addMonths(m, 1))}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
-          >
-            <ChevronLeft size={ICON.lg} />
-          </button>
-        </div>
+  const holidayList = days
+    .filter((d) => d.getMonth() === month.getMonth())
+    .map((d) => ({ d, mark: markers.get(dateKey(d)) }))
+    .filter((x) => x.mark && x.mark.holidays.length > 0);
 
-        <div className="mb-1.5 grid grid-cols-7">
-          {weekdays.map((w) => (
-            <span key={w} className="text-center text-caption font-medium text-faint">
-              {w}
-            </span>
+  return (
+    <div>
+      {/* ניווט חודשים */}
+      <div className="mb-4 flex items-center justify-between">
+        {/* ב-RTL הזמן זורם שמאלה: אחורה בימין, קדימה בשמאל */}
+        <button
+          type="button"
+          aria-label="החודש הקודם"
+          onClick={() => setMonth((m) => addMonths(m, -1))}
+          className={`focus-ring flex h-11 w-11 items-center justify-center rounded-tile text-muted active:bg-hairline ${raised}`}
+        >
+          <ChevronRight size={ICON.lg} />
+        </button>
+        <span className="text-title font-semibold text-ink" aria-live="polite">
+          {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
+        </span>
+        <button
+          type="button"
+          aria-label="החודש הבא"
+          onClick={() => setMonth((m) => addMonths(m, 1))}
+          className={`focus-ring flex h-11 w-11 items-center justify-center rounded-tile text-muted active:bg-hairline ${raised}`}
+        >
+          <ChevronLeft size={ICON.lg} />
+        </button>
+      </div>
+
+      <div className="mb-1.5 grid grid-cols-7">
+        {weekdays.map((w) => (
+          <span key={w} className="text-center text-caption font-medium text-faint">
+            {w}
+          </span>
+        ))}
+      </div>
+
+      {/*
+        החודש הבא נכנס משמאל, מהצד של "הבא" - הכיוון נגזר מהמפתח ולא
+        מהכפתור (`usePageDirection`), כמו בלוח עצמו.
+      */}
+      <motion.div
+        key={monthKey(month)}
+        initial={direction === 0 ? false : { opacity: 0, x: direction > 0 ? -28 : 28 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ x: SNAP, opacity: ENTER }}
+        className="grid grid-cols-7 gap-1"
+      >
+        {days.map((d) => {
+          const key = dateKey(d);
+          const inMonth = d.getMonth() === month.getMonth();
+          const isSelected = key === value;
+          const inRange = Boolean(range && key >= range.from && key <= range.to);
+          const mark = markers.get(key);
+          const hasHoliday = Boolean(mark?.holidays.length);
+          const disabled = Boolean(min && key < min);
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(key)}
+              aria-pressed={isSelected}
+              aria-label={hasHoliday ? `${d.getDate()} · ${mark!.holidays[0]}` : undefined}
+              className="focus-ring flex flex-col items-center gap-1 rounded-tile py-1 disabled:opacity-30"
+            >
+              <span
+                className={`tnum flex h-11 w-11 items-center justify-center rounded-tile text-label transition-colors ${
+                  isSelected
+                    ? 'bg-inverse font-semibold text-on-inverse'
+                    : !inMonth
+                      ? 'text-faint/60'
+                      : inRange
+                        ? 'bg-ink/10 font-semibold text-ink'
+                        : hasHoliday
+                          ? `${raised} font-semibold text-ink`
+                          : isSameDay(d, today)
+                            ? 'font-semibold text-ink ring-2 ring-inset ring-ink/35'
+                            : 'text-ink'
+                }`}
+              >
+                {d.getDate()}
+              </span>
+
+              {/* נקודות בצבעי האירועים של אותו יום */}
+              <span className="flex h-1.5 items-center gap-[3px]">
+                {mark?.eventColors.map((c) => (
+                  <span key={c} className={`ev ev-${c} ev-solid block h-1.5 w-1.5 rounded-full`} />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </motion.div>
+
+      {/* רשימת המועדים של החודש, כדי שההדגשות לא יישארו מסתוריות */}
+      {holidayList.length > 0 && (
+        <div className={`mt-4 space-y-2 rounded-field px-4 py-3.5 ${raised}`}>
+          {holidayList.map(({ d, mark }) => (
+            <div key={dateKey(d)} className="flex items-baseline gap-3">
+              <span className="tnum w-6 shrink-0 text-caption font-semibold text-ink">
+                {d.getDate()}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-caption text-muted">
+                {mark!.holidays.join(' · ')}
+              </span>
+            </div>
           ))}
         </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {days.map((d) => {
-            const key = dateKey(d);
-            const inMonth = d.getMonth() === month.getMonth();
-            const isSelected = key === value;
-            const mark = markers.get(key);
-            const hasHoliday = Boolean(mark?.holidays.length);
-            const disabled = Boolean(min && key < min);
-            return (
-              <button
-                key={key}
-                type="button"
-                disabled={disabled}
-                onClick={() => {
-                  onChange(key);
-                  onClose();
-                }}
-                aria-label={hasHoliday ? `${d.getDate()} · ${mark!.holidays[0]}` : undefined}
-                className="focus-ring flex flex-col items-center gap-1 rounded-2xl py-1 disabled:opacity-30"
-              >
-                <span
-                  className={`tnum flex h-11 w-11 items-center justify-center rounded-2xl text-label transition-colors ${
-                    isSelected
-                      ? 'bg-brand font-semibold text-on-inverse'
-                      : !inMonth
-                        ? 'text-faint/60'
-                        : hasHoliday
-                          ? 'bg-brand-soft font-semibold text-brand-ink'
-                          : isSameDay(d, today)
-                            ? 'font-semibold text-brand-ink ring-2 ring-inset ring-brand/35'
-                            : d.getDay() === 6
-                              ? 'font-medium text-brand-ink'
-                              : 'text-ink'
-                  }`}
-                >
-                  {d.getDate()}
-                </span>
-
-                {/* נקודות בצבעי האירועים של אותו יום */}
-                <span className="flex h-1.5 items-center gap-[3px]">
-                  {mark?.eventColors.map((c) => (
-                    <span
-                      key={c}
-                      className={`ev ev-${c} ev-solid block h-1.5 w-1.5 rounded-full`}
-                    />
-                  ))}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* רשימת המועדים של החודש, כדי שההדגשות לא יישארו מסתוריות */}
-        {(() => {
-          const list = days
-            .filter((d) => d.getMonth() === month.getMonth())
-            .map((d) => ({ d, mark: markers.get(dateKey(d)) }))
-            .filter((x) => x.mark && x.mark.holidays.length > 0);
-          if (!list.length) return null;
-          return (
-            <div className="mt-4 space-y-2 rounded-2xl bg-well px-4 py-3.5">
-              {list.map(({ d, mark }) => (
-                <div key={dateKey(d)} className="flex items-baseline gap-3">
-                  <span className="tnum w-6 shrink-0 text-caption font-semibold text-brand-ink">
-                    {d.getDate()}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-caption text-muted">
-                    {mark!.holidays.join(' · ')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-      </div>
-    </Sheet>
+      )}
+    </div>
   );
 }

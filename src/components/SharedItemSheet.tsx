@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, EyeOff } from '@/components/ui/icons';
+import { EyeOff } from '@/components/ui/icons';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel, newId } from '@/lib/sharedLists';
@@ -24,11 +24,12 @@ import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { ColorRow } from './ui/ColorRow';
+import { FormSection, TitleField } from './ui/fields';
 import { Avatar } from './ui/Avatar';
 import {
   DEFAULT_START,
+  DatedSwitch,
   EventFields,
-  ToggleRow,
   defaultEndFor,
   type TimingDraft,
 } from './EventFields';
@@ -231,26 +232,9 @@ export function SharedItemSheet({
         </PrimaryButton>
       }
     >
-      <div className="space-y-2.5 pb-2">
+      <div className="space-y-5 pb-2">
         {/* אותו שדה כותרת כמו בעורך האירוע, כדי ששני הטפסים ייראו אחד */}
-        <div className="field-shell rounded-2xl bg-well px-4">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="מה צריך"
-            autoComplete="off"
-            aria-label="שם הפריט"
-            className="field-reset w-full bg-transparent py-3.5 text-title font-semibold text-ink placeholder:font-normal placeholder:text-faint"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">
-          <span className="shrink-0 text-label font-medium text-ink">צבע</span>
-          <div className="flex flex-1 justify-end">
-            <ColorRow value={color} onChange={setColor} label="צבע הפריט" />
-          </div>
-        </div>
+        <TitleField value={title} onChange={setTitle} placeholder="מה צריך" label="שם הפריט" />
 
         {/*
           אותם שדות בדיוק כמו בתזכורת אישית, ולכן כמו באירוע: מתג "תאריך
@@ -273,16 +257,15 @@ export function SharedItemSheet({
             ],
             onCreate: createCategory,
           }}
-          whenToggle={
-            <ToggleRow
-              grouped
-              icon={<CalendarClock size={ICON.md} />}
-              label="תאריך ושעה"
-              checked={dated}
-              onChange={setDated}
-            />
-          }
+          whenToggle={<DatedSwitch dated={dated} onChange={setDated} />}
         />
+
+        {/* צבע בתחתית, כמו בעורך האירוע */}
+        <FormSection title="צבע">
+          <div className="rounded-group bg-well px-2 py-1">
+            <ColorRow value={color} onChange={setColor} label="צבע הפריט" />
+          </div>
+        </FormSection>
 
         {dated && (
           <>
@@ -296,7 +279,7 @@ export function SharedItemSheet({
               whileTap={TAP_SCALE}
               onClick={toggleHidden}
               className={`focus-ring mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-right transition-colors ${
-                hidden ? 'bg-brand-soft text-brand-ink' : 'bg-well text-ink'
+                hidden ? 'bg-inverse text-on-inverse' : 'bg-well text-ink'
               }`}
             >
               <EyeOff size={ICON.md} className="shrink-0" />
