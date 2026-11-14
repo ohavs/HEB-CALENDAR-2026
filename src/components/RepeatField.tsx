@@ -145,7 +145,7 @@ export function RepeatField({
                     }}
                     aria-pressed={active}
                     className={`focus-ring rounded-full px-3 py-1.5 text-caption font-medium transition-colors ${
-                      active ? 'bg-brand text-white' : 'bg-surface text-muted'
+                      active ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
                     }`}
                   >
                     {unitChip(unit)}
@@ -161,7 +161,7 @@ export function RepeatField({
               whileTap={{ scale: 0.98 }}
               transition={TAP}
               onClick={() => setOpen(false)}
-              className="focus-ring w-full rounded-2xl bg-brand py-3.5 text-label font-semibold text-white"
+              className="focus-ring w-full rounded-2xl bg-brand py-3.5 text-label font-semibold text-on-inverse"
             >
               {repeatLabel({ repeat, repeatEvery })}
             </motion.button>

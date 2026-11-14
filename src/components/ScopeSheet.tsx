@@ -66,7 +66,7 @@ export function ScopeSheet({
           <span
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
               destructive
-                ? 'bg-[rgb(253_231_236)] text-[rgb(194_60_90)] dark:bg-[rgb(65_28_40)] dark:text-[rgb(249_178_195)]'
+                ? 'bg-danger-soft text-danger'
                 : 'bg-brand-soft text-brand-ink'
             }`}
           >

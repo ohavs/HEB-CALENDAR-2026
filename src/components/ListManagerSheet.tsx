@@ -175,7 +175,7 @@ export function ListManagerSheet({
               whileTap={{ scale: 0.92 }}
               transition={TAP}
               aria-label="הוספת קטגוריה"
-              className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-white disabled:opacity-40"
+              className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-40"
             >
               <Plus size={ICON.md} strokeWidth={2.5} />
             </motion.button>
@@ -219,7 +219,7 @@ export function ListManagerSheet({
               disabled={busy || !email.trim()}
               whileTap={{ scale: 0.92 }}
               transition={TAP}
-              className="focus-ring shrink-0 rounded-xl bg-brand px-4 py-2.5 text-caption font-semibold text-white disabled:opacity-40"
+              className="focus-ring shrink-0 rounded-xl bg-brand px-4 py-2.5 text-caption font-semibold text-on-inverse disabled:opacity-40"
             >
               הזמנה
             </motion.button>
@@ -246,7 +246,7 @@ export function ListManagerSheet({
               }}
             >
               {confirmDelete && (
-                <span className="text-caption font-semibold text-[rgb(194_60_90)]">למחוק?</span>
+                <span className="text-caption font-semibold text-danger">למחוק?</span>
               )}
             </SettingRow>
           ) : (

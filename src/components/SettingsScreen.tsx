@@ -389,7 +389,7 @@ export function SettingsScreen({
                 קרה בניסיון האחרון.
               */}
               {sync.status === 'error' ? (
-                <span className="shrink-0 rounded-xl bg-[rgb(194_60_90)]/12 px-3 py-1.5 text-caption font-semibold text-[rgb(194_60_90)]">
+                <span className="shrink-0 rounded-xl bg-danger/12 px-3 py-1.5 text-caption font-semibold text-danger">
                   לא מסונכרן
                 </span>
               ) : (
@@ -449,7 +449,7 @@ export function SettingsScreen({
               <button
                 type="button"
                 onClick={clearError}
-                className="mt-2 block w-full break-words rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-start text-caption leading-relaxed text-[rgb(194_60_90)]"
+                className="mt-2 block w-full break-words rounded-xl bg-danger-soft px-3 py-2 text-start text-caption leading-relaxed text-danger"
               >
                 {error}
               </button>
@@ -969,7 +969,7 @@ export function SettingsScreen({
             */}
             <span
               className={`shrink-0 whitespace-nowrap text-caption font-medium ${
-                updateState.kind === 'error' ? 'text-[rgb(194_60_90)]' : 'text-muted'
+                updateState.kind === 'error' ? 'text-danger' : 'text-muted'
               }`}
             >
               {updateState.kind === 'checking'
@@ -985,7 +985,7 @@ export function SettingsScreen({
 
         {/* הפירוט: למה נכשל, או מה יש בשרת - כך רואים במבט אם ההשוואה שגויה */}
         {isNative() && updateState.kind === 'error' && (
-          <p className="px-5 pb-4 text-caption leading-relaxed text-[rgb(194_60_90)] lg:px-6">
+          <p className="px-5 pb-4 text-caption leading-relaxed text-danger lg:px-6">
             {updateState.message}
           </p>
         )}

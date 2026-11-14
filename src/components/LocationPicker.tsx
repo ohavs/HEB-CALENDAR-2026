@@ -201,7 +201,7 @@ export function LocationPicker({
         )}
 
         {error && (
-          <p className="rounded-2xl bg-well px-4 py-3 text-caption text-[rgb(194_60_90)]">
+          <p className="rounded-2xl bg-well px-4 py-3 text-caption text-danger">
             {error}
           </p>
         )}

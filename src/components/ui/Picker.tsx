@@ -420,7 +420,7 @@ function CreateOptionRow({
         whileTap={{ scale: 0.92 }}
         transition={TAP}
         aria-label={placeholder}
-        className="focus-ring flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand text-white disabled:opacity-40"
+        className="focus-ring flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-inverse disabled:opacity-40"
       >
         <Plus size={ICON.md} strokeWidth={2.5} />
       </motion.button>
@@ -523,7 +523,7 @@ export function DatePickerSheet({
                 <span
                   className={`tnum flex h-11 w-11 items-center justify-center rounded-2xl text-label transition-colors ${
                     isSelected
-                      ? 'bg-brand font-semibold text-white'
+                      ? 'bg-brand font-semibold text-on-inverse'
                       : !inMonth
                         ? 'text-faint/60'
                         : hasHoliday

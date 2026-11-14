@@ -222,7 +222,7 @@ export function PlaceEditor({
               onClose();
             }}
             className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
-              confirmDelete ? 'bg-[rgb(240_118_149)] text-white' : 'bg-well text-[rgb(194_60_90)]'
+              confirmDelete ? 'bg-danger text-on-danger' : 'bg-well text-danger'
             }`}
           >
             <Trash2 size={ICON.md} strokeWidth={STROKE} />
@@ -303,7 +303,7 @@ export function PlaceEditor({
             או בחירת עיר כנקודת פתיחה
           </button>
 
-          {error && <p className="mt-2.5 text-caption text-[rgb(194_60_90)]">{error}</p>}
+          {error && <p className="mt-2.5 text-caption text-danger">{error}</p>}
           {pasteNote && <p className="mt-2.5 text-caption text-brand-ink">{pasteNote}</p>}
         </div>
 

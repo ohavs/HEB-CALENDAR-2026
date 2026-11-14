@@ -205,6 +205,9 @@ const FROM_RRULE: { test: RegExp; repeat: UserEvent['repeat'] }[] = [
   { test: /FREQ=YEARLY/i, repeat: 'yearly' },
 ];
 
+// הסדר והאורך קובעים איזה צבע מקבלת כל כותרת, ולכן הם קפואים: הוספת צבע
+// כאן הייתה צובעת מחדש כל ייבוא חוזר. גרפיט אינו כאן בכוונה - ייבוא של
+// עשרות אירועים בשחור נראה כמו לוח ריק.
 const COLORS: EventColor[] = ['violet', 'mint', 'rose', 'peach', 'sky', 'slate'];
 
 /** צבע יציב לפי הכותרת, כדי שייבוא חוזר ייתן את אותם צבעים. */

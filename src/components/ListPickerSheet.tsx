@@ -67,7 +67,7 @@ export function ListPickerSheet({
             >
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                  active ? 'bg-brand text-white' : 'bg-surface text-muted'
+                  active ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
                 }`}
               >
                 {active ? (

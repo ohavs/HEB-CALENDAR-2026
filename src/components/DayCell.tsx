@@ -130,7 +130,7 @@ function DayCellInner({
       onClick={() => onSelect(day)}
       className={`focus-ring-inset relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center transition-colors ${
         dim ? 'opacity-45' : ''
-      } ${day.isShabbat && !dim ? 'bg-brand/[0.045] dark:bg-brand/[0.12]' : ''}`}
+      } ${day.isShabbat && !dim ? 'bg-brand/[0.045] dark:bg-brand/[0.06]' : ''}`}
       aria-label={cellLabel(day, shownHolidays, occurrences.length)}
       aria-selected={selected}
       aria-current={day.isToday ? 'date' : undefined}
@@ -164,7 +164,7 @@ function DayCellInner({
           <span
             className={`tnum relative leading-[1.6] ${
               selected
-                ? 'font-semibold text-white'
+                ? 'font-semibold text-on-inverse'
                 : day.isToday
                   ? 'font-semibold text-brand-ink'
                   : day.isRestDay

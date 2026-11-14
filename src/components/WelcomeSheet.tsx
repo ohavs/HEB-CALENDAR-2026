@@ -74,7 +74,7 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
             disabled={busy}
             whileTap={{ scale: 0.98 }}
             transition={TAP}
-            className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised disabled:opacity-60"
+            className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised disabled:opacity-60"
           >
             <GoogleMark />
             {busy ? 'מתחבר…' : 'התחברות עם גוגל'}
@@ -103,7 +103,7 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
         ))}
 
         {error && (
-          <p className="break-words rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-caption leading-relaxed text-[rgb(194_60_90)]">
+          <p className="break-words rounded-xl bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
             {error}
           </p>
         )}

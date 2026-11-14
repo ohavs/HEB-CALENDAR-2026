@@ -90,7 +90,7 @@ function ValueChip({
   return (
     <div
       className={`flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg transition-colors ${
-        value ? 'bg-brand text-white' : 'bg-well text-muted'
+        value ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
       }`}
     >
       <button

@@ -324,12 +324,15 @@ export function allIncludingDeleted(): UserEvent[] {
 }
 
 export const EVENT_COLORS: { id: EventColor; label: string }[] = [
-  { id: 'violet', label: 'סגול' },
-  { id: 'mint', label: 'ירוק' },
-  { id: 'rose', label: 'ורוד' },
-  { id: 'peach', label: 'כתום' },
-  { id: 'sky', label: 'כחול' },
-  { id: 'slate', label: 'אפור' },
+  { id: 'graphite', label: 'גרפיט' },
+  { id: 'butter', label: 'חמאה' },
+  { id: 'peach', label: 'אפרסק' },
+  { id: 'rose', label: 'ורד' },
+  { id: 'violet', label: 'לילך' },
+  { id: 'sky', label: 'שמיים' },
+  { id: 'mint', label: 'מנטה' },
+  { id: 'sage', label: 'מרווה' },
+  { id: 'slate', label: 'חול' },
 ];
 
 export const REMINDER_OPTIONS: { value: number | null; label: string }[] = [

@@ -37,8 +37,8 @@ function TrashTarget() {
         transition={SNAP}
         className={`flex h-[62px] w-[62px] items-center justify-center rounded-full shadow-floating ring-[3px] ring-canvas transition-colors ${
           over
-            ? 'bg-[rgb(194_60_90)] text-white'
-            : 'bg-surface text-[rgb(194_60_90)] dark:text-[rgb(249_178_195)]'
+            ? 'bg-danger text-on-danger'
+            : 'bg-surface text-danger'
         }`}
       >
         <Trash2 size={ICON.lg} strokeWidth={STROKE} />

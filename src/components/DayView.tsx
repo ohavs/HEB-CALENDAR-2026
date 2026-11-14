@@ -106,7 +106,7 @@ export function DayView({
         <button
           type="button"
           onClick={onAddEvent}
-          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white"
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse"
         >
           <Plus size={ICON.md} strokeWidth={STROKE} />
           אירוע חדש ב{relativeDayLabel(day.date)}

@@ -38,7 +38,7 @@ export function defaultSettings(): Settings {
     notifyEvents: true,
     notifyHolidayEve: false,
     notifyHolidayEveTime: '20:00',
-    defaultEventColor: 'violet',
+    defaultEventColor: 'graphite',
     customLocation: null,
     places: [],
     templates: [],
@@ -163,7 +163,7 @@ function paint(dark: boolean) {
   root.classList.toggle('light', !dark);
   root.style.colorScheme = dark ? 'dark' : 'light';
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
-  if (meta) meta.content = dark ? '#09090F' : '#F6F6FA';
+  if (meta) meta.content = dark ? '#12110F' : '#F5F1EA';
 }
 
 /** מחיל ערכת נושא ומאזין לשינוי העדפת המערכת. */

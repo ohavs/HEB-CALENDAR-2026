@@ -34,21 +34,34 @@ export default {
           soft: 'rgb(var(--c-brand-soft) / <alpha-value>)',
           ink: 'rgb(var(--c-brand-ink) / <alpha-value>)',
         },
+        inverse: 'rgb(var(--c-inverse) / <alpha-value>)',
+        'on-inverse': 'rgb(var(--c-on-inverse) / <alpha-value>)',
+        danger: {
+          DEFAULT: 'rgb(var(--c-danger) / <alpha-value>)',
+          soft: 'rgb(var(--c-danger-soft) / <alpha-value>)',
+        },
+        'on-danger': 'rgb(var(--c-on-danger) / <alpha-value>)',
         shabbat: 'rgb(var(--c-shabbat) / <alpha-value>)',
       },
+      // פינות לפי Shapes של noted. הגדלים של Tailwind עצמם נשארים, כדי
+      // לא לשבור את מה שעוד לא עבר - אלה השמות שהמסכים החדשים משתמשים בהם.
       borderRadius: {
         '4xl': '2rem',
-        sheet: '1.75rem',
+        tile: '13px',
+        field: '18px',
+        group: '26px',
+        card: '30px',
+        sheet: '2rem',
       },
       // שלוש דרגות גובה, וכלל אחד לכל אחת (ראו src/lib/motion.ts):
       //   raised   - יושב על הקנבס: כרטיס, כותרת דביקה, עמודה קבועה
       //   floating - מרחף מעל התוכן: גרירה, טוסט, סרגל לשוניות
       //   overlay  - נכנס מקצה המסך: גיליון, חלונית תחתונה
       boxShadow: {
-        raised: '0 1px 2px rgb(16 18 40 / 0.04), 0 8px 24px -8px rgb(16 18 40 / 0.10)',
-        floating: '0 2px 6px rgb(16 18 40 / 0.06), 0 18px 40px -12px rgb(16 18 40 / 0.18)',
+        raised: '0 1px 2px rgb(var(--shadow-tint) / 0.04), 0 8px 24px -8px rgb(var(--shadow-tint) / 0.10)',
+        floating: '0 2px 6px rgb(var(--shadow-tint) / 0.06), 0 18px 40px -12px rgb(var(--shadow-tint) / 0.18)',
         // נשאר קטן דיו כדי שלא יידרש רסטור מחדש בכל פריים של גרירת החלונית
-        overlay: '0 -1px 3px rgb(16 18 40 / 0.05), 0 -10px 26px -14px rgb(16 18 40 / 0.20)',
+        overlay: '0 -1px 3px rgb(var(--shadow-tint) / 0.05), 0 -10px 26px -14px rgb(var(--shadow-tint) / 0.20)',
       },
       transitionTimingFunction: {
         smooth: 'cubic-bezier(0.22, 1, 0.36, 1)',

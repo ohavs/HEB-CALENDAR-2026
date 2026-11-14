@@ -91,7 +91,7 @@ function DayGroup({
       >
         <span
           className={`tnum mx-auto flex h-11 w-11 items-center justify-center rounded-2xl text-title font-bold leading-none ${
-            day.isToday ? 'bg-brand text-white' : day.isRestDay ? 'bg-brand-soft text-brand-ink' : 'text-ink'
+            day.isToday ? 'bg-brand text-on-inverse' : day.isRestDay ? 'bg-brand-soft text-brand-ink' : 'text-ink'
           }`}
         >
           {day.date.getDate()}
@@ -270,7 +270,7 @@ export function AgendaView({
                 whileTap={{ scale: 0.92 }}
                 transition={TAP}
                 aria-label="אירוע חדש"
-                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-brand text-white shadow-raised"
+                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-brand text-on-inverse shadow-raised"
               >
                 <Plus size={ICON.md} strokeWidth={2.5} />
               </motion.button>

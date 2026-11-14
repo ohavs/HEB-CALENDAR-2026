@@ -355,7 +355,7 @@ export function WeekView({
                     <span
                       className={`tnum flex h-8 w-8 items-center justify-center rounded-full text-label font-semibold ${
                         key === today
-                          ? "bg-brand text-white"
+                          ? "bg-brand text-on-inverse"
                           : selected
                             ? "bg-brand-soft text-brand-ink"
                             : "text-ink"

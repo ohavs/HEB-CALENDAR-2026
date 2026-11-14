@@ -24,12 +24,17 @@ import { ICON, STROKE } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
 
+// המחלקות נבנות דינמית (`ev-${color}`), ו-Tailwind מוחק מחלקה של שכבת
+// components שאינה כתובה במלואה באף קובץ. הטבלה הזו היא מה ששומר אותן.
 const COLOR_SWATCH: Record<EventColor, string> = {
-  violet: 'ev-violet',
-  mint: 'ev-mint',
-  rose: 'ev-rose',
+  graphite: 'ev-graphite',
+  butter: 'ev-butter',
   peach: 'ev-peach',
+  rose: 'ev-rose',
+  violet: 'ev-violet',
   sky: 'ev-sky',
+  mint: 'ev-mint',
+  sage: 'ev-sage',
   slate: 'ev-slate',
 };
 
@@ -330,8 +335,8 @@ export function EventEditor({
             whileTap={{ scale: 0.95 }}
             className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
               !isSeriesMember && confirmDelete
-                ? 'bg-[rgb(240_118_149)] text-white'
-                : 'bg-well text-[rgb(194_60_90)]'
+                ? 'bg-danger text-on-danger'
+                : 'bg-well text-danger'
             }`}
           >
             <Trash2 size={ICON.md} strokeWidth={STROKE} />

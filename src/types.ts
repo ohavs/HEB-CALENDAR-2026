@@ -3,7 +3,20 @@
 /** מפתח תאריך לוקאלי בפורמט YYYY-MM-DD (לא UTC!). */
 export type DateKey = string;
 
-export type EventColor = 'violet' | 'mint' | 'rose' | 'peach' | 'sky' | 'slate';
+/**
+ * המזהים נשמרים על כל אירוע בענן, ולכן הם לעולם לא משנים שם - גם כשהגוון
+ * משתנה: violet מוצג היום כלילך ו-slate כחול.
+ */
+export type EventColor =
+  | 'graphite'
+  | 'butter'
+  | 'peach'
+  | 'rose'
+  | 'violet'
+  | 'sky'
+  | 'mint'
+  | 'sage'
+  | 'slate';
 
 /** אירוע שהמשתמש יצר. */
 export type UserEvent = {

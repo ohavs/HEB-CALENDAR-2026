@@ -127,7 +127,7 @@ export function TemplatePlaceSheet({
                 aria-label={key}
                 className={`focus-ring tnum flex h-11 items-center justify-center rounded-xl text-label transition-colors ${
                   on
-                    ? 'bg-brand font-semibold text-white'
+                    ? 'bg-brand font-semibold text-on-inverse'
                     : inMonth
                       ? 'bg-well text-ink'
                       : 'text-faint'

@@ -60,7 +60,7 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
                   onAction();
                   hide();
                 }}
-                className="shrink-0 text-label font-semibold text-[rgb(var(--c-brand))]"
+                className="shrink-0 rounded-xl bg-canvas/15 px-3 py-1 text-label font-semibold text-canvas"
               >
                 {actionLabel}
               </button>

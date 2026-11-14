@@ -100,6 +100,12 @@ d.toISOString().slice(0, 10)   // ✗ יזוז ביום שלם בערב
   מהצד של "הבא". כיוון האנימציה נגזר מהמפתח שהתחלף (`usePageDirection`)
   ולא נמסר מכל קורא, כי קורא אחד ששכח היה מספיק כדי שקדימה ייראה כמו
   אחורה.
+- **"נבחר" הוא דיו מלא, והטקסט עליו `on-inverse` - לא `text-white`.**
+  במצב לילה הדיו בהיר, ולבן עליו נעלם. `brand` הוא כרגע שם נרדף
+  ל-`inverse` (התכנית ב-`docs/REDESIGN.md`), ולכן `bg-brand text-white`
+  שגוי בדיוק כמו `bg-inverse text-white`. מחיקה היא `danger`/`danger-soft`,
+  לא RGB קשיח. צבע בממשק הוא מידע, לא קישוט: הוא נשאר לאירועים, למחיקה
+  ולנרות שבת.
 - **טוקנים, לא מספרים.** תנועה (`TAP`/`SNAP`/`GLIDE`), גדלי אייקונים
   (`ICON.*`), גובה (`shadow-raised`/`floating`/`overlay`) - הכול
   ב-`src/lib/motion.ts` וב-`tailwind.config.js`. אין קפיץ חדש ברכיב.

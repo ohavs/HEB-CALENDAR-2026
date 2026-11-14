@@ -145,7 +145,7 @@ export function CategoryChip({
         צ׳יפ לבן על לבן שמורם בצל נראה כמו רעש ולא כמו בורר.
       */
       className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-white' : 'bg-well text-muted'
+        active ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
       }`}
     >
       {label}

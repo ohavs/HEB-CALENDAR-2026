@@ -105,7 +105,7 @@ export function TemplatesView({
                 whileTap={{ scale: 0.9 }}
                 transition={SNAP}
                 aria-label="יצירת תבנית"
-                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white"
+                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse"
               >
                 <Plus size={ICON.md} strokeWidth={2.6} />
               </motion.button>

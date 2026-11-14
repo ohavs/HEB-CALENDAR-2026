@@ -39,7 +39,7 @@ export function ConfirmDeleteSheet({
     <Sheet open={open} onClose={onClose} title="למחוק?" subtitle={hint}>
       <div className="flex flex-col gap-3 pb-3">
         <div className="flex items-center gap-4 rounded-2xl bg-well px-4 py-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[rgb(253_231_236)] text-[rgb(194_60_90)] dark:bg-[rgb(65_28_40)] dark:text-[rgb(249_178_195)]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger-soft text-danger">
             <Trash2 size={ICON.lg} strokeWidth={STROKE} />
           </span>
           <span className="min-w-0 flex-1">

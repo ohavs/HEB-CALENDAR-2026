@@ -16,9 +16,17 @@ import type { Transition } from 'framer-motion';
 /** עקומת ההאצה של האפליקציה - יציאה מהירה ונחיתה רכה. */
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
-export const TAP: Transition = { type: 'spring', stiffness: 620, damping: 34, mass: 0.6 };
-export const SNAP: Transition = { type: 'spring', stiffness: 480, damping: 34, mass: 0.7 };
-export const GLIDE: Transition = { type: 'spring', stiffness: 440, damping: 40, mass: 0.8 };
+/*
+ * הקפיצים של noted, כדי ששתי האפליקציות יזוזו אותו דבר. TAP חי וקפיצי
+ * (ζ≈0.55) כי הוא תשובה לאצבע; GLIDE כמעט קריטי (ζ≈0.99), כי משטח גדול
+ * שקופץ נראה כמו תקלה. GLIDE רך מהקודם - אם גיליון מרגיש איטי במכשיר,
+ * מפרידים לו טוקן משלו ולא משנים כאן (docs/REDESIGN.md, 1.5).
+ */
+export const TAP: Transition = { type: 'spring', stiffness: 520, damping: 25, mass: 1 };
+export const SNAP: Transition = { type: 'spring', stiffness: 380, damping: 30, mass: 1 };
+export const GLIDE: Transition = { type: 'spring', stiffness: 230, damping: 30, mass: 1 };
+/** עדשת הלשונית בסרגל: נמתחת בדרך ונוחתת עם קצת חיים. */
+export const LENS: Transition = { type: 'spring', stiffness: 300, damping: 26, mass: 1 };
 
 /** כניסה ויציאה של שקיפות - לא קפיץ, כי לשקיפות אין מומנטום. */
 export const ENTER: Transition = { duration: 0.22, ease: EASE };

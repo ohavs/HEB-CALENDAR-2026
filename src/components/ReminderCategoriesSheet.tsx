@@ -86,7 +86,7 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
             whileTap={{ scale: 0.92 }}
             transition={TAP}
             aria-label="הוספת קטגוריה"
-            className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white disabled:opacity-40"
+            className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-inverse disabled:opacity-40"
           >
             <Plus size={ICON.md} strokeWidth={2.5} />
           </motion.button>

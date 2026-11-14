@@ -593,7 +593,7 @@ export async function initNative(dark: boolean): Promise<void> {
       import('@capacitor/splash-screen'),
     ]);
     await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
-    await StatusBar.setBackgroundColor({ color: dark ? '#09090F' : '#F6F6FA' });
+    await StatusBar.setBackgroundColor({ color: dark ? '#12110F' : '#F5F1EA' });
     await SplashScreen.hide();
   } catch {
     /* אין שורת סטטוס בכל מכשיר */
@@ -606,7 +606,7 @@ export async function paintNativeChrome(dark: boolean): Promise<void> {
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
-    await StatusBar.setBackgroundColor({ color: dark ? '#09090F' : '#F6F6FA' });
+    await StatusBar.setBackgroundColor({ color: dark ? '#12110F' : '#F5F1EA' });
   } catch {
     /* לא קריטי */
   }

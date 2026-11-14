@@ -64,7 +64,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.reset}
-              className="focus-ring w-full rounded-2xl bg-brand py-4 text-label font-semibold text-white active:opacity-90"
+              className="focus-ring w-full rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse active:opacity-90"
             >
               חזרה למסך הראשי
             </button>

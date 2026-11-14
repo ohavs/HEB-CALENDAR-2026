@@ -257,7 +257,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 <button
                   type="button"
                   onClick={() => void acceptInvite(inv).then(() => select(inv.listId))}
-                  className="focus-ring flex-1 rounded-xl bg-brand py-2.5 text-caption font-semibold text-white"
+                  className="focus-ring flex-1 rounded-xl bg-brand py-2.5 text-caption font-semibold text-on-inverse"
                 >
                   להצטרף
                 </button>
@@ -446,7 +446,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                     whileTap={{ scale: 0.9 }}
                     transition={SNAP}
                     aria-label="הוספה"
-                    className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white disabled:opacity-50"
+                    className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-50"
                   >
                     <Plus size={ICON.md} strokeWidth={2.6} />
                   </motion.button>

@@ -105,7 +105,7 @@ export function YearPicker({
                         !inMonth
                           ? 'text-faint/50'
                           : isToday
-                            ? 'bg-brand font-semibold text-white'
+                            ? 'bg-brand font-semibold text-on-inverse'
                             : d.getDay() === 6
                               ? 'font-medium text-brand-ink'
                               : 'text-ink'

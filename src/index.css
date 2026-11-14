@@ -26,41 +26,62 @@
     --gutter: clamp(14px, 0.5rem + 1.6vw, 28px);
     --stack: clamp(14px, 0.6rem + 1.2vw, 24px);
 
-    --c-canvas: 246 246 250;
-    --c-surface: 255 255 255;
-    --c-elevated: 255 255 255;
-    --c-hairline: 232 233 240;
-    --c-well: 246 246 250;
-    --c-ink: 23 23 42;
-    --c-muted: 122 127 146;
-    --c-faint: 168 173 190;
-    --c-brand: 99 102 241;
-    --c-brand-soft: 238 239 254;
-    --c-brand-ink: 79 70 229;
-    --c-shabbat: 217 119 6;
+    /*
+      דיו על נייר חמים. הגוונים מ-noted, כדי ששתי האפליקציות ייראו
+      כמשפחה אחת. צבע אינו קישוט כאן: הממשק עצמו מונוכרומטי, ומה שנבחר
+      הופך לדיו מלא (inverse). צבע נשאר רק לאירועים, למחיקה ולנרות שבת.
+    */
+    --c-canvas: 245 241 234;
+    --c-surface: 255 253 249;
+    --c-elevated: 255 253 249;
+    --c-hairline: 225 220 212;
+    --c-well: 237 231 221;
+    --c-ink: 27 25 21;
+    --c-muted: 107 101 92;
+    /* נמוך בכוונה (כ-2.4:1) - לממלאי מקום ולמטא, לא לטקסט שצריך לקרוא */
+    --c-faint: 166 159 148;
+    --c-inverse: 28 26 23;
+    --c-on-inverse: 246 242 234;
+    --c-danger: 216 64 47;
+    --c-on-danger: 255 255 255;
+    --c-danger-soft: 251 225 220;
+    /*
+      brand הוא שם ישן ל-inverse, ונשאר עד שלב הניקוי (docs/REDESIGN.md).
+      מי שעדיין כותב text-white ליד bg-brand ייעלם במצב לילה, כי שם
+      הדיו בהיר - לכן text-on-inverse.
+    */
+    --c-brand: var(--c-inverse);
+    --c-brand-soft: var(--c-well);
+    --c-brand-ink: var(--c-ink);
+    --c-shabbat: 196 120 30;
 
-    --sheet-scrim: 16 18 40;
-    --sheet-scrim-alpha: 0.32;
+    --shadow-tint: 27 25 21;
+    --sheet-scrim: 30 26 20;
+    --sheet-scrim-alpha: 0.28;
 
     color-scheme: light;
   }
 
   .dark {
-    --c-canvas: 9 9 15;
-    --c-surface: 20 20 30;
-    --c-elevated: 28 28 41;
-    --c-hairline: 42 43 59;
-    --c-well: 31 31 45;
-    --c-ink: 242 242 247;
-    --c-muted: 145 150 170;
-    --c-faint: 104 109 129;
-    --c-brand: 132 134 250;
-    --c-brand-soft: 41 42 76;
-    --c-brand-ink: 173 175 253;
-    --c-shabbat: 251 191 36;
+    --c-canvas: 18 17 15;
+    --c-surface: 31 29 26;
+    --c-elevated: 42 40 36;
+    --c-hairline: 46 44 40;
+    --c-well: 26 25 22;
+    --c-ink: 243 238 230;
+    --c-muted: 165 158 147;
+    --c-faint: 106 100 91;
+    /* בלילה הדיו בהיר: "נבחר" נשאר הפוך מהרקע, ולא נבלע בו */
+    --c-inverse: 243 238 230;
+    --c-on-inverse: 27 25 21;
+    --c-danger: 255 106 85;
+    --c-on-danger: 27 18 15;
+    --c-danger-soft: 61 31 26;
+    --c-shabbat: 240 180 90;
 
+    --shadow-tint: 0 0 0;
     --sheet-scrim: 0 0 0;
-    --sheet-scrim-alpha: 0.55;
+    --sheet-scrim-alpha: 0.5;
 
     color-scheme: dark;
   }
@@ -100,7 +121,7 @@
   }
 
   ::selection {
-    background: rgb(var(--c-brand) / 0.2);
+    background: rgb(var(--c-ink) / 0.16);
   }
 
   /* מי שביקש פחות תנועה מקבל מעברים מיידיים, כולל גלילה חלקה */
@@ -117,7 +138,7 @@
 
   /* מיקוד נגיש אך שקט */
   :focus-visible {
-    outline: 2px solid rgb(var(--c-brand) / 0.55);
+    outline: 2px solid rgb(var(--c-ink) / 0.4);
     outline-offset: 2px;
   }
 }
@@ -173,66 +194,103 @@
   .ev-dot {
     background-color: rgb(var(--ev-bar));
   }
-  .ev-violet {
-    --ev-bg: 238 237 253;
-    --ev-ink: 88 76 201;
-    --ev-bar: 139 124 246;
-  }
-  .ev-mint {
-    --ev-bg: 222 244 236;
-    --ev-ink: 25 125 95;
-    --ev-bar: 52 179 138;
-  }
-  .ev-rose {
-    --ev-bg: 253 231 236;
-    --ev-ink: 194 60 90;
-    --ev-bar: 240 118 149;
+  /*
+    הפסטלים של noted. המזהים הישנים נשמרים - violet הוא לילך, slate הוא
+    חול - כי הם כתובים על כל אירוע בענן, ושינוי שם היה מחייב מיגרציה.
+    bg הוא הרקע, ink הטקסט עליו, ו-bar הצבע המלא (נקודה, פס, תג עם
+    טקסט לבן) - ולכן הוא רווי יותר מהפסטל.
+  */
+  .ev-butter {
+    --ev-bg: 250 229 160;
+    --ev-ink: 120 90 12;
+    --ev-bar: 206 156 30;
   }
   .ev-peach {
-    --ev-bg: 253 240 225;
-    --ev-ink: 176 108 26;
-    --ev-bar: 243 169 78;
+    --ev-bg: 249 207 182;
+    --ev-ink: 150 70 30;
+    --ev-bar: 232 134 84;
+  }
+  .ev-rose {
+    --ev-bg: 245 198 210;
+    --ev-ink: 160 48 80;
+    --ev-bar: 222 108 140;
+  }
+  .ev-violet {
+    --ev-bg: 218 205 246;
+    --ev-ink: 88 64 168;
+    --ev-bar: 140 114 220;
   }
   .ev-sky {
-    --ev-bg: 226 240 253;
-    --ev-ink: 34 106 176;
-    --ev-bar: 90 163 233;
+    --ev-bg: 196 221 245;
+    --ev-ink: 34 94 158;
+    --ev-bar: 86 150 214;
+  }
+  .ev-mint {
+    --ev-bg: 198 234 213;
+    --ev-ink: 28 110 72;
+    --ev-bar: 62 168 116;
+  }
+  .ev-sage {
+    --ev-bg: 219 228 192;
+    --ev-ink: 78 96 36;
+    --ev-bar: 132 156 72;
   }
   .ev-slate {
-    --ev-bg: 236 238 244;
-    --ev-ink: 82 90 112;
-    --ev-bar: 138 146 170;
+    --ev-bg: 236 225 210;
+    --ev-ink: 106 88 66;
+    --ev-bar: 164 142 112;
+  }
+  .ev-graphite {
+    --ev-bg: 226 220 210;
+    --ev-ink: 27 25 21;
+    --ev-bar: 28 26 23;
   }
 
-  .dark .ev-violet {
-    --ev-bg: 45 42 84;
-    --ev-ink: 192 185 253;
-    --ev-bar: 139 124 246;
-  }
-  .dark .ev-mint {
-    --ev-bg: 18 58 48;
-    --ev-ink: 148 227 201;
-    --ev-bar: 52 179 138;
-  }
-  .dark .ev-rose {
-    --ev-bg: 65 28 40;
-    --ev-ink: 249 178 195;
-    --ev-bar: 240 118 149;
+  .dark .ev-butter {
+    --ev-bg: 74 64 36;
+    --ev-ink: 245 220 140;
+    --ev-bar: 214 176 72;
   }
   .dark .ev-peach {
-    --ev-bg: 64 44 21;
-    --ev-ink: 250 205 149;
-    --ev-bar: 243 169 78;
+    --ev-bg: 76 51 38;
+    --ev-ink: 247 192 162;
+    --ev-bar: 226 140 96;
+  }
+  .dark .ev-rose {
+    --ev-bg: 72 44 53;
+    --ev-ink: 245 182 200;
+    --ev-bar: 220 120 150;
+  }
+  .dark .ev-violet {
+    --ev-bg: 56 49 80;
+    --ev-ink: 206 192 248;
+    --ev-bar: 146 124 222;
   }
   .dark .ev-sky {
-    --ev-bg: 21 44 70;
-    --ev-ink: 163 205 246;
-    --ev-bar: 90 163 233;
+    --ev-bg: 39 56 74;
+    --ev-ink: 172 206 240;
+    --ev-bar: 96 156 216;
+  }
+  .dark .ev-mint {
+    --ev-bg: 36 61 49;
+    --ev-ink: 170 226 196;
+    --ev-bar: 72 172 122;
+  }
+  .dark .ev-sage {
+    --ev-bg: 52 61 40;
+    --ev-ink: 206 220 166;
+    --ev-bar: 140 162 84;
   }
   .dark .ev-slate {
-    --ev-bg: 36 39 52;
-    --ev-ink: 176 183 202;
-    --ev-bar: 138 146 170;
+    --ev-bg: 58 52 45;
+    --ev-ink: 222 208 188;
+    --ev-bar: 170 150 122;
+  }
+  .dark .ev-graphite {
+    --ev-bg: 52 49 44;
+    --ev-ink: 243 238 230;
+    /* לא בהיר כמו הדיו: על bar יושב טקסט לבן (ev-solid) */
+    --ev-bar: 96 92 86;
   }
 }
 
@@ -349,7 +407,7 @@
    * נראה כאילו השדה לא מגיב.
    */
   .field-reset:focus-visible {
-    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline: 2px solid rgb(var(--c-ink) / 0.45);
     outline-offset: 2px;
   }
 
@@ -367,7 +425,7 @@
     transition: box-shadow 150ms ease;
   }
   .field-shell:focus-within {
-    box-shadow: 0 0 0 2px rgb(var(--c-brand) / 0.35);
+    box-shadow: 0 0 0 2px rgb(var(--c-ink) / 0.3);
   }
   /* גם כשהשדה עצמו הוא הקופסה, ולא יושב בתוך אחת */
   .field-shell .field-reset:focus-visible,
@@ -377,13 +435,13 @@
 
   /* טבעת מיקוד לרכיב שמצייר את הקופסה בעצמו (שורת הגדרה, תא בלוח) */
   .focus-ring:focus-visible {
-    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline: 2px solid rgb(var(--c-ink) / 0.45);
     outline-offset: 2px;
   }
 
   /* טבעת פנימית, למקום שאין בו מרווח לטבעת חיצונית */
   .focus-ring-inset:focus-visible {
-    outline: 2px solid rgb(var(--c-brand) / 0.6);
+    outline: 2px solid rgb(var(--c-ink) / 0.45);
     outline-offset: -2px;
   }
 

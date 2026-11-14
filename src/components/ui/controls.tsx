@@ -36,10 +36,13 @@ export function Toggle({
     >
       {/*
         בממשק מימין-לשמאל הידית נעה שמאלה כשהמתג נדלק.
+        הידית בצבע ההפוך למסילה ולא לבנה קבועה: בלילה המסילה הדלוקה בהירה.
         המסלול: 58 (רוחב) − 28 (ידית) − 3 (שוליים) = 27.
       */}
       <motion.span
-        className="absolute top-[3px] block h-7 w-7 rounded-full bg-white shadow-raised"
+        className={`absolute top-[3px] block h-7 w-7 rounded-full shadow-raised transition-colors duration-200 ${
+          checked ? 'bg-on-inverse' : 'bg-white'
+        }`}
         animate={{ right: checked ? 27 : 3 }}
         transition={TAP}
       />
@@ -245,7 +248,7 @@ export function Segmented<T extends string>({
               onChange(opt.value);
             }}
             className={`relative flex-1 whitespace-nowrap rounded-xl px-3.5 py-2.5 font-medium transition-colors ${
-              active ? 'text-white' : 'text-muted'
+              active ? 'text-on-inverse' : 'text-muted'
             }`}
           >
             <span className="relative flex items-center justify-center gap-1.5">
@@ -275,8 +278,8 @@ export function PrimaryButton({
   tone?: 'brand' | 'danger' | 'quiet';
 }) {
   const tones = {
-    brand: 'bg-brand text-white shadow-raised',
-    danger: 'bg-[rgb(240_118_149)] text-white',
+    brand: 'bg-brand text-on-inverse shadow-raised',
+    danger: 'bg-danger text-on-danger',
     quiet: 'bg-well text-ink',
   } as const;
   /*
@@ -318,7 +321,7 @@ export function Pill({
       type="button"
       onClick={onClick}
       className={`rounded-xl px-4 py-2.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-white' : 'bg-well text-muted'
+        active ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
       } ${className}`}
     >
       {children}

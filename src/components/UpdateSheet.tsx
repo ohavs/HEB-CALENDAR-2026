@@ -95,7 +95,7 @@ export function UpdateSheet({
               <button
                 type="button"
                 onClick={() => void retryAfterPermission()}
-                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised"
+                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised"
               >
                 <ShieldCheck size={ICON.md} strokeWidth={STROKE} />
                 פתיחת ההגדרה
@@ -105,7 +105,7 @@ export function UpdateSheet({
                 type="button"
                 onClick={() => void run()}
                 disabled={busy}
-                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-white shadow-raised disabled:opacity-70"
+                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised disabled:opacity-70"
               >
                 {stage === 'installing' ? (
                   <Check size={ICON.md} strokeWidth={STROKE} />
@@ -174,7 +174,7 @@ export function UpdateSheet({
         )}
 
         {error && (
-          <p className="mt-3 break-words rounded-xl bg-[rgb(253_231_236)] px-3 py-2 text-caption leading-relaxed text-[rgb(194_60_90)]">
+          <p className="mt-3 break-words rounded-xl bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
             {error}
           </p>
         )}

@@ -113,7 +113,7 @@ function ChipToggle({
         onChange(!checked);
       }}
       className={`focus-ring flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-medium transition-colors ${
-        checked ? 'bg-brand text-white' : 'bg-surface text-muted'
+        checked ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
       }`}
     >
       {icon}

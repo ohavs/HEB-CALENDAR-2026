@@ -103,7 +103,7 @@ export function ShabbatScreen({
             שעות, והן מקבלות את הגובה: המסך הזה נפתח ביום שישי אחר הצהריים
             כדי לענות על שאלה אחת.
           */}
-          <div className="flex items-baseline gap-2 bg-brand px-6 pb-3.5 pt-4 text-white">
+          <div className="flex items-baseline gap-2 bg-brand px-6 pb-3.5 pt-4 text-on-inverse">
             <h2 className="min-w-0 flex-1 truncate text-label font-semibold leading-tight">
               {next.title}
             </h2>
