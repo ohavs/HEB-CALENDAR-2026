@@ -20,7 +20,7 @@ import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { ChevronLeft, ChevronUp, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronUp, Plus, Sun } from 'lucide-react';
 import type { DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { dateKey, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
@@ -121,28 +121,6 @@ function DayPanelContent({
         />
       )}
 
-      {/* כניסה לתצוגת היום המורחבת */}
-      <button
-        type="button"
-        onClick={onOpenDay}
-        className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-4 text-right transition-colors active:bg-hairline"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-body font-semibold text-ink">
-            {day.hebrewFull}
-          </span>
-          <span className="mt-1 block truncate text-caption text-muted">
-            {[
-              day.parsha ? `פרשת ${day.parsha}` : null,
-              day.omerDay ? `${day.omerDay} לעומר` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ') || 'לתצוגת יום מורחבת'}
-          </span>
-        </span>
-        <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
-      </button>
-
       {/* מועדים - שורות עם נקודת צבע, לא גלולות */}
       {day.holidays.length > 0 && (
         <div className="overflow-hidden rounded-2xl bg-brand-soft">
@@ -221,6 +199,26 @@ function DayPanelContent({
           </button>
         </div>
       )}
+
+      {/*
+        כניסה לתצוגת היום המלאה - זמני היום, פרשה ועומר, והאירועים
+        בפירוט מלא עם ההערות. היא ישבה בראש החלונית ככרטיס בגובה של
+        אירוע, עם "לתצוגת יום מורחבת" שלא אמר מה יש שם, ודחקה את
+        האירועים עצמם למטה. עכשיו היא שורה קטנה אחריהם, והשם אומר מה
+        מקבלים.
+      */}
+      <button
+        type="button"
+        onClick={onOpenDay}
+        className="flex w-full items-center gap-2.5 rounded-xl bg-well px-3.5 py-2.5 text-right transition-colors active:bg-hairline"
+      >
+        <Sun size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+        <span className="min-w-0 flex-1 truncate text-caption">
+          <span className="font-medium text-ink">זמני היום ופרטים מלאים</span>
+          <span className="text-muted"> · {day.hebrewFull}</span>
+        </span>
+        <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-faint" />
+      </button>
     </div>
   );
 }

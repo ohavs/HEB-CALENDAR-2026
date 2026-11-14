@@ -37,6 +37,22 @@ public class HebUpdaterPlugin extends Plugin {
     /** גודל שמעליו נפסיק - הגנה מפני כתובת שמחזירה משהו אחר לגמרי */
     private static final long MAX_BYTES = 200L * 1024 * 1024;
 
+    /**
+     * מוחק את ה-APK שהורד לעדכון הקודם.
+     *
+     * הוא נמחק קודם רק בהורדה הבאה, כלומר כ-8MB ישבו במטמון כל הזמן בין
+     * עדכון לעדכון. בעלייה הוא כבר לא נחוץ: אם ההתקנה הצליחה הוא הותקן,
+     * ואם בוטלה - "עדכן" מוריד אותו שוב. המתקין מעתיק את הקובץ לפני שהוא
+     * סוגר אותנו, ולכן העלייה שאחרי ההתקנה אינה מוחקת אותו מתחת לידיו.
+     */
+    @Override
+    public void load() {
+        new Thread(() -> {
+            File[] stale = new File(getContext().getCacheDir(), "updates").listFiles();
+            if (stale != null) for (File f : stale) f.delete();
+        }).start();
+    }
+
     /** האם המשתמש כבר אישר לנו להתקין חבילות. */
     @PluginMethod
     public void canInstall(PluginCall call) {

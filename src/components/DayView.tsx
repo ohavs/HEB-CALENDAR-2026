@@ -32,7 +32,11 @@ export function DayView({
 }) {
   const settings = useSettings();
   const toggleDone = useToggleDone();
-  const [showZmanim, setShowZmanim] = useState(false);
+  /*
+    פתוח מראש: הכניסה לכאן מהחלונית נקראת "זמני היום ופרטים מלאים",
+    ומי שהגיע בשבילם לא אמור לחפש עוד חץ בתחתית.
+  */
+  const [showZmanim, setShowZmanim] = useState(true);
   const city = findCity(settings.cityId);
 
   const zmanim = useMemo(
