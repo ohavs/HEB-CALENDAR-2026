@@ -475,3 +475,91 @@
     border-width: 0;
   }
 }
+
+/* ==========================================================================
+   זכוכית - רק על מה שמרחף מעל התוכן
+   ========================================================================== */
+/*
+  סרגל הלשוניות, כותרת דביקה, טוסט וכפתור צף. תוכן, כרטיסים וגיליונות
+  נשארים אטומים: זכוכית על זכוכית היא בוץ, ו-backdrop-filter על משטח
+  שזז בכל פריים (גיליון בגרירה) יקר ב-WebView. לכן שלוש מחלקות כאן ולא
+  ערכים ברכיב - כדי שאפשר יהיה להוריד את הטשטוש במקום אחד אם מכשיר חלש
+  מגמגם (docs/REDESIGN.md, סעיף 7).
+*/
+@layer components {
+  .glass {
+    --glass-edge: 255 255 255;
+    --glass-edge-alpha: 0.45;
+    /*
+      גוון well ולא surface: העדשה שבתוך הסרגל היא surface, וסרגל באותו
+      גוון בלע אותה ביום. בלילה זה מתהפך, ושם surface כהה מספיק.
+    */
+    background: rgb(var(--c-well) / 0.72);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid rgb(var(--glass-edge) / var(--glass-edge-alpha));
+    box-shadow:
+      inset 0 1px 0 rgb(var(--glass-edge) / calc(var(--glass-edge-alpha) + 0.05)),
+      0 2px 6px rgb(var(--shadow-tint) / 0.06),
+      0 18px 40px -12px rgb(var(--shadow-tint) / 0.18);
+  }
+
+  /* כותרת דביקה: יושבת על התוכן כל הזמן, ולכן פחות טשטוש ויותר אטימות */
+  .glass-thin {
+    background: rgb(var(--c-canvas) / 0.82);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+  }
+
+  /*
+    העדשה שבתוך הסרגל. היא יושבת על זכוכית, ולכן היא עצמה אינה מטשטשת -
+    רק שכבה בהירה יותר עם הדגשה עליונה. טשטוש בתוך טשטוש היה מכפיל את
+    העבודה בכל פריים של המעבר.
+  */
+  .glass-lens {
+    background: rgb(var(--c-surface) / 0.9);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      inset 0 0 0 1px rgb(var(--c-ink) / 0.06),
+      0 1px 3px rgb(var(--shadow-tint) / 0.1);
+  }
+
+  /* בלילה הדגשה לבנה של 45% נראית כמו קו שבור */
+  .dark .glass {
+    --glass-edge-alpha: 0.08;
+    background: rgb(var(--c-elevated) / 0.6);
+  }
+  .dark .glass-lens {
+    background: rgb(var(--c-ink) / 0.14);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 1px 3px rgb(0 0 0 / 0.3);
+  }
+
+  /* בלי תמיכה, או כשהמשתמש ביקש פחות שקיפות: משטח אטום רגיל */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: rgb(var(--c-well));
+    }
+    .dark .glass {
+      background: rgb(var(--c-elevated));
+    }
+    .glass-thin {
+      background: rgb(var(--c-canvas));
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-thin {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background: rgb(var(--c-well));
+    }
+    .dark .glass {
+      background: rgb(var(--c-elevated));
+    }
+    .glass-thin {
+      background: rgb(var(--c-canvas));
+    }
+  }
+}

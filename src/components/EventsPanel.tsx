@@ -292,7 +292,10 @@ export function EventsPanel({
 }: ContentProps & {
   detent: PanelDetent;
   onDetentChange: (next: PanelDetent) => void;
-  /** מרווח מלמטה, כדי שהחלונית תשב מעל סרגל הלשוניות */
+  /**
+   * גובה סרגל הלשוניות מהתחתית. החלונית יורדת עד קצה המסך והסרגל צף
+   * מעליה, ולכן הוא מתווסף לגבהים שלה ולריפוד התוכן - לא למיקום.
+   */
   bottomInset: number;
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
@@ -311,8 +314,8 @@ export function EventsPanel({
     [ref, panelRef],
   );
   const y = useMotionValue(0);
-  const collapsedY = Math.max(0, height - PEEK_HEIGHT);
-  const halfY = Math.max(0, height - Math.min(HALF_HEIGHT, height));
+  const collapsedY = Math.max(0, height - (PEEK_HEIGHT + bottomInset));
+  const halfY = Math.max(0, height - Math.min(HALF_HEIGHT + bottomInset, height));
   const targetY = detent === 'full' ? 0 : detent === 'half' ? halfY : collapsedY;
 
   // שומרים את נקודת הקיפול ב-ref כדי שהטרנספורם יקרא ערך עדכני
@@ -351,8 +354,8 @@ export function EventsPanel({
   return (
     <motion.div
       ref={attachPanel}
-      className="absolute inset-x-0 z-30 mx-auto flex h-[64svh] max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-overlay"
-      style={{ y, bottom: bottomInset, willChange: 'transform' }}
+      className="absolute inset-x-0 bottom-0 z-30 mx-auto flex max-w-[640px] flex-col rounded-t-sheet border-t border-hairline bg-surface shadow-overlay"
+      style={{ y, height: `calc(64svh + ${bottomInset}px)`, willChange: 'transform' }}
       animate={{ y: targetY }}
       transition={GLIDE}
       drag="y"
@@ -429,8 +432,12 @@ export function EventsPanel({
 
       <motion.div
         ref={scrollRef}
-        className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5"
-        style={{ opacity: contentOpacity, pointerEvents: open ? 'auto' : 'none' }}
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5"
+        style={{
+          opacity: contentOpacity,
+          pointerEvents: open ? 'auto' : 'none',
+          paddingBottom: bottomInset + 20,
+        }}
       >
         <DayPanelContent
           day={day}

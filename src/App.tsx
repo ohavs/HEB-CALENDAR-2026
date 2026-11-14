@@ -1,6 +1,6 @@
 /** שורש האפליקציה - מחבר את המסכים, החלוניות, הסנכרון והתזכורות. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import type { DateKey, EventTemplate, UserEvent } from '@/types';
 import { eventsOnDay, expandEvents, type Occurrence } from '@/lib/recurrence';
 import { sweepDone } from '@/lib/reminders';
@@ -66,6 +66,8 @@ import { ShabbatScreen } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
 import { TabBar, TAB_BAR_HEIGHT, type TabId } from '@/components/TabBar';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { useSafeBottom } from '@/hooks/useSafeBottom';
+import { ENTER, EXIT } from '@/lib/motion';
 import { DayView } from '@/components/DayView';
 import { EventEditor } from '@/components/EventEditor';
 import { CityPicker } from '@/components/CityPicker';
@@ -146,6 +148,8 @@ export default function App() {
 
   const dayData = useDayData(dayViewDate);
   const isDesktop = useIsDesktop();
+  const safeBottom = useSafeBottom();
+  const reduceMotion = useReducedMotion() ?? false;
 
   // הוידג׳טים במסך הבית, ומה שנעשה בהם בזמן שהאפליקציה הייתה סגורה
   useWidgets();
@@ -804,8 +808,13 @@ export default function App() {
     [move, moveOccurrence],
   );
 
-  // בדסקטופ סרגל הלשוניות צף מעל התוכן, ולכן צריך מרווח מעט גדול יותר
-  const bottomInset = isDesktop ? TAB_BAR_HEIGHT + 28 : TAB_BAR_HEIGHT;
+  /*
+    הסרגל צף מעל התוכן, והתוכן גולל מתחתיו - אחרת לזכוכית אין מה להראות.
+    bottomInset הוא קצה הסרגל העליון מתחתית המסך, כולל סרגל המערכת: מה
+    שכל מסך שומר בתחתיתו כדי שהשורה האחרונה לא תיתקע מאחורי הגלולה.
+  */
+  const tabBarBottom = safeBottom + (isDesktop ? 24 : 10);
+  const bottomInset = tabBarBottom + TAB_BAR_HEIGHT;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -818,10 +827,20 @@ export default function App() {
           <AnimatePresence initial={false}>
             <motion.main
               key={tab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              /*
+                המסך הנכנס מתחדד ממרחק, והיוצא רק דוהה. בלי החלקה הצידה:
+                הציר האופקי שמור לזמן (חודש, שבוע), ולשוניות אינן ציר זמן.
+                ה-filter מוסר בסוף, כי גם blur(0) יוצר בלוק מכיל לכל מה
+                שממוקם fixed בתוך המסך.
+              */
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985, filter: 'blur(6px)' }}
+              animate={
+                reduceMotion
+                  ? { opacity: 1 }
+                  : { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }
+              }
+              exit={{ opacity: 0, transition: EXIT }}
+              transition={ENTER}
               className="absolute inset-0 flex min-h-0 flex-col"
             >
             {tab === 'calendar' && (
@@ -878,7 +897,7 @@ export default function App() {
           </AnimatePresence>
         </div>
 
-        <TabBar active={tab} onChange={setTab} />
+        <TabBar active={tab} onChange={setTab} bottom={tabBarBottom} />
         <Toaster bottomInset={bottomInset} />
 
         {/*
