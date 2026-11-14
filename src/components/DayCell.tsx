@@ -1,7 +1,8 @@
 /**
  * תא יום בלוח השנה.
- * נקי ושקט: מספר גדול, תאריך עברי קטן מתחתיו, ואז המועדים והאירועים
- * ככיתובים דקים. התא הוא גם יעד השחרור בגרירת אירועים.
+ * נקי ושקט: מספר גדול ולשמאלו תאריך עברי קטן, ואז המועדים והאירועים.
+ * התאריך העברי יושב באותה שורה ולא מתחתיו - שורה שלמה בכל תא רק בשבילו
+ * דחקה החוצה כיתוב של אירוע. התא הוא גם יעד השחרור בגרירת אירועים.
  *
  * כל המידות כאן נגזרות מגודל הגופן (יחידות em) כדי שהתא יגדל יחד עם
  * הסקאלה הנוזלית כשעוברים מטלפון למסך גדול.
@@ -150,43 +151,49 @@ function DayCellInner({
         />
       )}
 
-      {/* מספר היום - עיגול הבחירה נמדד ביחס לגודל הגופן ולכן גדל איתו */}
-      <span className="relative flex shrink-0 items-center justify-center text-daynum">
-        {selected && (
-          <motion.span
-            layoutId={`day-selection-${layoutGroupId}`}
-            className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand"
-            transition={SNAP}
-          />
-        )}
-        {day.isToday && !selected && (
-          <span className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand-soft" />
-        )}
-        <span
-          className={`tnum relative leading-[1.6] ${
-            selected
-              ? 'font-semibold text-white'
-              : day.isToday
-                ? 'font-semibold text-brand-ink'
-                : day.isRestDay
-                  ? 'font-medium text-brand-ink'
-                  : 'font-medium text-ink'
-          }`}
-        >
-          {day.date.getDate()}
+      {/*
+        מספר היום, ולשמאלו התאריך העברי. ב-RTL "לשמאל" הוא סוף השורה,
+        ולכן הוא בא אחרי המספר. עיגול הבחירה נמדד ביחס לגודל הגופן
+        ולכן גדל איתו. העטיפה של המספר רחבה כמו העיגול, כדי שהתאריך העברי
+        יתחיל אחריו ולא ייבלע בו ביום הנוכחי או הנבחר.
+      */}
+      <span className="relative flex shrink-0 items-baseline justify-center gap-[3px] text-daynum">
+        <span className="relative flex min-w-[1.75em] items-center justify-center">
+          {selected && (
+            <motion.span
+              layoutId={`day-selection-${layoutGroupId}`}
+              className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand"
+              transition={SNAP}
+            />
+          )}
+          {day.isToday && !selected && (
+            <span className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand-soft" />
+          )}
+          <span
+            className={`tnum relative leading-[1.6] ${
+              selected
+                ? 'font-semibold text-white'
+                : day.isToday
+                  ? 'font-semibold text-brand-ink'
+                  : day.isRestDay
+                    ? 'font-medium text-brand-ink'
+                    : 'font-medium text-ink'
+            }`}
+          >
+            {day.date.getDate()}
+          </span>
         </span>
-      </span>
 
-      {/* תאריך עברי */}
-      {settings.showHebrewDates && (
-        <span
-          className={`mt-px shrink-0 text-micro leading-none ${
-            day.hebrewDay === 'א׳' ? 'font-medium text-brand-ink/70' : 'text-faint'
-          }`}
-        >
-          {day.hebrewDay}
-        </span>
-      )}
+        {settings.showHebrewDates && (
+          <span
+            className={`text-[0.6em] leading-none ${
+              day.hebrewDay === 'א׳' ? 'font-medium text-brand-ink/70' : 'text-faint'
+            }`}
+          >
+            {day.hebrewDay}
+          </span>
+        )}
+      </span>
 
       {/* מועדים, אירועים וזמנים */}
       <span className="mt-1 flex min-h-0 flex-col items-stretch gap-[3px] text-start">

@@ -45,18 +45,25 @@ export function MiniEventChip({
   const isStart = occurrence.spanIndex === 0;
   const isEnd = isSpanEnd(occurrence);
 
-  // הפינות בקצוות בלבד, ובאמצע הפס נמשך אל מחוץ לתא כדי לכסות את המרווח
+  /*
+    הבלוק כולו בצבע האירוע. קודם אירוע של יום אחד היה כיתוב עם קו אנכי
+    לפניו, ורב־יומי היה גוון חיוור עם פס חזק מתחתיו - כלומר רק חלק
+    מהבלוק נשא את הצבע, והקו נראה כמו לכלוך ליד הכותרת.
+
+    ברב־יומי הפינות בקצוות בלבד, ובאמצע הפס נמשך אל מחוץ לתא כדי לכסות
+    את המרווח, כך שהמקטעים נקראים כאובייקט אחד.
+  */
   const shape = multiDay
     ? [
-        'ev ev-span-rule px-1.5 py-1 font-semibold',
-        isStart ? 'rounded-s-md' : '-ms-[3px] ps-[3px]',
-        isEnd ? 'rounded-e-md' : '-me-[3px] pe-[3px]',
+        'px-1',
+        isStart ? 'rounded-s-[4px]' : '-ms-[3px] ps-[7px]',
+        isEnd ? 'rounded-e-[4px]' : '-me-[3px] pe-[7px]',
       ].join(' ')
-    : 'ev-label ps-[5px] font-medium';
+    : 'rounded-[4px] px-1';
 
   return (
     <div
-      className={`ev-${occurrence.color} overflow-hidden text-micro leading-[1.2] transition-opacity ${shape} ${
+      className={`ev-${occurrence.color} ev-solid overflow-hidden py-px text-micro font-semibold leading-[1.2] text-white transition-opacity ${shape} ${
         isDragging ? 'opacity-25' : ''
       }`}
       style={{ touchAction: draggable ? 'none' : undefined }}
