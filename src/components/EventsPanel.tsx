@@ -9,18 +9,12 @@
  * כדי לא לדרוש רסטור מחדש בכל פריים, ושקיפות התוכן נגזרת ישירות ממיקום
  * הגרירה כ-motion value - בלי רינדור מחדש של React תוך כדי התנועה.
  */
-import {
-  motion,
-  useDragControls,
-  useMotionValue,
-  useTransform,
-  type PanInfo,
-} from 'framer-motion';
+import { motion, useDragControls, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { ChevronLeft, ChevronUp, Plus, Sun } from 'lucide-react';
+import { ChevronLeft, ChevronUp, Plus, Sun } from '@/components/ui/icons';
 import type { DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { dateKey, dayTitleLabel, relativeDayLabel } from '@/lib/dates';
@@ -28,7 +22,7 @@ import { EventCard } from './EventChip';
 import { useSettings } from '@/store/settings';
 import { TemplateStrip } from './TemplateStrip';
 import { useElementSize } from '@/hooks/useElementSize';
-import { GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
+import { GLIDE, ICON, SNAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 
 /**
@@ -194,7 +188,7 @@ function DayPanelContent({
             onClick={onAddEvent}
             className="mt-3.5 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
           >
-            <Plus size={ICON.md} strokeWidth={STROKE} />
+            <Plus size={ICON.md} />
             הוספת אירוע
           </button>
         </div>
@@ -212,12 +206,12 @@ function DayPanelContent({
         onClick={onOpenDay}
         className="flex w-full items-center gap-2.5 rounded-xl bg-well px-3.5 py-2.5 text-right transition-colors active:bg-hairline"
       >
-        <Sun size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+        <Sun size={ICON.md} className="shrink-0 text-muted" />
         <span className="min-w-0 flex-1 truncate text-caption">
           <span className="font-medium text-ink">זמני היום ופרטים מלאים</span>
           <span className="text-muted"> · {day.hebrewFull}</span>
         </span>
-        <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-faint" />
+        <ChevronLeft size={ICON.md} className="shrink-0 text-faint" />
       </button>
     </div>
   );
@@ -263,7 +257,7 @@ export function DockedDayPanel(props: ContentProps) {
           aria-label="אירוע חדש ביום הזה"
           className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
         >
-          <Plus size={ICON.lg} strokeWidth={STROKE} />
+          <Plus size={ICON.lg} />
         </motion.button>
       </header>
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -410,7 +404,7 @@ export function EventsPanel({
             transition={SNAP}
             className="me-1 shrink-0 text-faint"
           >
-            <ChevronUp size={ICON.xl} strokeWidth={STROKE} />
+            <ChevronUp size={ICON.xl} />
           </motion.span>
         </span>
         </button>
@@ -426,7 +420,7 @@ export function EventsPanel({
           aria-label="אירוע חדש ביום הזה"
           className="focus-ring me-4 ms-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
         >
-          <Plus size={ICON.lg} strokeWidth={STROKE} />
+          <Plus size={ICON.lg} />
         </motion.button>
       </div>
 

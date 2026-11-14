@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, EyeOff } from 'lucide-react';
+import { CalendarClock, EyeOff } from '@/components/ui/icons';
 import type { EventColor } from '@/types';
 import type { SharedItem, SharedList } from '@/lib/sharedLists';
 import { isHiddenFor, memberLabel, newId } from '@/lib/sharedLists';
@@ -32,7 +32,7 @@ import {
   defaultEndFor,
   type TimingDraft,
 } from './EventFields';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
 import { isDraftDirty } from '@/lib/draftDirty';
@@ -276,7 +276,7 @@ export function SharedItemSheet({
           whenToggle={
             <ToggleRow
               grouped
-              icon={<CalendarClock size={ICON.md} strokeWidth={STROKE} />}
+              icon={<CalendarClock size={ICON.md} />}
               label="תאריך ושעה"
               checked={dated}
               onChange={setDated}
@@ -299,7 +299,7 @@ export function SharedItemSheet({
                 hidden ? 'bg-brand-soft text-brand-ink' : 'bg-well text-ink'
               }`}
             >
-              <EyeOff size={ICON.md} strokeWidth={STROKE} className="shrink-0" />
+              <EyeOff size={ICON.md} className="shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block text-label font-semibold">
                   {hidden ? 'מוסתר מהלוח שלי' : 'להסתיר מהלוח שלי'}

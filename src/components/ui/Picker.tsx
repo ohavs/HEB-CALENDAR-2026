@@ -13,8 +13,9 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from './icons';
 import { Sheet } from './Sheet';
+import { CheckMark } from './controls';
 import {
   GREG_MONTHS_HE,
   addMonths,
@@ -25,7 +26,7 @@ import {
   orderedWeekdays,
 } from '@/lib/dates';
 import { useDateMarkers } from '@/hooks/useDateMarkers';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 
 /* ==========================================================================
@@ -58,7 +59,7 @@ export function ValueButton({
       }`}
     >
       {value}
-      <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="text-faint" />
+      <ChevronLeft size={ICON.md} className="text-faint" />
     </motion.button>
   );
 }
@@ -146,10 +147,12 @@ function WheelColumn({
           key={item}
           type="button"
           onClick={() => onChange(item)}
+          /*
+            ספרות ב-Heebo ולא ב-Karantina: שם 07 ו-08 נקראו כאותיות, ושעה
+            צריכה להיקרא במבט. Karantina נשארת למילים.
+          */
           className={`flex w-full snap-center items-center justify-center transition-colors duration-150 ${
-            i === index
-              ? 'text-heading font-semibold text-ink'
-              : 'text-title font-medium text-faint'
+            i === index ? 'text-display font-semibold text-ink' : 'text-title font-medium text-faint'
           }`}
           style={{ height: ITEM_H }}
         >
@@ -178,7 +181,7 @@ function WheelFrame({
   return (
     <div className="relative flex items-stretch gap-2" dir={ltr ? 'ltr' : undefined}>
       <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-2xl bg-brand-soft"
+        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-field bg-well"
         style={{ height: ITEM_H }}
       />
       {children}
@@ -282,7 +285,8 @@ export function TimePickerSheet({
           <WheelColumn items={HOURS} value={h} onChange={(next) => onChange(`${next}:${m}`)} />
           <span
             aria-hidden="true"
-            className="pointer-events-none flex w-3 shrink-0 items-center justify-center text-heading font-bold text-muted"
+            /* relative: הרצועה ממוקמת absolute, ובלי זה היא נצבעת מעל הנקודתיים */
+            className="pointer-events-none relative flex w-3 shrink-0 items-center justify-center text-display font-bold text-muted"
           >
             :
           </span>
@@ -335,35 +339,46 @@ export function OptionPickerSheet<T extends string | number>({
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={title} subtitle={subtitle}>
-      <div className="space-y-2 pb-4">
+      {/*
+        עד שמונה אפשרויות קצרות - אריחים בשתי עמודות, שנבחרים במבט אחד.
+        עם הסבר לכל אפשרות, או רשימה ארוכה, צריך שורה ברוחב מלא.
+      */}
+      <div
+        className={`pb-4 ${
+          options.length <= 8 && options.every((o) => !o.hint && o.label.length <= 16)
+            ? 'grid grid-cols-2 gap-2'
+            : 'space-y-2'
+        }`}
+      >
         {options.map((o) => {
           const active = o.value === value;
           return (
             <motion.button
               key={String(o.value)}
               type="button"
-              whileTap={{ scale: 0.99 }}
+              whileTap={{ scale: 0.98 }}
+              transition={TAP}
+              aria-pressed={active}
               onClick={() => {
+                void haptic('light');
                 onChange(o.value);
                 onClose();
               }}
-              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-right transition-colors ${
-                active ? 'bg-brand-soft' : 'bg-well'
+              className={`focus-ring flex min-h-[56px] w-full items-center gap-3 rounded-field px-4 py-3 text-right transition-colors ${
+                active ? 'bg-inverse text-on-inverse' : 'bg-well text-ink active:bg-hairline'
               }`}
             >
               <span className="min-w-0 flex-1">
-                <span
-                  className={`block text-body font-medium ${
-                    active ? 'text-brand-ink' : 'text-ink'
-                  }`}
-                >
+                <span className={`block text-body ${active ? 'font-semibold' : 'font-medium'}`}>
                   {o.label}
                 </span>
-                {o.hint && <span className="mt-0.5 block text-caption text-muted">{o.hint}</span>}
+                {o.hint && (
+                  <span className={`mt-0.5 block text-caption ${active ? 'opacity-75' : 'text-muted'}`}>
+                    {o.hint}
+                  </span>
+                )}
               </span>
-              {active && (
-                <Check size={ICON.lg} strokeWidth={2.6} className="shrink-0 text-brand" />
-              )}
+              {active && <CheckMark size={ICON.md} className="shrink-0" />}
             </motion.button>
           );
         })}
@@ -403,7 +418,7 @@ function CreateOptionRow({
     }
   };
   return (
-    <div className="flex items-center gap-2 pt-1">
+    <div className="col-span-2 flex items-center gap-2 pt-1">
       <input
         type="text"
         value={name}
@@ -411,7 +426,7 @@ function CreateOptionRow({
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="field-reset field-shell min-w-0 flex-1 rounded-2xl bg-well px-4 py-4 text-body text-ink placeholder:text-faint"
+        className="field-reset field-shell min-w-0 flex-1 rounded-field bg-well px-4 py-4 text-body text-ink placeholder:text-faint"
       />
       <motion.button
         type="button"
@@ -420,9 +435,9 @@ function CreateOptionRow({
         whileTap={{ scale: 0.92 }}
         transition={TAP}
         aria-label={placeholder}
-        className="focus-ring flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-inverse disabled:opacity-40"
+        className="focus-ring flex h-14 w-14 shrink-0 items-center justify-center rounded-field bg-inverse text-on-inverse disabled:opacity-40"
       >
-        <Plus size={ICON.md} strokeWidth={2.5} />
+        <Plus size={ICON.md} weight="bold" />
       </motion.button>
     </div>
   );
@@ -477,7 +492,7 @@ export function DatePickerSheet({
             onClick={() => setMonth((m) => addMonths(m, -1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={ICON.lg} strokeWidth={STROKE} />
+            <ChevronRight size={ICON.lg} />
           </button>
           <span className="text-title font-semibold text-ink">
             {GREG_MONTHS_HE[month.getMonth()]} {month.getFullYear()}
@@ -488,7 +503,7 @@ export function DatePickerSheet({
             onClick={() => setMonth((m) => addMonths(m, 1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} />
+            <ChevronLeft size={ICON.lg} />
           </button>
         </div>
 

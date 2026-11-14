@@ -5,10 +5,11 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarClock, Trash2 } from 'lucide-react';
+import { CalendarClock, Trash2 } from '@/components/ui/icons';
 import type { DateKey, EventColor, EventException, UserEvent } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
-import { EVENT_COLORS, useEventsStore, type EventDraft } from '@/store/events';
+import { useEventsStore, type EventDraft } from '@/store/events';
+import { ColorRow } from './ui/ColorRow';
 import { ScopeSheet, type EditScope } from './ScopeSheet';
 import { ConfirmDiscardSheet } from './ConfirmDiscardSheet';
 import { MAX_REMINDER_CATEGORIES } from './ReminderCategoriesSheet';
@@ -20,23 +21,9 @@ import { isDraftDirty } from '@/lib/draftDirty';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
-
-// המחלקות נבנות דינמית (`ev-${color}`), ו-Tailwind מוחק מחלקה של שכבת
-// components שאינה כתובה במלואה באף קובץ. הטבלה הזו היא מה ששומר אותן.
-const COLOR_SWATCH: Record<EventColor, string> = {
-  graphite: 'ev-graphite',
-  butter: 'ev-butter',
-  peach: 'ev-peach',
-  rose: 'ev-rose',
-  violet: 'ev-violet',
-  sky: 'ev-sky',
-  mint: 'ev-mint',
-  sage: 'ev-sage',
-  slate: 'ev-slate',
-};
 
 function emptyDraft(date: DateKey, color: EventColor, startTime?: string): EventDraft {
   const start = startTime ?? DEFAULT_START;
@@ -339,7 +326,7 @@ export function EventEditor({
                 : 'bg-well text-danger'
             }`}
           >
-            <Trash2 size={ICON.md} strokeWidth={STROKE} />
+            <Trash2 size={ICON.md} />
             {!isSeriesMember && confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
@@ -382,29 +369,9 @@ export function EventEditor({
           />
         </div>
 
-        {/* צבע - שורה אחת של ריבועים, לא כרטיס בגובה 100px */}
-        <div className="flex items-center gap-3 rounded-2xl bg-well px-4 py-2.5">
-          <span className="shrink-0 text-label font-medium text-ink">צבע</span>
-          <div className="flex flex-1 justify-end gap-2">
-            {EVENT_COLORS.map((c) => {
-              const active = draft.color === c.id;
-              return (
-                <motion.button
-                  key={c.id}
-                  type="button"
-                  onClick={() => patch({ color: c.id })}
-                  whileTap={{ scale: 0.9 }}
-                  aria-label={c.label}
-                  aria-pressed={active}
-                  className={`ev ${COLOR_SWATCH[c.id]} flex h-8 w-8 items-center justify-center rounded-xl transition-all ${
-                    active ? 'ring-2 ring-brand ring-offset-2 ring-offset-well' : ''
-                  }`}
-                >
-                  <span className="ev-dot block h-3 w-3 rounded-md" />
-                </motion.button>
-              );
-            })}
-          </div>
+        {/* צבע - אותה שורה של כל האפליקציה. יורדת לתחתית הטופס בשלב 4 */}
+        <div className="rounded-group bg-well px-2 py-1">
+          <ColorRow value={draft.color} onChange={(color) => patch({ color })} />
         </div>
 
         <EventFields
@@ -416,7 +383,7 @@ export function EventEditor({
             reminder ? (
               <ToggleRow
                 grouped
-                icon={<CalendarClock size={ICON.md} strokeWidth={STROKE} />}
+                icon={<CalendarClock size={ICON.md} />}
                 label="תאריך ושעה"
                 checked={!draft.undated}
                 onChange={(on) => {

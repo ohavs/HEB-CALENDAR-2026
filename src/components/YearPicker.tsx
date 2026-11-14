@@ -3,10 +3,10 @@
  * לחיצה על יום קופצת אליו בלוח.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 import { GREG_MONTHS_HE, dateKey, isSameDay, monthGridDays, orderedWeekdays } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 
 export function YearPicker({
   open,
@@ -60,7 +60,7 @@ export function YearPicker({
             onClick={() => onYearChange(year - 1)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={ICON.md} strokeWidth={STROKE} />
+            <ChevronRight size={ICON.md} />
           </button>
           <button
             type="button"
@@ -68,7 +68,7 @@ export function YearPicker({
             onClick={() => onYearChange(year + 1)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
+            <ChevronLeft size={ICON.md} />
           </button>
         </div>
       }

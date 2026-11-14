@@ -18,7 +18,7 @@ import {
   MapPin,
   Navigation,
   Tag,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import type { DateKey, PlaceTrigger, UserEvent } from '@/types';
 import { spanLengthOf, undatedRepeatHint } from '@/lib/recurrence';
 import { REMINDER_OPTIONS, useEvents } from '@/store/events';
@@ -26,7 +26,7 @@ import { useSettings } from '@/store/settings';
 import { addDays, dateKey, keyToDate, minutesToTime, timeToMinutes } from '@/lib/dates';
 import { hebrewDateParts } from '@/lib/hebrew';
 import { shiftEndWithStart } from '@/lib/reminderCompose';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 import {
   geoPermission,
   haptic,
@@ -235,7 +235,7 @@ export function EventFields({
                   // יום סיום שנשאר לפני ההתחלה הופך את הפרישה לחסרת משמעות
                   patch({ date: d, endDate: draft.endDate && draft.endDate < d ? d : draft.endDate })
                 }
-                icon={<CalendarDays size={ICON.md} strokeWidth={STROKE} />}
+                icon={<CalendarDays size={ICON.md} />}
                 hint={`${hebrew.day} ב${hebrew.month} ${hebrew.year}`}
                 variant="grouped"
               />
@@ -247,7 +247,7 @@ export function EventFields({
               */}
               <div className="flex gap-2 px-4 py-2.5">
                 <ChipToggle
-                  icon={<Clock size={ICON.xs} strokeWidth={STROKE} />}
+                  icon={<Clock size={ICON.xs} />}
                   label="כל היום"
                   checked={draft.allDay}
                   onChange={(allDay) => {
@@ -262,7 +262,7 @@ export function EventFields({
                 />
                 {/* אירוע שנמשך כמה ימים - חופשה, טיול, אירוח */}
                 <ChipToggle
-                  icon={<CalendarRange size={ICON.xs} strokeWidth={STROKE} />}
+                  icon={<CalendarRange size={ICON.xs} />}
                   label="כמה ימים"
                   checked={multiDay}
                   onChange={(on) =>
@@ -276,7 +276,7 @@ export function EventFields({
                   label="עד תאריך"
                   value={draft.endDate ?? draft.date}
                   onChange={(endDate) => patch({ endDate })}
-                  icon={<CalendarRange size={ICON.md} strokeWidth={STROKE} />}
+                  icon={<CalendarRange size={ICON.md} />}
                   hint={spanHint}
                   min={draft.date}
                   variant="grouped"
@@ -289,7 +289,7 @@ export function EventFields({
                 שום רמז לכך שיש בכלל שעות.
               */}
               <TimeRangeRow
-                icon={<Clock size={ICON.md} strokeWidth={STROKE} />}
+                icon={<Clock size={ICON.md} />}
                 label="שעות"
                 start={draft.startTime ?? DEFAULT_START}
                 end={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
@@ -306,7 +306,7 @@ export function EventFields({
         <PickerField
           label="מקום"
           display={draft.location || 'לא הוגדר'}
-          icon={<MapPin size={ICON.md} strokeWidth={STROKE} />}
+          icon={<MapPin size={ICON.md} />}
           hint={savedPlace ? 'מקום שמור' : undefined}
           onOpen={() => setLocationOpen(true)}
           variant="grouped"
@@ -319,7 +319,7 @@ export function EventFields({
         {hasPlaceAlert && savedPlace && (
           <div className="px-4 py-3">
             <span className="mb-2.5 flex items-center gap-2 text-caption font-medium text-muted">
-              <Navigation size={ICON.xs} strokeWidth={STROKE} />
+              <Navigation size={ICON.xs} />
               תזכורת כשאני
             </span>
             <Segmented<'none' | PlaceTrigger>
@@ -350,7 +350,7 @@ export function EventFields({
               label="קטגוריה"
               value={category.value}
               onChange={category.onChange}
-              icon={<Tag size={ICON.md} strokeWidth={STROKE} />}
+              icon={<Tag size={ICON.md} />}
               options={category.options}
               variant="grouped"
               create={
@@ -378,7 +378,7 @@ export function EventFields({
               label="תזכורת"
               value={String(draft.reminderMinutes)}
               onChange={(v) => patch({ reminderMinutes: v === 'null' ? null : Number(v) })}
-              icon={<Bell size={ICON.md} strokeWidth={STROKE} />}
+              icon={<Bell size={ICON.md} />}
               options={REMINDER_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
               variant="grouped"
             />
@@ -433,7 +433,7 @@ function BackgroundLocationHint() {
       }}
       className="focus-ring mt-2.5 flex w-full items-start gap-2 rounded-xl bg-brand-soft px-3 py-2.5 text-right text-caption leading-relaxed text-brand-ink"
     >
-      <Navigation size={ICON.xs} strokeWidth={STROKE} className="mt-0.5 shrink-0" />
+      <Navigation size={ICON.xs} className="mt-0.5 shrink-0" />
       <span>
         {geo.foreground
           ? 'כדי שההתראה תגיע גם כשהאפליקציה סגורה, צריך לבחור ״לאפשר תמיד״ בהרשאת המיקום. הקשה פותחת את ההגדרות.'

@@ -12,7 +12,7 @@
  */
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarPlus, Pencil, Plus } from 'lucide-react';
+import { CalendarPlus, Pencil, Plus } from '@/components/ui/icons';
 import type { DateKey, EventColor, EventTemplate } from '@/types';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { EVENT_COLORS } from '@/store/events';
@@ -32,7 +32,7 @@ import { ColorRow } from './ui/ColorRow';
 import { TextField } from './ui/fields';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
 
 export function TemplatesView({
   bottomInset,
@@ -107,7 +107,7 @@ export function TemplatesView({
                 aria-label="יצירת תבנית"
                 className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse"
               >
-                <Plus size={ICON.md} strokeWidth={2.6} />
+                <Plus size={ICON.md} weight="bold" />
               </motion.button>
             )}
           </AnimatePresence>
@@ -163,7 +163,7 @@ export function TemplatesView({
                 aria-label={`עריכת ${template.title}`}
                 className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl opacity-70"
               >
-                <Pencil size={ICON.sm} strokeWidth={STROKE} />
+                <Pencil size={ICON.sm} />
               </motion.button>
 
               <motion.button
@@ -176,7 +176,7 @@ export function TemplatesView({
                 }}
                 className="focus-ring ev-solid flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-caption font-semibold text-white"
               >
-                <CalendarPlus size={ICON.sm} strokeWidth={STROKE} />
+                <CalendarPlus size={ICON.sm} />
                 שיבוץ
               </motion.button>
             </motion.div>

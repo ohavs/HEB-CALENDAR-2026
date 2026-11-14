@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Crosshair, Globe, History, MapPin, Search, Trash2, X } from 'lucide-react';
+import { Crosshair, Globe, History, MapPin, Search, Trash2, X } from '@/components/ui/icons';
 import type { SavedPlace, UserEvent } from '@/types';
 import { suggestLocations, type LocationSuggestion } from '@/lib/eventLocations';
 import { findCity, nearestCity } from '@/lib/locations';
@@ -30,7 +30,7 @@ import { useSettingsStore } from '@/store/settings';
 import { announce } from '@/lib/announce';
 import { readCurrentPosition } from '@/lib/geofence';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 const ICON_FOR = {
   place: MapPin,
@@ -159,7 +159,7 @@ export function LocationPicker({
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="מקום">
       <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
-        <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+        <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           id="location-query"
           /* לא type="search": הוא מוסיף X משלו ליד שלנו */
@@ -178,7 +178,7 @@ export function LocationPicker({
             aria-label="ניקוי"
             className="focus-ring -me-1 shrink-0 rounded-full p-1 text-faint"
           >
-            <X size={ICON.sm} strokeWidth={STROKE} />
+            <X size={ICON.sm} />
           </button>
         )}
       </div>
@@ -193,7 +193,7 @@ export function LocationPicker({
             disabled={locating}
             className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right disabled:opacity-60"
           >
-            <Crosshair size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+            <Crosshair size={ICON.md} className="shrink-0 text-muted" />
             <span className="text-body font-medium text-ink">
               {locating ? 'מאתר…' : 'המיקום הנוכחי שלי'}
             </span>
@@ -214,7 +214,7 @@ export function LocationPicker({
             onClick={() => choose({})}
             className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right"
           >
-            <Trash2 size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+            <Trash2 size={ICON.md} className="shrink-0 text-muted" />
             <span className="text-body font-medium text-ink">בלי מקום</span>
           </motion.button>
         )}
@@ -235,7 +235,6 @@ export function LocationPicker({
                 >
                   <Icon
                     size={ICON.md}
-                    strokeWidth={STROKE}
                     className={`shrink-0 ${s.kind === 'place' ? 'text-brand-ink' : 'text-faint'}`}
                   />
                   <span className="min-w-0 flex-1">
@@ -277,7 +276,7 @@ export function LocationPicker({
                     onClick={() => pickResult(r)}
                     className="focus-ring-inset flex w-full items-center gap-3.5 px-4 py-4 text-right"
                   >
-                    <Globe size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+                    <Globe size={ICON.md} className="shrink-0 text-muted" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-body font-medium text-ink">
                         {r.label}
@@ -318,7 +317,7 @@ export function LocationPicker({
             onClick={() => choose({ location: trimmed })}
             className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right"
           >
-            <MapPin size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-muted" />
+            <MapPin size={ICON.md} className="shrink-0 text-muted" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-body font-medium text-ink">
                 {trimmed}

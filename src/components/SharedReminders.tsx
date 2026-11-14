@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Plus, Settings2, UserPlus, Users } from 'lucide-react';
+import { ChevronDown, Plus, Settings2, UserPlus, Users } from '@/components/ui/icons';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
 import { buildReminderGroups, type ReminderGroup, type ReminderItem } from '@/lib/reminders';
@@ -37,7 +37,7 @@ import {
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { ENTER, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
 import { ListManagerSheet } from './ListManagerSheet';
 import { ConfirmDeleteSheet } from './ConfirmDeleteSheet';
 import { SharedItemSheet } from './SharedItemSheet';
@@ -345,14 +345,14 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                     {list?.name}
                   </span>
                   <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
-                    <Users size={ICON.xs} strokeWidth={STROKE} />
+                    <Users size={ICON.xs} />
                     {list && list.memberUids.length > 1
                       ? `${list.memberUids.length} חברים`
                       : 'רק אתם'}
                     {lists.length > 1 && <span className="opacity-60">· {lists.length} רשימות</span>}
                   </span>
                 </span>
-                <ChevronDown size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+                <ChevronDown size={ICON.lg} className="shrink-0 text-faint" />
               </motion.button>
 
               <button
@@ -361,7 +361,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 aria-label="ניהול הרשימה"
                 className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-muted"
               >
-                <Settings2 size={ICON.md} strokeWidth={STROKE} />
+                <Settings2 size={ICON.md} />
               </button>
             </div>
 
@@ -411,7 +411,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
               }}
               className="focus-ring mb-3 flex w-full items-center gap-3 rounded-2xl bg-brand-soft px-4 py-3.5 text-right"
             >
-              <UserPlus size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-brand-ink" />
+              <UserPlus size={ICON.md} className="shrink-0 text-brand-ink" />
               <span className="min-w-0 flex-1">
                 <span className="block text-label font-semibold text-brand-ink">
                   הזמינו מישהו ל״{list.name}״
@@ -448,7 +448,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                     aria-label="הוספה"
                     className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-50"
                   >
-                    <Plus size={ICON.md} strokeWidth={2.6} />
+                    <Plus size={ICON.md} weight="bold" />
                   </motion.button>
                 )}
               </AnimatePresence>

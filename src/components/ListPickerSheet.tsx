@@ -10,11 +10,11 @@
  * אני" היא שאלה שנשאלת כל הזמן, גם כשלא מחליפים.
  */
 import { motion } from 'framer-motion';
-import { Check, Plus, Users } from 'lucide-react';
+import { Check, Plus, Users } from '@/components/ui/icons';
 import type { DateKey } from '@/types';
 import { countByCategory, type SharedItem, type SharedList } from '@/lib/sharedLists';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 
 export function ListPickerSheet({
@@ -71,9 +71,9 @@ export function ListPickerSheet({
                 }`}
               >
                 {active ? (
-                  <Check size={ICON.md} strokeWidth={3} />
+                  <Check size={ICON.md} weight="bold" />
                 ) : (
-                  <Users size={ICON.md} strokeWidth={STROKE} />
+                  <Users size={ICON.md} />
                 )}
               </span>
               <span className="min-w-0 flex-1">
@@ -109,7 +109,7 @@ export function ListPickerSheet({
           className="focus-ring mt-1 flex items-center gap-3.5 rounded-2xl border border-dashed border-hairline px-4 py-3.5 text-right disabled:opacity-50"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-ink">
-            <Plus size={ICON.md} strokeWidth={2.5} />
+            <Plus size={ICON.md} weight="bold" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-body font-semibold text-ink">רשימה משותפת חדשה</span>

@@ -6,11 +6,11 @@
  * נפרדות היו נפרדות גם בהתנהגות ברגע שאחת מהן תשתנה.
  */
 import { useState, type ReactNode } from 'react';
-import { CalendarDays, Clock, SlidersHorizontal, X } from 'lucide-react';
+import { CalendarDays, Clock, SlidersHorizontal, X } from './icons';
 import type { DateKey } from '@/types';
 import { addDays, dateKey } from '@/lib/dates';
 import { dayForTime, suggestReminderTime } from '@/lib/reminderCompose';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { DatePickerSheet, TimePickerSheet } from './Picker';
 
@@ -89,8 +89,8 @@ function ValueChip({
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-lg transition-colors ${
-        value ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
+      className={`flex h-10 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-full transition-colors ${
+        value ? 'bg-inverse text-on-inverse' : 'bg-well text-muted'
       }`}
     >
       <button
@@ -99,8 +99,8 @@ function ValueChip({
           void haptic('light');
           onOpen();
         }}
-        className={`focus-ring flex min-w-0 items-center gap-1.5 py-1.5 text-caption font-medium ${
-          value ? 'ps-2.5 pe-1' : 'px-2.5'
+        className={`focus-ring flex h-full min-w-0 items-center gap-1.5 text-label font-medium ${
+          value ? 'ps-3.5 pe-1' : 'px-3.5'
         }`}
       >
         {icon}
@@ -114,9 +114,9 @@ function ValueChip({
             onClear();
           }}
           aria-label={clearLabel}
-          className="focus-ring py-1.5 pe-2.5 ps-1"
+          className="focus-ring flex h-full items-center pe-3 ps-1"
         >
-          <X size={ICON.xs} strokeWidth={2.6} />
+          <X size={ICON.xs} weight="bold" />
         </button>
       )}
     </div>
@@ -145,9 +145,9 @@ export function ComposeRow({
         יום - כלומר את מה שבאמת משתנה בין תזכורת לתזכורת, השעה, היה הכי
         רחוק להגיע אליו. "היום" ו"מחר" עדיין נאמרים, כתווית של היום שנבחר.
       */}
-      <div className="flex items-center gap-1.5 px-0.5 pt-2">
+      <div className="flex items-center gap-2 px-0.5 pt-2.5">
         <ValueChip
-          icon={<CalendarDays size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
+          icon={<CalendarDays size={ICON.sm} className="shrink-0" />}
           empty="יום"
           value={targetDate ? dayChipLabel(targetDate, now) : null}
           onOpen={() => setDateOpen(true)}
@@ -155,7 +155,7 @@ export function ComposeRow({
           clearLabel="בלי יום"
         />
         <ValueChip
-          icon={<Clock size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
+          icon={<Clock size={ICON.sm} className="shrink-0" />}
           empty="שעה"
           value={time}
           onOpen={() => setTimeOpen(true)}
@@ -165,9 +165,9 @@ export function ComposeRow({
         <button
           type="button"
           onClick={onMore}
-          className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg bg-well px-2.5 py-1.5 text-caption font-medium text-muted"
+          className="focus-ring flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-well px-3.5 text-label font-medium text-muted"
         >
-          <SlidersHorizontal size={ICON.xs} strokeWidth={STROKE} />
+          <SlidersHorizontal size={ICON.sm} />
           כל האפשרויות
         </button>
       </div>

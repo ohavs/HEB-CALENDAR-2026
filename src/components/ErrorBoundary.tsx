@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
             🕯
           </span>
 
-          <h1 className="text-heading font-semibold leading-tight text-ink">
+          <h1 className="screen-title">
             משהו השתבש
           </h1>
           <p className="mt-3 text-body text-muted">

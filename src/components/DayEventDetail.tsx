@@ -7,13 +7,14 @@
  * הקצב; בתצוגה של יום אחד זה בדיוק מה שבאים לראות.
  */
 import { motion } from 'framer-motion';
-import { Bell, Check, MapPin, Repeat, Users } from 'lucide-react';
+import { CheckMark } from './ui/controls';
+import { Bell, MapPin, Repeat, Users } from '@/components/ui/icons';
 import type { Occurrence } from '@/lib/recurrence';
 import { repeatLabel } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { haptic } from '@/lib/native';
 import { REMINDER_OPTIONS } from '@/store/events';
-import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
+import { ICON, TAP, TAP_SCALE_LG } from '@/lib/motion';
 
 function reminderText(minutes: number | null): string | null {
   if (minutes === null) return null;
@@ -85,7 +86,7 @@ export function DayEventDetail({
 
           {occ.location && (
             <span className="flex items-start gap-1.5 text-caption opacity-90">
-              <MapPin size={ICON.xs} strokeWidth={STROKE} className="mt-0.5 shrink-0" />
+              <MapPin size={ICON.xs} className="mt-0.5 shrink-0" />
               <span className="break-words">{occ.location}</span>
             </span>
           )}
@@ -97,7 +98,7 @@ export function DayEventDetail({
                   key={text}
                   className="flex items-center gap-1 rounded-full bg-surface/60 px-2.5 py-1 text-micro font-medium"
                 >
-                  <Icon size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />
+                  <Icon size={ICON.xs} className="shrink-0" />
                   {text}
                 </span>
               ))}
@@ -124,11 +125,11 @@ export function DayEventDetail({
         }}
         whileTap={{ scale: 0.88 }}
         transition={TAP}
-        className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+        className={`focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
           occ.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
         }`}
       >
-        {occ.done && <Check size={ICON.sm} strokeWidth={3} />}
+        {occ.done && <CheckMark size={ICON.sm} />}
       </motion.button>
     </div>
   );

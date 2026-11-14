@@ -7,13 +7,13 @@
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '@/components/ui/icons';
 import type { ReminderCategory } from '@/types';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { newId } from '@/lib/sharedLists';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 import { Sheet } from './ui/Sheet';
 
 /** מעבר לזה הצ׳יפים כבר לא נכנסים בשורה, וזה סימן לרשימה ולא לקטגוריות */
@@ -62,7 +62,7 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
                   aria-label={`מחיקת ${c.name}`}
                   className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl text-muted"
                 >
-                  <X size={ICON.md} strokeWidth={STROKE} />
+                  <X size={ICON.md} />
                 </motion.button>
               </div>
             ))}
@@ -88,7 +88,7 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
             aria-label="הוספת קטגוריה"
             className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-inverse disabled:opacity-40"
           >
-            <Plus size={ICON.md} strokeWidth={2.5} />
+            <Plus size={ICON.md} weight="bold" />
           </motion.button>
         </div>
 

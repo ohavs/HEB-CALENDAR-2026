@@ -11,7 +11,7 @@
  */
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/ui/icons';
 import type { DateKey, EventTemplate } from '@/types';
 import {
   addMonths,
@@ -24,7 +24,7 @@ import {
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 
 const WEEKDAYS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 
@@ -91,7 +91,7 @@ export function TemplatePlaceSheet({
             onClick={() => step(-1)}
             className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-well text-muted"
           >
-            <ChevronRight size={ICON.md} strokeWidth={STROKE} />
+            <ChevronRight size={ICON.md} />
           </button>
           <span className="flex-1 text-center text-label font-semibold text-ink">
             {monthLabel(month)}
@@ -102,7 +102,7 @@ export function TemplatePlaceSheet({
             onClick={() => step(1)}
             className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl bg-well text-muted"
           >
-            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
+            <ChevronLeft size={ICON.md} />
           </button>
         </div>
 

@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, Search, X } from 'lucide-react';
+import { CalendarDays, Clock, Search, X } from '@/components/ui/icons';
 import { dateKey, dayTitleLabel, keyToDate, startOfDay } from '@/lib/dates';
 import { yearHolidays, type YearHoliday } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
@@ -21,7 +21,7 @@ import { toFilters, useSettings } from '@/store/settings';
 import { useEvents } from '@/store/events';
 import type { UserEvent } from '@/types';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 /** כמה שנים אחורה וקדימה נסרקות אחרי מועדים */
 const YEARS_BACK = 2;
@@ -122,7 +122,7 @@ export function SearchSheet({
         אחרת בכל מכשיר, ויש לנו כבר כזה משלנו לידו.
       */}
       <div className="field-shell mb-5 flex items-center gap-3 rounded-2xl bg-well ps-4 pe-2">
-        <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+        <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           id="search-query"
           type="text"
@@ -143,7 +143,7 @@ export function SearchSheet({
             aria-label="ניקוי החיפוש"
             className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hairline/70 text-muted"
           >
-            <X size={ICON.sm} strokeWidth={STROKE} />
+            <X size={ICON.sm} />
           </motion.button>
         )}
       </div>
@@ -175,7 +175,7 @@ export function SearchSheet({
                     onClick={() => setQuery(term)}
                     className="focus-ring flex items-center gap-2 rounded-2xl bg-well px-3.5 py-2.5 text-caption font-medium text-ink"
                   >
-                    <Clock size={ICON.xs} strokeWidth={STROKE} className="text-faint" />
+                    <Clock size={ICON.xs} className="text-faint" />
                     {term}
                   </motion.button>
                 ))}

@@ -5,13 +5,14 @@
  * כך האירוע נקרא כיחידה אחת ולא כמלבן עם קישוט.
  */
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { CheckMark } from './ui/controls';
 import { motion } from 'framer-motion';
-import { Check, MapPin, Repeat, Users } from 'lucide-react';
+import { MapPin, Repeat, Users } from '@/components/ui/icons';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
+import { ICON, TAP, TAP_SCALE_LG } from '@/lib/motion';
 import { MarqueeText } from './ui/MarqueeText';
 
 /**
@@ -91,7 +92,7 @@ export function MiniEventChip({
         {occurrence.shared && !(multiDay && !labelled) && (
           <Users
             size={ICON.xs}
-            strokeWidth={2.4}
+            weight="bold"
             aria-hidden="true"
             className="-mt-px me-0.5 inline-block align-[-1px] opacity-80"
           />
@@ -180,11 +181,11 @@ export function EventCard({
           }}
           whileTap={{ scale: 0.88 }}
           transition={TAP}
-          className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+          className={`focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
             occurrence.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
           }`}
         >
-          {occurrence.done && <Check size={ICON.sm} strokeWidth={3} />}
+          {occurrence.done && <CheckMark size={ICON.sm} />}
         </motion.button>
       )}
       <motion.button
@@ -231,7 +232,7 @@ export function EventCard({
             }`}
           />
           {occurrence.repeat !== 'none' && (
-            <Repeat size={ICON.sm} className="shrink-0 opacity-60" strokeWidth={STROKE} />
+            <Repeat size={ICON.sm} className="shrink-0 opacity-60" />
           )}
         </span>
 
@@ -242,14 +243,14 @@ export function EventCard({
           */}
           {occurrence.shared && (
             <span className="flex min-w-0 items-center gap-1.5 font-medium">
-              <Users size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />
+              <Users size={ICON.xs} className="shrink-0" />
               <span className="truncate">{occurrence.shared.listName}</span>
             </span>
           )}
           {meta && <span className="tnum font-medium">{meta}</span>}
           {occurrence.location && (
             <span className="flex min-w-0 items-center gap-1.5">
-              <MapPin size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />
+              <MapPin size={ICON.xs} className="shrink-0" />
               <span className="truncate">{occurrence.location}</span>
             </span>
           )}

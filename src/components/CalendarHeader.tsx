@@ -8,7 +8,7 @@
  * לומר.
  */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Columns3, LayoutGrid, List } from 'lucide-react';
+import { CalendarDays, Columns3, LayoutGrid, List } from '@/components/ui/icons';
 import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON } from '@/lib/motion';
@@ -78,7 +78,7 @@ export function CalendarHeader({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6, position: 'absolute' }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="block whitespace-nowrap text-heading font-semibold leading-tight text-ink"
+              className="screen-title block whitespace-nowrap"
             >
               {label}
             </motion.span>
@@ -108,7 +108,7 @@ export function CalendarHeader({
             aria-label="חזרה להיום"
             className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
           >
-            <CalendarDays size={ICON.xl} strokeWidth={2.1} />
+            <CalendarDays size={ICON.xl} />
           </motion.button>
 
           {canSwitchViews && (
@@ -119,7 +119,7 @@ export function CalendarHeader({
               aria-label={`תצוגה: ${VIEW_LABEL[view]}`}
               className="flex h-11 w-11 items-center justify-center rounded-full text-muted lg:h-12 lg:w-12"
             >
-              <ViewIcon size={ICON.xl} strokeWidth={2.1} />
+              <ViewIcon size={ICON.xl} />
             </motion.button>
           )}
 

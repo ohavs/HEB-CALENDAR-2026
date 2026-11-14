@@ -10,7 +10,7 @@
  * מכוונים בדיוק למקרה הזה - אפליקציה שמתקינה קוד.
  */
 import { useState } from 'react';
-import { Check, Download, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
+import { Check, Download, RefreshCw, ShieldCheck, Sparkles } from '@/components/ui/icons';
 import type { UpdateInfo } from '@/lib/appUpdate';
 import {
   applyWebUpdate,
@@ -19,7 +19,7 @@ import {
   openInstallSettings,
 } from '@/lib/appUpdate';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 
 type Stage = 'idle' | 'working' | 'permission' | 'installing';
 
@@ -97,7 +97,7 @@ export function UpdateSheet({
                 onClick={() => void retryAfterPermission()}
                 className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised"
               >
-                <ShieldCheck size={ICON.md} strokeWidth={STROKE} />
+                <ShieldCheck size={ICON.md} />
                 פתיחת ההגדרה
               </button>
             ) : (
@@ -108,15 +108,14 @@ export function UpdateSheet({
                 className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised disabled:opacity-70"
               >
                 {stage === 'installing' ? (
-                  <Check size={ICON.md} strokeWidth={STROKE} />
+                  <Check size={ICON.md} />
                 ) : live ? (
                   <RefreshCw
                     size={ICON.md}
-                    strokeWidth={STROKE}
                     className={busy ? 'animate-spin' : ''}
                   />
                 ) : (
-                  <Download size={ICON.md} strokeWidth={STROKE} />
+                  <Download size={ICON.md} />
                 )}
                 {label()}
               </button>
@@ -146,7 +145,6 @@ export function UpdateSheet({
             <div className="flex items-start gap-3 rounded-2xl bg-well px-4 py-4">
               <Sparkles
                 size={ICON.md}
-                strokeWidth={STROKE}
                 className="mt-0.5 shrink-0 text-brand-ink"
               />
               <p className="text-body leading-relaxed text-ink">

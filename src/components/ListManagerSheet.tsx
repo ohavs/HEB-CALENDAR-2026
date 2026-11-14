@@ -7,7 +7,7 @@
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Plus, Trash2, X } from 'lucide-react';
+import { LogOut, Plus, Trash2, X } from '@/components/ui/icons';
 import { useAuthStore } from '@/store/auth';
 import {
   deleteList,
@@ -27,7 +27,7 @@ import { Sheet } from './ui/Sheet';
 import { PrimaryButton, SettingRow, SettingsGroup } from './ui/controls';
 import { TextField } from './ui/fields';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 
 /** כתובת שנראית כמו אימייל. ולידציה מלאה שייכת לשרת, ואין לנו כזה. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -155,7 +155,7 @@ export function ListManagerSheet({
                 aria-label={`מחיקת ${c.name}`}
                 className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-muted"
               >
-                <X size={ICON.md} strokeWidth={STROKE} />
+                <X size={ICON.md} />
               </motion.button>
             </SettingRow>
           ))}
@@ -177,7 +177,7 @@ export function ListManagerSheet({
               aria-label="הוספת קטגוריה"
               className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-40"
             >
-              <Plus size={ICON.md} strokeWidth={2.5} />
+              <Plus size={ICON.md} weight="bold" />
             </motion.button>
           </div>
         </SettingsGroup>
@@ -232,7 +232,7 @@ export function ListManagerSheet({
             <SettingRow
               title={confirmDelete ? 'למחוק את הרשימה לכולם?' : 'מחיקת הרשימה'}
               hint={confirmDelete ? 'אי אפשר לבטל' : 'הרשימה תיעלם אצל כל החברים'}
-              icon={<Trash2 size={ICON.md} strokeWidth={STROKE} />}
+              icon={<Trash2 size={ICON.md} />}
               onClick={() => {
                 void haptic('medium');
                 if (!confirmDelete) {
@@ -253,7 +253,7 @@ export function ListManagerSheet({
             <SettingRow
               title="יציאה מהרשימה"
               hint="היא תישאר אצל שאר החברים"
-              icon={<LogOut size={ICON.md} strokeWidth={STROKE} />}
+              icon={<LogOut size={ICON.md} />}
               onClick={() => {
                 void haptic('medium');
                 void run(async () => {

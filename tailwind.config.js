@@ -6,6 +6,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Heebo', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // כותרות ומספרים גדולים. Heebo מיד אחריה, כדי שתו שחסר בה לא ייפול לגופן מערכת
+        display: ['Karantina', 'Heebo', 'system-ui', 'sans-serif'],
       },
       // סקאלה סמנטית במקום גדלים שרירותיים - כולם נוזליים ומוגדרים ב-index.css
       fontSize: {
@@ -18,6 +20,12 @@ export default {
         heading: ['var(--fs-heading)', { lineHeight: '1.2' }],
         display: ['var(--fs-display)', { lineHeight: '1.1' }],
         daynum: ['var(--fs-daynum)', { lineHeight: '1' }],
+        // הסקאלה של Karantina: צרה, ולכן כל דרגה היא זו של Heebo כפול 1.38
+        'k-title': ['var(--fs-k-title)', { lineHeight: '1' }],
+        'k-heading': ['var(--fs-k-heading)', { lineHeight: '0.95' }],
+        'k-display': ['var(--fs-k-display)', { lineHeight: '0.95' }],
+        // ספרות ענק, ב-Heebo (ראו --fs-hero)
+        hero: ['var(--fs-hero)', { lineHeight: '1' }],
       },
       colors: {
         // נקראים מ-CSS variables כדי שמעבר בין מצב יום/לילה יהיה חלק

@@ -9,7 +9,7 @@
  */
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, ChevronDown, Plus, RotateCcw, Search } from 'lucide-react';
+import { CalendarPlus, ChevronDown, Plus, RotateCcw, Search } from '@/components/ui/icons';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
@@ -27,7 +27,7 @@ import { useSettings, useSettingsStore } from '@/store/settings';
 import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
 import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
 import { EventCard } from './EventChip';
-import { ICON, STROKE, TAP, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP, TAP_SCALE } from '@/lib/motion';
 
 /** כמה ימים נטענים בכל פעם */
 const WINDOW_DAYS = 92;
@@ -256,7 +256,7 @@ export function AgendaView({
                 aria-label="חיפוש"
                 className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-surface text-muted shadow-raised"
               >
-                <Search size={ICON.md} strokeWidth={STROKE} />
+                <Search size={ICON.md} />
               </motion.button>
               {/*
                 ההוספה ירדה מכותרת הלוח, ובחודש ובשבוע היא ירשה את שורת
@@ -272,7 +272,7 @@ export function AgendaView({
                 aria-label="אירוע חדש"
                 className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-brand text-on-inverse shadow-raised"
               >
-                <Plus size={ICON.md} strokeWidth={2.5} />
+                <Plus size={ICON.md} weight="bold" />
               </motion.button>
             </>
           }
@@ -289,7 +289,7 @@ export function AgendaView({
                   onClick={() => setValue('agendaHidden', [])}
                   className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
                 >
-                  <RotateCcw size={ICON.md} strokeWidth={STROKE} />
+                  <RotateCcw size={ICON.md} />
                   הצגת הכול
                 </motion.button>
               </>
@@ -302,7 +302,7 @@ export function AgendaView({
                   onClick={onAddEvent}
                   className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
                 >
-                  <CalendarPlus size={ICON.md} strokeWidth={STROKE} />
+                  <CalendarPlus size={ICON.md} />
                   הוספת אירוע
                 </motion.button>
               </>
@@ -346,7 +346,7 @@ export function AgendaView({
             'עד כאן'
           ) : (
             <span className="flex items-center gap-2">
-              <ChevronDown size={ICON.sm} strokeWidth={STROKE} />
+              <ChevronDown size={ICON.sm} />
               טוען עוד
             </span>
           )}

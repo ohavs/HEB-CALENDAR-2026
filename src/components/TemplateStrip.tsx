@@ -15,13 +15,13 @@
  * במקום להזיז קיים - וכך מנוע הגרירה לא צריך לדעת שתבניות קיימות.
  */
 import { motion } from 'framer-motion';
-import { LayoutTemplate } from 'lucide-react';
+import { LayoutTemplate } from '@/components/ui/icons';
 import type { DateKey, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { beginLongPress, useDragStore } from '@/lib/dragEngine';
 import { templateHint } from '@/lib/templates';
 import { haptic } from '@/lib/native';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 
 /** מה שמסמן ל-onDrop שזו תבנית ולא אירוע קיים. */
 export const TEMPLATE_DRAG_PREFIX = 'tpl:';
@@ -71,7 +71,7 @@ export function TemplateStrip({
   return (
     <section className="mb-4 border-b border-hairline pb-4" aria-label="תבניות">
       <h3 className="mb-2 flex items-center gap-1.5 text-caption font-semibold text-muted">
-        <LayoutTemplate size={ICON.xs} strokeWidth={STROKE} />
+        <LayoutTemplate size={ICON.xs} />
         תבניות
       </h3>
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">

@@ -9,10 +9,10 @@
  * כדי שיקראו אותה. "להמשיך לערוך" הוא הכפתור הבטוח, ולכן הוא המודגש.
  */
 import { motion } from 'framer-motion';
-import { FilePen } from 'lucide-react';
+import { FilePen } from '@/components/ui/icons';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 export function ConfirmDiscardSheet({
   open,
@@ -32,7 +32,7 @@ export function ConfirmDiscardSheet({
       <div className="flex flex-col gap-3 pb-3">
         <div className="flex items-center gap-4 rounded-2xl bg-well px-4 py-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[rgb(253_243_224)] text-[rgb(170_110_20)] dark:bg-[rgb(60_44_18)] dark:text-[rgb(240_200_130)]">
-            <FilePen size={ICON.lg} strokeWidth={STROKE} />
+            <FilePen size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1 text-caption text-muted">{hint}</span>
         </div>

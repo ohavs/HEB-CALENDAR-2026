@@ -17,7 +17,7 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Tag } from 'lucide-react';
+import { Plus, Tag } from '@/components/ui/icons';
 import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import {
@@ -43,7 +43,7 @@ import { buildReminderDraft } from '@/lib/reminderCompose';
 import { ComposeRow, useComposeRow } from './ui/ComposeRow';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP } from '@/lib/motion';
 import { Segmented } from './ui/controls';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
@@ -225,7 +225,7 @@ export function RemindersScreen({
     >
       <header className="safe-t flex items-start gap-3 pb-4 pt-5 lg:pt-8">
         <div className="min-w-0 flex-1">
-          <h1 className="text-heading font-semibold leading-tight text-ink">תזכורות</h1>
+          <h1 className="screen-title">תזכורות</h1>
           {view === 'mine' && (
             <p className="mt-1 text-caption text-muted">{pendingLabel(pending)}</p>
           )}
@@ -237,7 +237,7 @@ export function RemindersScreen({
             aria-label="קטגוריות"
             className="focus-ring mt-1 flex h-10 shrink-0 items-center gap-1.5 rounded-2xl bg-surface px-3 text-caption font-medium text-muted shadow-raised"
           >
-            <Tag size={ICON.sm} strokeWidth={STROKE} />
+            <Tag size={ICON.sm} />
             קטגוריות
           </button>
         )}
@@ -343,7 +343,7 @@ export function RemindersScreen({
                 aria-label="הוספת תזכורת"
                 className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse"
               >
-                <Plus size={ICON.md} strokeWidth={2.6} />
+                <Plus size={ICON.md} weight="bold" />
               </motion.button>
             )}
           </AnimatePresence>

@@ -9,12 +9,12 @@
  * לכן השאלה נשאלת מראש ובמפורש, פעם אחת. אפשר לדחות אותה - זו לא חומה -
  * אבל לא לפספס אותה בלי לדעת.
  */
-import { Cloud, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Cloud, RefreshCw, ShieldCheck } from '@/components/ui/icons';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/auth';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 
 const DISMISSED_KEY = 'heb-cal:welcome-seen';
 
@@ -93,7 +93,7 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
         {POINTS.map(({ Icon, title, body }) => (
           <div key={title} className="flex items-start gap-3.5 rounded-2xl bg-well px-4 py-4">
             <span className="mt-0.5 shrink-0 text-brand-ink">
-              <Icon size={ICON.lg} strokeWidth={STROKE} />
+              <Icon size={ICON.lg} />
             </span>
             <span className="min-w-0">
               <span className="block text-body font-semibold text-ink">{title}</span>

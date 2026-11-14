@@ -8,13 +8,14 @@
  */
 import { useState, type PointerEvent, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Check, ChevronDown, MapPin, Repeat, Trash2 } from 'lucide-react';
+import { Bell, ChevronDown, MapPin, Repeat, Trash2 } from './icons';
 import type { ReminderItem } from '@/lib/reminders';
 import { isGroupCollapsed, setGroupCollapsed } from '@/lib/settingsCollapse';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
 import { MarqueeText } from './MarqueeText';
+import { CheckMark } from './controls';
 
 /* ==========================================================================
    שורה
@@ -62,11 +63,11 @@ export function ReminderRow({
         }}
         whileTap={{ scale: 0.88 }}
         transition={TAP}
-        className={`focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+        className={`focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
           item.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
         }`}
       >
-        {item.done && <Check size={ICON.sm} strokeWidth={3} />}
+        {item.done && <CheckMark size={ICON.sm} />}
       </motion.button>
 
       <motion.button
@@ -89,9 +90,9 @@ export function ReminderRow({
           <span className="mt-0.5 flex items-center gap-2 text-caption opacity-75">
             {item.time && <span className="tnum font-semibold">{item.time}</span>}
             {who && <span className="min-w-0 truncate">{who}</span>}
-            {item.hasPlace && <MapPin size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
-            {item.hasAlarm && <Bell size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
-            {item.repeating && <Repeat size={ICON.xs} strokeWidth={STROKE} className="shrink-0" />}
+            {item.hasPlace && <MapPin size={ICON.xs} className="shrink-0" />}
+            {item.hasAlarm && <Bell size={ICON.xs} className="shrink-0" />}
+            {item.repeating && <Repeat size={ICON.xs} className="shrink-0" />}
           </span>
         )}
       </motion.button>
@@ -111,7 +112,7 @@ export function ReminderRow({
         aria-label={`מחיקת ${item.title}`}
         className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
       >
-        <Trash2 size={ICON.sm} strokeWidth={STROKE} />
+        <Trash2 size={ICON.sm} />
       </motion.button>
     </div>
   );
@@ -144,8 +145,8 @@ export function CategoryChip({
         רקע שקוע ובלי צל: הצ׳יפים יושבים *בתוך* כרטיס, ולא על רקע המסך.
         צ׳יפ לבן על לבן שמורם בצל נראה כמו רעש ולא כמו בורר.
       */
-      className={`focus-ring flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
+      className={`focus-ring flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-label font-medium transition-colors ${
+        active ? 'bg-inverse text-on-inverse' : 'bg-well text-muted'
       }`}
     >
       {label}
@@ -209,7 +210,7 @@ export function CategorySection({
           className="shrink-0 text-faint"
           aria-hidden
         >
-          <ChevronDown size={ICON.md} strokeWidth={STROKE} />
+          <ChevronDown size={ICON.md} />
         </motion.span>
       </button>
 

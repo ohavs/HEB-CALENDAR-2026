@@ -11,7 +11,7 @@ import {
   MapPin,
   Search,
   Trash2,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import type { SavedPlace } from '@/types';
 import { radiusLabel, readCurrentPosition } from '@/lib/geofence';
 import { formatCoordinates, isShortLink, parseCoordinates } from '@/lib/coordinates';
@@ -21,7 +21,7 @@ import { bestScore } from '@/lib/search';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { NumberField, TextField } from './ui/fields';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 
 /**
  * בחירת עיר כנקודת פתיחה.
@@ -51,7 +51,7 @@ function CityStartSheet({
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="בחירת עיר">
       <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
-        <Search size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+        <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           id="place-city-query"
           type="search"
@@ -79,7 +79,7 @@ function CityStartSheet({
             }}
             className="focus-ring-inset flex w-full items-center gap-3.5 px-4 py-4 text-right"
           >
-            <Building2 size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-faint" />
+            <Building2 size={ICON.md} className="shrink-0 text-faint" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-body font-medium text-ink">{c.name}</span>
               <span className="mt-0.5 block truncate text-caption text-muted">{c.region}</span>
@@ -225,7 +225,7 @@ export function PlaceEditor({
               confirmDelete ? 'bg-danger text-on-danger' : 'bg-well text-danger'
             }`}
           >
-            <Trash2 size={ICON.md} strokeWidth={STROKE} />
+            <Trash2 size={ICON.md} />
             {confirmDelete ? 'למחוק?' : 'מחיקה'}
           </motion.button>
         ) : undefined
@@ -242,7 +242,7 @@ export function PlaceEditor({
           value={draft.name}
           onChange={(name) => patch({ name })}
           placeholder="לדוגמה: בית"
-          icon={<MapPin size={ICON.sm} strokeWidth={STROKE} />}
+          icon={<MapPin size={ICON.sm} />}
           size="lg"
         />
 
@@ -257,7 +257,7 @@ export function PlaceEditor({
                 rel="noreferrer"
                 className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg text-caption font-medium text-brand-ink"
               >
-                <ExternalLink size={ICON.xs} strokeWidth={STROKE} />
+                <ExternalLink size={ICON.xs} />
                 פתיחה במפות
               </a>
             )}
@@ -273,7 +273,7 @@ export function PlaceEditor({
             disabled={locating}
             className="focus-ring mt-3.5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-3.5 text-label font-semibold text-brand-ink disabled:opacity-60"
           >
-            <Crosshair size={ICON.md} strokeWidth={STROKE} />
+            <Crosshair size={ICON.md} />
             {locating ? 'מאתר…' : hasCoords ? 'עדכון למיקום הנוכחי' : 'קביעה לפי המיקום שלי'}
           </motion.button>
 
@@ -282,7 +282,7 @@ export function PlaceEditor({
             ארוכה על הנקודה, ומעתיקים. כל מה שיוצא משם מתפענח כאן.
           */}
           <div className="field-shell mt-3.5 flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3">
-            <ClipboardPaste size={ICON.sm} strokeWidth={STROKE} className="shrink-0 text-faint" />
+            <ClipboardPaste size={ICON.sm} className="shrink-0 text-faint" />
             <input
               id="place-paste"
               type="text"
@@ -299,7 +299,7 @@ export function PlaceEditor({
             onClick={() => setCityOpen(true)}
             className="focus-ring mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-caption font-medium text-muted"
           >
-            <Building2 size={ICON.xs} strokeWidth={STROKE} />
+            <Building2 size={ICON.xs} />
             או בחירת עיר כנקודת פתיחה
           </button>
 

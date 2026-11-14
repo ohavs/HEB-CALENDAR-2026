@@ -20,8 +20,8 @@
  *    ומה שנשאר היה עיגול ריק - גרוע יותר מראשי התיבות.
  */
 import { useEffect, useState } from 'react';
-import { User } from 'lucide-react';
-import { ICON, STROKE } from '@/lib/motion';
+import { User } from './icons';
+import { ICON } from '@/lib/motion';
 
 /** אחרי כמה זמן ניסיון שני, אם הראשון נכשל */
 const RETRY_MS = 1500;
@@ -101,7 +101,7 @@ function Initial({ name, size }: { name?: string | null; size: 'md' | 'lg' }) {
           {initial}
         </span>
       ) : (
-        <User size={size === 'lg' ? ICON.xl : ICON.lg} strokeWidth={STROKE} />
+        <User size={size === 'lg' ? ICON.xl : ICON.lg} />
       )}
     </span>
   );

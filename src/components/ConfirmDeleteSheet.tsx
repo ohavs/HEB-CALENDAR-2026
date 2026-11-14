@@ -9,10 +9,10 @@
  * "מה למחוק" ממילא כוללת את האישור.
  */
 import { motion } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from '@/components/ui/icons';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 export function ConfirmDeleteSheet({
   open,
@@ -40,7 +40,7 @@ export function ConfirmDeleteSheet({
       <div className="flex flex-col gap-3 pb-3">
         <div className="flex items-center gap-4 rounded-2xl bg-well px-4 py-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger-soft text-danger">
-            <Trash2 size={ICON.lg} strokeWidth={STROKE} />
+            <Trash2 size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-body font-semibold text-ink">{title}</span>

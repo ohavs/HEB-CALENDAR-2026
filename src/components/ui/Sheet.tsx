@@ -4,19 +4,13 @@
  * המשיכה עובדת מכל מקום בחלונית - מהידית, מהכותרת, מהתוכן ומהפוטר -
  * ומוותרת לגלילה הפנימית כשיש לאן לגלול למעלה. הפרטים ב-useSheetDrag.
  */
-import {
-  AnimatePresence,
-  motion,
-  useDragControls,
-  useReducedMotion,
-  type PanInfo,
-} from 'framer-motion';
+import { AnimatePresence, motion, useDragControls, useReducedMotion, type PanInfo } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X } from './icons';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { GLIDE, ICON, STROKE } from '@/lib/motion';
+import { GLIDE, ICON } from '@/lib/motion';
 
 const CLOSE_OFFSET = 110;
 const CLOSE_VELOCITY = 520;
@@ -172,12 +166,12 @@ export function Sheet({
               className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-2.5 active:cursor-grabbing"
               {...handleProps}
             >
-              <div className="h-1.5 w-10 rounded-full bg-hairline" />
+              <div className="h-1.5 w-12 rounded-full bg-ink/15" />
             </div>
 
             {(title || showCloseButton || headerAction) && (
               <div
-                className="flex shrink-0 touch-none items-start gap-3.5 px-6 pb-3 pt-1"
+                className="flex shrink-0 touch-none items-center gap-3.5 px-6 pb-4 pt-1.5"
                 {...handleProps}
               >
                 {showCloseButton && (
@@ -186,19 +180,24 @@ export function Sheet({
                     onClick={requestClose}
                     onPointerDown={(e) => e.stopPropagation()}
                     aria-label="סגירה"
-                    className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-muted transition-colors active:bg-hairline"
+                    className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-well text-ink transition-colors active:bg-hairline"
                   >
-                    <X size={ICON.lg} strokeWidth={STROKE} />
+                    <X size={ICON.lg} />
                   </button>
                 )}
                 <div className="min-w-0 flex-1">
                   {title && (
-                    <h2 className="truncate text-title font-semibold leading-tight text-ink">
+                    /*
+                      Karantina, כמו כותרות המסכים: הגיליון הוא אותה מערכת, לא
+                      חלון של מערכת אחרת. leading מעט פתוח, כי הניקוד העברי
+                      שלה נחתך ב-0.95.
+                    */
+                    <h2 className="truncate font-display text-k-heading font-bold leading-[1.05] text-ink">
                       {title}
                     </h2>
                   )}
                   {subtitle && (
-                    <p className="mt-1 truncate text-caption text-muted">{subtitle}</p>
+                    <p className="mt-0.5 truncate text-caption text-muted">{subtitle}</p>
                   )}
                 </div>
                 {headerAction && (

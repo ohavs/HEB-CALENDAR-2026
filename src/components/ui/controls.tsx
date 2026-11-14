@@ -1,8 +1,9 @@
 /** רכיבי בקרה קטנים ואחידים לכל האפליקציה. */
-import { motion } from 'framer-motion';
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, STROKE, TAP } from '@/lib/motion';
+import { motion, type MotionValue } from 'framer-motion';
+import { forwardRef, useId, useState, type ReactNode } from 'react';
+import { useLens, useLensLight, type LensSlot } from '@/hooks/useLens';
+import { ChevronDown } from './icons';
+import { EASE, ENTER, EXIT, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
 import { isGroupCollapsed, setGroupCollapsed } from '@/lib/settingsCollapse';
 import { haptic } from '@/lib/native';
 
@@ -30,8 +31,8 @@ export function Toggle({
         void haptic('light');
         onChange(!checked);
       }}
-      className={`relative h-[34px] w-[58px] shrink-0 rounded-full transition-colors duration-200 ${
-        checked ? 'bg-brand' : 'bg-hairline'
+      className={`focus-ring relative h-[34px] w-[58px] shrink-0 rounded-full transition-colors duration-200 ${
+        checked ? 'bg-inverse' : 'bg-ink/15'
       } ${disabled ? 'opacity-40' : ''}`}
     >
       {/*
@@ -69,11 +70,19 @@ export function SettingRow({
   return (
     <Wrapper
       {...(onClick ? { type: 'button' as const, onClick, whileTap: { scale: 0.99 } } : {})}
-      className="flex w-full items-center gap-3.5 px-5 py-4 text-right lg:px-6 lg:py-[18px]"
+      className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-right lg:px-5"
     >
-      {icon && <span className="shrink-0 text-muted">{icon}</span>}
+      {/*
+        האייקון בריבוע שקוע ולא חשוף: שורה בלי אייקון ושורה עם אייקון
+        מתיישרות לאותו קו, ורשימה ארוכה נקראת כעמודה אחת.
+      */}
+      {icon && (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-tile bg-well text-ink [&_svg]:h-5 [&_svg]:w-5">
+          {icon}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
-        <span className="block text-label font-medium text-ink">{title}</span>
+        <span className="block text-body font-medium leading-snug text-ink">{title}</span>
         {hint && <span className="mt-1 block text-caption text-muted">{hint}</span>}
       </span>
       {children && <span className="shrink-0">{children}</span>}
@@ -127,7 +136,7 @@ export function SettingsGroup({
 
   return (
     <section className="mb-4">
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-raised">
+      <div className="overflow-hidden rounded-group bg-surface shadow-raised">
         {title &&
           (collapsible ? (
             <motion.button
@@ -137,21 +146,21 @@ export function SettingsGroup({
               aria-controls={panelId}
               whileTap={{ scale: 0.995 }}
               transition={TAP}
-              className="focus-ring-inset flex w-full items-center gap-3 px-5 py-4 text-right transition-colors active:bg-well lg:px-6 lg:py-[18px]"
+              className="focus-ring-inset flex min-h-[60px] w-full items-center gap-3 px-5 py-3 text-right transition-colors active:bg-well lg:px-6"
             >
-              <span className="flex-1 text-label font-semibold text-ink">{title}</span>
+              <span className="flex-1 text-body font-semibold text-ink">{title}</span>
               <motion.span
                 className="shrink-0 text-muted"
                 initial={false}
                 animate={{ rotate: open ? 180 : 0 }}
                 transition={SNAP}
               >
-                <ChevronDown size={ICON.lg} strokeWidth={STROKE} />
+                <ChevronDown size={ICON.lg} />
               </motion.span>
             </motion.button>
           ) : (
-            <div className="px-5 py-4 lg:px-6 lg:py-[18px]">
-              <span className="text-label font-semibold text-ink">{title}</span>
+            <div className="flex min-h-[60px] items-center px-5 py-3 lg:px-6">
+              <span className="text-body font-semibold text-ink">{title}</span>
             </div>
           ))}
 
@@ -178,89 +187,119 @@ export function SettingsGroup({
 
 /* ------------------------------ בחירה מפולחת ------------------------------ */
 
+/**
+ * בחירה אחת מכמה - בעדשה של סרגל הלשוניות, בדיו.
+ *
+ * אותו מנגנון (`useLens`): נמתחת בתנועה, נגררת, ומדליקה לפי מרחק. כשהיו
+ * כאן גלולה בקפיץ אחר ובסרגל עדשה, האפליקציה נקראה כשתי מערכות. ההבדל
+ * היחיד הוא המראה - בתוך התוכן "נבחר" הוא דיו מלא, לא זכוכית.
+ */
 export function Segmented<T extends string>({
   value,
   options,
   onChange,
   size = 'md',
+  label,
 }: {
   value: T;
   options: { value: T; label: string; icon?: ReactNode }[];
   onChange: (next: T) => void;
   size?: 'sm' | 'md';
+  /** שם לקורא מסך, כשאין כותרת גלויה לידו */
+  label?: string;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const [pill, setPill] = useState<{ x: number; width: number } | null>(null);
   const index = options.findIndex((o) => o.value === value);
-
-  /*
-    הגלולה נמדדת ולא מחושבת: הכפתורים נמתחים לפי הטקסט, וכיתוב עברי
-    משנה רוחב בין אפשרות לאפשרות.
-
-    למה לא layoutId: אנימציית פריסה משותפת נשארת תלויה כשהעץ שמכיל
-    אותה מתפרק, וגיליון שנסגר אחרי בחירה כאן פשוט לא היה נעלם -
-    AnimatePresence המתין לה לנצח. offsetLeft עובד גם ב-RTL, כי הוא
-    פיזי.
-  */
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const measure = () => {
-      const button = list.querySelectorAll<HTMLElement>('[data-seg]')[index];
-      const next = button ? { x: button.offsetLeft, width: button.offsetWidth } : null;
-      // בלי ההשוואה הזו כל מדידה הייתה יוצרת אובייקט חדש ומריצה רינדור נוסף
-      setPill((prev) =>
-        prev?.x === next?.x && prev?.width === next?.width ? prev : next,
-      );
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [index, options.length]);
+  const lens = useLens({
+    count: options.length,
+    index,
+    onSelect: (i) => {
+      // שינוי מצב, לא ניווט - ולכן רטט קל (הטבלה ב-CLAUDE.md)
+      void haptic('light');
+      onChange(options[i].value);
+    },
+  });
 
   return (
     <div
-      ref={listRef}
-      className={`relative flex gap-1 rounded-2xl bg-well p-1 ${
-        size === 'sm' ? 'text-caption' : 'text-label'
+      {...lens.rowProps}
+      role="radiogroup"
+      aria-label={label}
+      className={`relative flex gap-1 rounded-full bg-well p-1 ${
+        size === 'sm' ? 'h-11 text-caption' : 'h-[52px] text-label'
       }`}
     >
-      {pill && (
+      {lens.ready && (
         <motion.span
           aria-hidden
-          className="absolute inset-y-1 left-0 rounded-xl bg-brand"
-          initial={false}
-          animate={{ x: pill.x, width: pill.width }}
-          transition={SNAP}
+          className="pointer-events-none absolute inset-y-1 left-0 rounded-full bg-inverse shadow-raised"
+          style={lens.lensStyle}
         />
       )}
-      {options.map((opt) => {
-        const active = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            data-seg
-            type="button"
-            onClick={() => {
-              void haptic('light');
-              onChange(opt.value);
-            }}
-            className={`relative flex-1 whitespace-nowrap rounded-xl px-3.5 py-2.5 font-medium transition-colors ${
-              active ? 'text-on-inverse' : 'text-muted'
-            }`}
-          >
-            <span className="relative flex items-center justify-center gap-1.5">
-              {opt.icon}
-              {opt.label}
-            </span>
-          </button>
-        );
-      })}
+      {options.map((opt, i) => (
+        <SegmentedOption
+          key={opt.value}
+          ref={lens.itemRef(i)}
+          label={opt.label}
+          icon={opt.icon}
+          selected={i === index}
+          slot={lens.slots[i]}
+          lensCenter={lens.center}
+          onClick={lens.click(i)}
+        />
+      ))}
     </div>
   );
 }
+
+const SegmentedOption = forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    icon?: ReactNode;
+    selected: boolean;
+    slot: LensSlot | undefined;
+    lensCenter: MotionValue<number>;
+    onClick: () => void;
+  }
+>(function SegmentedOption({ label, icon, selected, slot, lensCenter, onClick }, ref) {
+  const { lit, dim } = useLensLight(lensCenter, slot, selected);
+  const content = (
+    <>
+      {icon}
+      <span>{label}</span>
+    </>
+  );
+  return (
+    <button
+      ref={ref}
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      tabIndex={selected ? 0 : -1}
+      onClick={onClick}
+      /*
+        flex-auto ולא flex-1: כל אפשרות גדלה מרוחב הכיתוב שלה. ברוחב שווה
+        "מערכת" נחתכה ל"מע…" בשורת הגדרות צרה, בזמן ש"בהיר" קיבלה אוויר.
+      */
+      className="focus-ring-inset relative flex-auto whitespace-nowrap rounded-full px-3.5 font-medium"
+    >
+      <motion.span
+        className="flex items-center justify-center gap-1.5 text-muted"
+        style={{ opacity: dim }}
+      >
+        {content}
+      </motion.span>
+      {/* השכבה הנבחרת: טקסט הפוך על הדיו. on-inverse ולא לבן, כי בלילה הדיו בהיר */}
+      <motion.span
+        aria-hidden
+        className="absolute inset-0 flex items-center justify-center gap-1.5 px-3.5 font-semibold text-on-inverse"
+        style={{ opacity: lit }}
+      >
+        {content}
+      </motion.span>
+    </button>
+  );
+});
 
 /* ------------------------------ כפתור ראשי ------------------------------ */
 
@@ -278,7 +317,7 @@ export function PrimaryButton({
   tone?: 'brand' | 'danger' | 'quiet';
 }) {
   const tones = {
-    brand: 'bg-brand text-on-inverse shadow-raised',
+    brand: 'bg-inverse text-on-inverse shadow-raised',
     danger: 'bg-danger text-on-danger',
     quiet: 'bg-well text-ink',
   } as const;
@@ -294,7 +333,7 @@ export function PrimaryButton({
       disabled={disabled}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       transition={TAP}
-      className={`w-full rounded-2xl py-4 text-label font-semibold transition-colors ${
+      className={`focus-ring flex h-14 w-full items-center justify-center gap-2 rounded-field px-5 text-body font-semibold transition-colors ${
         disabled ? 'border border-hairline bg-transparent text-faint' : tones[tone]
       }`}
     >
@@ -320,11 +359,44 @@ export function Pill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl px-4 py-2.5 text-caption font-medium transition-colors ${
-        active ? 'bg-brand text-on-inverse' : 'bg-well text-muted'
+      className={`focus-ring h-10 rounded-full px-4 text-label font-medium transition-colors ${
+        active ? 'bg-inverse text-on-inverse' : 'bg-well text-muted'
       } ${className}`}
     >
       {children}
     </button>
+  );
+}
+
+/* -------------------------------- סימון וי -------------------------------- */
+
+/**
+ * וי שנכתב, לא מופיע: הקו נמתח מתחילתו לסופו (`pathLength`).
+ *
+ * זה הרגע שבו משהו "בוצע", והוא חוזר עשרות פעמים ביום. וי שקופץ למקומו
+ * נראה כמו החלפת תמונה; וי שנכתב נראה כמו סימון ביד. משותף לתזכורת,
+ * לכרטיס בלוח ולתצוגת היום, כדי שהסימון ייראה אותו דבר בכל מקום.
+ */
+export function CheckMark({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <motion.path
+        d="M5 12.5l4.5 4.5L19 7.5"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.28, ease: EASE }}
+      />
+    </svg>
   );
 }

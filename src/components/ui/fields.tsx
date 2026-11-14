@@ -8,7 +8,7 @@
  */
 import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from './icons';
 import {
   DatePickerSheet,
   NumberPickerSheet,
@@ -17,7 +17,7 @@ import {
   type PickerOption,
 } from './Picker';
 import { GREG_MONTHS_HE } from '@/lib/dates';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 
 /* ------------------------------ מעטפת שדה ------------------------------ */
 
@@ -36,7 +36,7 @@ export function Field({
 }) {
   return (
     <label
-      className={`field-shell block rounded-2xl bg-well px-4 py-3.5 ${className}`}
+      className={`field-shell block rounded-field bg-well px-4 py-3.5 ${className}`}
     >
       {label && (
         <span className="mb-1.5 flex items-center gap-2 text-caption font-medium text-muted">
@@ -51,6 +51,18 @@ export function Field({
 }
 
 /* ------------------------------ קבוצות ------------------------------ */
+
+/**
+ * האייקון של שורה, בגודל אחד (ICON.lg) - גם כשהקורא העביר אייקון קטן
+ * יותר. שורות של 56 עם אייקונים בשלושה גדלים נראו כמו שלושה טפסים.
+ */
+function RowIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex w-6 shrink-0 items-center justify-center text-muted [&_svg]:h-5 [&_svg]:w-5">
+      {children}
+    </span>
+  );
+}
 
 /**
  * 'card'    - תווית מעל, ערך מתחת. קריא, ועולה כ-68px.
@@ -69,7 +81,7 @@ export type FieldVariant = 'card' | 'row' | 'grouped';
  */
 export function FieldGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">{children}</div>
+    <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">{children}</div>
   );
 }
 
@@ -103,7 +115,7 @@ export function TimeRangeRow({
       type="button"
       onClick={() => setOpen(which)}
       aria-label={`${aria} ${text}`}
-      className="tnum focus-ring rounded-lg px-2 py-1 text-label font-semibold text-ink active:bg-hairline"
+      className="tnum focus-ring rounded-tile px-2.5 py-1.5 text-body font-semibold text-ink active:bg-hairline"
     >
       {text}
     </button>
@@ -111,13 +123,13 @@ export function TimeRangeRow({
   return (
     <>
       <div
-        className={`flex items-center gap-3 px-4 py-2 transition-opacity ${
+        className={`flex min-h-[56px] items-center gap-3.5 px-4 py-1.5 transition-opacity ${
           disabled ? 'pointer-events-none opacity-40' : ''
         }`}
         aria-hidden={disabled}
       >
-        {icon && <span className="shrink-0 text-muted">{icon}</span>}
-        <span className="flex-1 text-label font-medium text-ink">{label}</span>
+        {icon && <RowIcon>{icon}</RowIcon>}
+        <span className="flex-1 text-body font-medium text-ink">{label}</span>
         <span className="flex items-center gap-0.5">
           {value('start', start, 'התחלה')}
           <span className="text-faint">–</span>
@@ -169,21 +181,21 @@ export function PickerField({
         onClick={onOpen}
         whileTap={variant === 'row' ? { scale: 0.99 } : undefined}
         transition={TAP}
-        className={`flex w-full items-center gap-3 px-4 py-3 text-right transition-colors active:bg-hairline ${
-          variant === 'row' ? 'rounded-2xl bg-well' : ''
+        className={`flex min-h-[56px] w-full items-center gap-3.5 px-4 py-2.5 text-right transition-colors active:bg-hairline ${
+          variant === 'row' ? 'rounded-field bg-well' : ''
         }`}
       >
-        {icon && <span className="shrink-0 text-muted">{icon}</span>}
-        <span className="shrink-0 text-label font-medium text-ink">{label}</span>
+        {icon && <RowIcon>{icon}</RowIcon>}
+        <span className="shrink-0 text-body font-medium text-ink">{label}</span>
         <span className="min-w-0 flex-1 text-end">
-          <span className="block truncate text-label font-semibold text-ink">{display}</span>
+          <span className="block truncate text-body font-semibold text-ink">{display}</span>
           {hint && (
             <span className="mt-0.5 block truncate text-caption leading-none text-faint">
               {hint}
             </span>
           )}
         </span>
-        <ChevronLeft size={ICON.md} strokeWidth={STROKE} className="shrink-0 text-faint" />
+        <ChevronLeft size={ICON.md} className="shrink-0 text-faint" />
       </motion.button>
     );
   }
@@ -194,7 +206,7 @@ export function PickerField({
       onClick={onOpen}
       whileTap={{ scale: 0.99 }}
       transition={TAP}
-      className="flex w-full items-center gap-3 rounded-2xl bg-well px-4 py-3.5 text-right transition-colors active:bg-hairline"
+      className="flex w-full items-center gap-3 rounded-field bg-well px-4 py-3.5 text-right transition-colors active:bg-hairline"
     >
       <span className="min-w-0 flex-1">
         <span className="mb-1.5 flex items-center gap-2 text-caption font-medium text-muted">
@@ -204,7 +216,7 @@ export function PickerField({
         <span className="block truncate text-body font-semibold text-ink">{display}</span>
         {hint && <span className="mt-1.5 block truncate text-caption text-faint">{hint}</span>}
       </span>
-      <ChevronLeft size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-faint" />
+      <ChevronLeft size={ICON.lg} className="shrink-0 text-faint" />
     </motion.button>
   );
 }

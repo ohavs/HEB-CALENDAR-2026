@@ -1,12 +1,12 @@
 /** טאב זמני כניסת ויציאת שבת וחג. */
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Moon, Sunset } from 'lucide-react';
+import { MapPin, Moon, Sunset } from '@/components/ui/icons';
 import { occasionLabels, upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
 import { GREG_MONTHS_HE, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
-import { ICON, STROKE } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 
 /** "מתקיים כעת", "בעוד 4 שעות", "מחר", "בעוד יומיים" */
 function countdownLabel(entry: ShabbatEntry, now = Date.now()): string {
@@ -75,7 +75,7 @@ export function ShabbatScreen({
     >
       <header className="safe-t flex items-center gap-3 pb-5 pt-5 lg:pt-8">
         <div className="min-w-0 flex-1">
-          <h1 className="text-heading font-semibold leading-tight text-ink">שבת וחגים</h1>
+          <h1 className="screen-title">שבת וחגים</h1>
           <p className="mt-1.5 text-caption text-muted">
             זמנים מדויקים כולל שעון קיץ וחורף
           </p>
@@ -86,7 +86,7 @@ export function ShabbatScreen({
           whileTap={{ scale: 0.96 }}
           className="flex shrink-0 items-center gap-2 rounded-2xl bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-raised"
         >
-          <MapPin size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
+          <MapPin size={ICON.sm} className="text-brand" />
           {city.name}
         </motion.button>
       </header>
@@ -115,20 +115,20 @@ export function ShabbatScreen({
           <div className="grid grid-cols-2 divide-x divide-x-reverse divide-hairline">
             <div className="px-5 py-6 text-center">
               <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
-                <Sunset size={ICON.sm} strokeWidth={STROKE} className="text-[rgb(var(--c-shabbat))]" />
+                <Sunset size={ICON.sm} className="text-[rgb(var(--c-shabbat))]" />
                 {nextLabels.entry}
               </p>
-              <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
+              <p className="tnum mt-2 text-hero font-bold tracking-tight text-ink">
                 {next.candles?.time ?? '—'}
               </p>
               <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.startDate)}</p>
             </div>
             <div className="px-5 py-6 text-center">
               <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
-                <Moon size={ICON.sm} strokeWidth={STROKE} className="text-brand" />
+                <Moon size={ICON.sm} className="text-brand" />
                 {nextLabels.exit}
               </p>
-              <p className="tnum mt-2.5 text-display font-bold leading-none text-ink">
+              <p className="tnum mt-2 text-hero font-bold tracking-tight text-ink">
                 {next.havdalah?.time ?? '—'}
               </p>
               <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.endDate)}</p>
@@ -186,7 +186,6 @@ export function ShabbatScreen({
                 </span>
                 <Sunset
                   size={ICON.sm}
-                  strokeWidth={STROKE}
                   className="text-[rgb(var(--c-shabbat))]"
                   aria-label={occasionLabels(entry).entry}
                 />
@@ -197,7 +196,6 @@ export function ShabbatScreen({
                 </span>
                 <Moon
                   size={ICON.sm}
-                  strokeWidth={STROKE}
                   className="text-brand"
                   aria-label={occasionLabels(entry).exit}
                 />

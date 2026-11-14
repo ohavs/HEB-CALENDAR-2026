@@ -10,7 +10,7 @@
  * בגוגל. זו העתקה ולא סנכרון - ראו `src/lib/deviceImport.ts`.
  */
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Download, Upload } from 'lucide-react';
+import { CalendarDays, Download, Upload } from '@/components/ui/icons';
 import { fromICS, icsFileName, toICS } from '@/lib/ics';
 import {
   isNative,
@@ -142,14 +142,14 @@ export function BackupRows() {
       <SettingRow
         title="ייצוא לקובץ"
         hint="גיבוי של כל האירועים בפורמט ICS, שנפתח בכל לוח שנה"
-        icon={<Download size={ICON.md} strokeWidth={2.1} />}
+        icon={<Download size={ICON.md} />}
         onClick={exportAll}
       />
 
       <SettingRow
         title="ייבוא מקובץ"
         hint="הוספת אירועים מלוח קיים. אירוע שכבר קיים לא ייווצר פעמיים"
-        icon={<Upload size={ICON.md} strokeWidth={2.1} />}
+        icon={<Upload size={ICON.md} />}
         onClick={() => fileInput.current?.click()}
       />
 
@@ -157,7 +157,7 @@ export function BackupRows() {
         <SettingRow
           title="העתקה מהיומן של המכשיר"
           hint="האירועים שכתבת בסמסונג או בגוגל. חגים וימי הולדת לא מועתקים, ואירוע שכבר הועתק לא יועתק שוב"
-          icon={<CalendarDays size={ICON.md} strokeWidth={2.1} />}
+          icon={<CalendarDays size={ICON.md} />}
           onClick={() => void importDevice()}
         />
       )}

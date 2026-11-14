@@ -19,6 +19,18 @@
     --fs-title: clamp(17.5px, 1.013rem + 0.333vw, 21px);
     --fs-heading: clamp(21px, 1.196rem + 0.476vw, 26px);
     --fs-display: clamp(26px, 1.439rem + 0.762vw, 34px);
+    /*
+      Karantina צרה ומרובעת, ובגודל של Heebo היא נראית קטנה בשליש. לכן
+      סקאלה משלה, נגזרת: אותה דרגה כפול 1.38 (ה-scale של noted).
+    */
+    --fs-k-title: calc(var(--fs-title) * 1.38);
+    --fs-k-heading: calc(var(--fs-heading) * 1.38);
+    --fs-k-display: calc(var(--fs-display) * 1.38);
+    /*
+      ספרות ענק (זמני שבת) - ב-Heebo. ספרות Karantina נקראות כאותיות
+      (08 נראה כמו 0θ), ושעה צריכה להיקרא במבט.
+    */
+    --fs-hero: clamp(40px, 2.2rem + 1vw, 54px);
     /* מספר היום בלוח גדל יותר, כי התא עצמו גדל משמעותית בדסקטופ */
     --fs-daynum: clamp(15px, 0.775rem + 0.667vw, 22px);
 
@@ -561,5 +573,23 @@
     .glass-thin {
       background: rgb(var(--c-canvas));
     }
+  }
+}
+
+/* ==========================================================================
+   כותרות
+   ========================================================================== */
+@layer components {
+  /*
+    כותרת של מסך (לוח, תזכורות, שבת, הגדרות) - מחלקה אחת ולא ארבע
+    שרשראות של Tailwind, כדי שהמסכים לא יתפצלו בגודל או במשקל.
+  */
+  .screen-title {
+    font-family: Karantina, Heebo, system-ui, sans-serif;
+    font-size: var(--fs-k-display);
+    font-weight: 700;
+    line-height: 0.95;
+    color: rgb(var(--c-ink));
+    letter-spacing: 0.005em;
   }
 }

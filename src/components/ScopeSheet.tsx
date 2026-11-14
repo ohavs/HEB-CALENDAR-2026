@@ -6,9 +6,9 @@
  * מנוסחת סביב מה שעומד לקרות ולא סביב מה שהוא רוצה.
  */
 import { motion } from 'framer-motion';
-import { CalendarRange, CalendarX } from 'lucide-react';
+import { CalendarRange, CalendarX } from '@/components/ui/icons';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 export type EditScope = 'occurrence' | 'series';
 
@@ -49,7 +49,7 @@ export function ScopeSheet({
           className="focus-ring flex items-center gap-4 rounded-2xl bg-well px-4 py-4 text-right active:bg-hairline"
         >
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-ink">
-            <CalendarX size={ICON.lg} strokeWidth={STROKE} />
+            <CalendarX size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-body font-semibold text-ink">{occurrenceLabel}</span>
@@ -70,7 +70,7 @@ export function ScopeSheet({
                 : 'bg-brand-soft text-brand-ink'
             }`}
           >
-            <CalendarRange size={ICON.lg} strokeWidth={STROKE} />
+            <CalendarRange size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-body font-semibold text-ink">{seriesLabel}</span>

@@ -11,13 +11,13 @@
  */
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { RotateCcw, SlidersHorizontal } from '@/components/ui/icons';
 import { announce } from '@/lib/announce';
 import type { AgendaCategory } from '@/types';
 import { AGENDA_CATEGORIES } from '@/lib/agendaFilters';
 import { Sheet } from './ui/Sheet';
 import { Toggle } from './ui/controls';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 /** "חגים, צומות" או "3 קטגוריות" - סיכום שנכנס בשורה אחת. */
 function summary(hidden: AgendaCategory[]): string {
@@ -58,7 +58,6 @@ export function AgendaFilterButton({
       >
         <SlidersHorizontal
           size={ICON.sm}
-          strokeWidth={STROKE}
           className={`shrink-0 ${filtering ? 'text-brand-ink' : 'text-muted'}`}
         />
         <span
@@ -108,7 +107,7 @@ export function AgendaFilterSheet({
             onClick={onReset}
             className="focus-ring flex h-11 items-center gap-2 rounded-2xl bg-well px-4 text-caption font-semibold text-muted"
           >
-            <RotateCcw size={ICON.xs} strokeWidth={STROKE} />
+            <RotateCcw size={ICON.xs} />
             הכול
           </motion.button>
         ) : undefined

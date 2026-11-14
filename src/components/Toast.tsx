@@ -51,8 +51,11 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
           className="pointer-events-none absolute inset-x-4 z-[55] flex justify-center"
           style={{ bottom: bottomInset + 80 }}
         >
-          <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-2xl bg-ink px-5 py-3.5 shadow-floating">
-            <span className="truncate text-label font-medium text-canvas">{message}</span>
+          {/* זכוכית: הטוסט צף מעל התוכן, בדיוק כמו הסרגל שמתחתיו */}
+          <div className={`glass pointer-events-auto flex min-h-[52px] max-w-full items-center gap-3 rounded-full py-1.5 ps-5 ${
+              actionLabel ? 'pe-1.5' : 'pe-5'
+            }`}>
+            <span className="truncate text-label font-medium text-ink">{message}</span>
             {actionLabel && onAction && (
               <button
                 type="button"
@@ -60,7 +63,7 @@ export function Toaster({ bottomInset }: { bottomInset: number }) {
                   onAction();
                   hide();
                 }}
-                className="shrink-0 rounded-xl bg-canvas/15 px-3 py-1 text-label font-semibold text-canvas"
+                className="focus-ring h-10 shrink-0 rounded-full bg-inverse px-4 text-label font-semibold text-on-inverse"
               >
                 {actionLabel}
               </button>

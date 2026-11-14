@@ -9,13 +9,13 @@
  * היא רעש שמסתיר את ההבדל האמיתי.
  */
 import { motion } from 'framer-motion';
-import { Check, CloudOff } from 'lucide-react';
+import { Check, CloudOff } from '@/components/ui/icons';
 import type { UserEvent } from '@/types';
 import { useEventsStore, type SyncConflict } from '@/store/events';
 import { repeatLabel } from '@/lib/recurrence';
 import { dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
-import { ICON, STROKE, TAP_SCALE } from '@/lib/motion';
+import { ICON, TAP_SCALE } from '@/lib/motion';
 
 /** השדות שמוצגים בהשוואה, בסדר שבו משתמש קורא אירוע. */
 const FIELDS: { key: keyof UserEvent; label: string; render: (ev: UserEvent) => string }[] = [
@@ -139,7 +139,7 @@ export function ConflictSheet({ open, onClose }: { open: boolean; onClose: () =>
       <div className="space-y-3 pb-2">
         {conflicts.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl bg-well px-4 py-12 text-center">
-            <Check size={ICON.xl} strokeWidth={STROKE} className="text-muted" />
+            <Check size={ICON.xl} className="text-muted" />
             <p className="text-body text-muted">הכול מסונכרן</p>
           </div>
         ) : (
@@ -147,7 +147,6 @@ export function ConflictSheet({ open, onClose }: { open: boolean; onClose: () =>
             <div className="flex items-start gap-3 rounded-2xl bg-brand-soft px-4 py-3.5">
               <CloudOff
                 size={ICON.md}
-                strokeWidth={STROKE}
                 className="mt-0.5 shrink-0 text-brand-ink"
               />
               <p className="text-caption leading-relaxed text-brand-ink">

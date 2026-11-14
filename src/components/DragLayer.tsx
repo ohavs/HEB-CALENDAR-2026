@@ -1,11 +1,11 @@
 /** הצל שנגרר עם האצבע בזמן העברת אירוע בין ימים, ויעד המחיקה שמתחתיו. */
 import { AnimatePresence, motion, useTransform } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from '@/components/ui/icons';
 import { ghostX, ghostY, useDragStore } from '@/lib/dragEngine';
 import { TEMPLATE_DRAG_PREFIX } from './TemplateStrip';
 import { GREG_MONTHS_HE, keyToDate } from '@/lib/dates';
-import { ICON, SNAP, STROKE } from '@/lib/motion';
+import { ICON, SNAP } from '@/lib/motion';
 
 /**
  * יעד המחיקה.
@@ -41,7 +41,7 @@ function TrashTarget() {
             : 'bg-surface text-danger'
         }`}
       >
-        <Trash2 size={ICON.lg} strokeWidth={STROKE} />
+        <Trash2 size={ICON.lg} />
       </motion.div>
     </motion.div>
   );

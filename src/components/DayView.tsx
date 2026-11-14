@@ -1,7 +1,7 @@
 /** תצוגת יום מורחבת - נפתחת בלחיצה על יום בלוח. */
 import { Fragment, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, Sun } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Sun } from '@/components/ui/icons';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
@@ -11,7 +11,7 @@ import { findCity } from '@/lib/locations';
 import { useSettings } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { DayEventDetail, NowMarker } from './DayEventDetail';
-import { ICON, SNAP, STROKE } from '@/lib/motion';
+import { ICON, SNAP } from '@/lib/motion';
 
 export function DayView({
   open,
@@ -90,7 +90,7 @@ export function DayView({
             onClick={() => onNavigate(addDays(day.date, -1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronRight size={ICON.lg} strokeWidth={STROKE} />
+            <ChevronRight size={ICON.lg} />
           </button>
           <button
             type="button"
@@ -98,7 +98,7 @@ export function DayView({
             onClick={() => onNavigate(addDays(day.date, 1))}
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-well text-muted active:bg-hairline"
           >
-            <ChevronLeft size={ICON.lg} strokeWidth={STROKE} />
+            <ChevronLeft size={ICON.lg} />
           </button>
         </div>
       }
@@ -108,7 +108,7 @@ export function DayView({
           onClick={onAddEvent}
           className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse"
         >
-          <Plus size={ICON.md} strokeWidth={STROKE} />
+          <Plus size={ICON.md} />
           אירוע חדש ב{relativeDayLabel(day.date)}
         </button>
       }
@@ -205,14 +205,14 @@ export function DayView({
           onClick={() => setShowZmanim((v) => !v)}
           className="flex w-full items-center gap-3 px-4 py-4 text-right"
         >
-          <Sun size={ICON.lg} strokeWidth={STROKE} className="shrink-0 text-muted" />
+          <Sun size={ICON.lg} className="shrink-0 text-muted" />
           <span className="flex-1 text-body font-medium text-ink">זמני היום ב{city.name}</span>
           <motion.span
             animate={{ rotate: showZmanim ? 90 : 0 }}
             className="shrink-0 text-faint"
             transition={SNAP}
           >
-            <ChevronLeft size={ICON.md} strokeWidth={STROKE} />
+            <ChevronLeft size={ICON.md} />
           </motion.span>
         </button>
         {zmanim && (

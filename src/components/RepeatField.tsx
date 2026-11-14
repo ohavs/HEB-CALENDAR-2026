@@ -8,7 +8,7 @@
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Minus, Plus, Repeat } from 'lucide-react';
+import { Check, Minus, Plus, Repeat } from '@/components/ui/icons';
 import type { UserEvent } from '@/types';
 import {
   MAX_REPEAT_EVERY,
@@ -17,7 +17,7 @@ import {
   repeatLabel,
   repeatUnitWord,
 } from '@/lib/recurrence';
-import { ICON, STROKE, TAP } from '@/lib/motion';
+import { ICON, TAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { PickerField } from './ui/fields';
 import { Sheet } from './ui/Sheet';
@@ -65,7 +65,7 @@ export function RepeatField({
       <PickerField
         label="חזרה"
         display={repeatLabel({ repeat, repeatEvery })}
-        icon={<Repeat size={ICON.md} strokeWidth={STROKE} />}
+        icon={<Repeat size={ICON.md} />}
         onOpen={() => setOpen(true)}
         variant="grouped"
       />
@@ -95,7 +95,7 @@ export function RepeatField({
                 >
                   {REPEAT_LABELS[rule]}
                 </span>
-                {active && <Check size={ICON.lg} strokeWidth={2.6} className="shrink-0 text-brand" />}
+                {active && <Check size={ICON.lg} weight="bold" className="shrink-0 text-brand" />}
               </motion.button>
             );
           })}
@@ -121,13 +121,13 @@ export function RepeatField({
               </span>
               <div className="flex shrink-0 items-center gap-1" dir="ltr">
                 <StepButton label="פחות" onClick={() => step(-1)} disabled={!custom}>
-                  <Minus size={ICON.sm} strokeWidth={2.5} />
+                  <Minus size={ICON.sm} weight="bold" />
                 </StepButton>
                 <span className="tnum w-8 text-center text-title font-semibold text-ink">
                   {custom ? every : '–'}
                 </span>
                 <StepButton label="יותר" onClick={() => step(1)} disabled={every >= MAX_REPEAT_EVERY}>
-                  <Plus size={ICON.sm} strokeWidth={2.5} />
+                  <Plus size={ICON.sm} weight="bold" />
                 </StepButton>
               </div>
             </div>

@@ -6,9 +6,9 @@
  * שאין רשת, שזה דבר שהמשתמש כבר יודע.
  */
 import { AnimatePresence, motion } from 'framer-motion';
-import { CloudOff } from 'lucide-react';
+import { CloudOff } from '@/components/ui/icons';
 import { useOnline } from '@/hooks/useOnline';
-import { ENTER, EXIT, ICON, STROKE } from '@/lib/motion';
+import { ENTER, EXIT, ICON } from '@/lib/motion';
 
 export function OfflineBar() {
   const online = useOnline();
@@ -24,7 +24,7 @@ export function OfflineBar() {
           role="status"
         >
           <div className="mb-2 flex items-center gap-2.5 rounded-2xl bg-well px-4 py-2.5">
-            <CloudOff size={ICON.sm} strokeWidth={STROKE} className="shrink-0 text-muted" />
+            <CloudOff size={ICON.sm} className="shrink-0 text-muted" />
             <span className="text-caption text-muted">
               אין חיבור. הכול נשמר במכשיר ויסונכרן כשהרשת תחזור.
             </span>
