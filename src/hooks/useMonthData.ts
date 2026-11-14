@@ -1,7 +1,7 @@
 /** חישוב הנתונים של חודש שלם - מועדים, זמנים ואירועי המשתמש. */
 import { useMemo } from 'react';
 import type { DateKey, DayInfo } from '@/types';
-import { addDays, dateKey, monthGridDays, monthKey } from '@/lib/dates';
+import { addDays, dateKey, monthGridDays, monthKey, monthWeekCount } from '@/lib/dates';
 import { buildDays } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
 import { expandEvents, type Occurrence } from '@/lib/recurrence';
@@ -82,7 +82,7 @@ export function useMonthData(month: Date): MonthData {
   const signature = useFiltersSignature(settings);
 
   const gridDays = useMemo(
-    () => monthGridDays(month),
+    () => monthGridDays(month).slice(0, monthWeekCount(month) * 7),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mk],
   );

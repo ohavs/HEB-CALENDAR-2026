@@ -1,5 +1,6 @@
 /**
- * רשת החודש - שורת שמות הימים ו-6 שורות של תאים.
+ * רשת החודש - שורת שמות הימים וחמש שורות של תאים, ושש רק בחודש שחוצה
+ * שישה שבועות (`monthWeekCount`).
  *
  * נגישות: הרשת היא role="grid" עם שורות ותאים, וניווט בחיצים כמו בכל
  * לוח שנה. רק תא אחד נושא tabIndex=0 בכל רגע (roving tabindex), אחרת
@@ -8,11 +9,12 @@
  * שורות ה-role="row" מוגדרות `display: contents` כדי שלא ישברו את
  * פריסת ה-grid בת שבע העמודות - הסמנטיקה נוספת בלי לשנות את המראה.
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LayoutGroup } from 'framer-motion';
 import type { DayInfo, Settings } from '@/types';
 import { addDays, dateKey, orderedWeekdays } from '@/lib/dates';
 import { useElementSize } from '@/hooks/useElementSize';
+import type { CellMetrics } from '@/lib/cellLayout';
 import type { MonthData } from '@/hooks/useMonthData';
 import { DayCell } from './DayCell';
 
@@ -34,6 +36,19 @@ export function WeekdayHeader() {
     </div>
   );
 }
+
+/** טקסט מייצג למדידת רוחב תו: עברית רגילה, עם רווחים, כמו כותרת של אירוע */
+const PROBE_TEXT = 'פגישה עם הצוות בבית הספר';
+
+/** עד המדידה הראשונה: מידות של טלפון, בלי גובה - כלומר אירוע אחד בשורה אחת */
+const FALLBACK: CellMetrics = {
+  space: 0,
+  textWidth: 0,
+  firstLine: 18,
+  extraLine: 13,
+  row: 18,
+  charWidth: 0,
+};
 
 /** כמה ימים כל מקש מזיז. ב-RTL הזמן זורם שמאלה. */
 const KEY_DELTA: Record<string, number> = {
@@ -59,23 +74,62 @@ export function MonthGrid({
   onNavigate: (date: Date) => void;
   layoutGroupId: string;
 }) {
-  const { ref, height } = useElementSize<HTMLDivElement>();
-  const rowHeight = height > 0 ? height / 6 : 0;
-  /*
-    כמה שורות כיתוב נכנסות בתא.
-
-    הטיפוגרפיה נוזלית ולכן מודדים את גובה השורה בפועל: מספר היום
-    והריפוד תופסים כ-38px, וכל שורת כיתוב כ-18px. הראש ירד מ-48 כשהתאריך
-    העברי עבר לשורה של המספר, והשורה עלתה מ-16 כשהאירוע הפך לבלוק צבוע
-    עם ריפוד אנכי משלו.
-  */
-  const capacity =
-    rowHeight > 0 ? Math.max(1, Math.min(6, Math.floor((rowHeight - 38) / 18))) : 2;
+  const { ref, width, height } = useElementSize<HTMLDivElement>();
+  const probeRef = useRef<HTMLSpanElement>(null);
+  const [metrics, setMetrics] = useState<CellMetrics>(FALLBACK);
+  // הגופן ארוז אבל נטען אחרי הציור הראשון, ורוחב התו משתנה איתו
+  const [fontsTick, setFontsTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    void document.fonts?.ready.then(() => alive && setFontsTick((t) => t + 1));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const weeks: Date[][] = [];
   for (let i = 0; i < data.gridDays.length; i += 7) {
     weeks.push(data.gridDays.slice(i, i + 7));
   }
+  const rows = weeks.length;
+
+  /*
+    כמה מקום יש בתא, ובאיזה גופן.
+
+    הטיפוגרפיה נוזלית, ולכן לא מנחשים מספרים אלא מודדים שורות דוגמה
+    באותן מחלקות של התא: מספר היום, שורת אירוע ושורת מועד. נמדד
+    ב-offset* ולא ב-getBoundingClientRect, כי הרשת נמצאת בתוך אנימציית
+    החלקה ומלבן מושפע מהטרנספורם.
+  */
+  useLayoutEffect(() => {
+    const grid = ref.current;
+    const probe = probeRef.current;
+    if (!grid || !probe || width <= 0 || height <= 0) return;
+    const [num, chip, row] = Array.from(probe.children) as HTMLElement[];
+    const style = getComputedStyle(grid);
+    const colGap = parseFloat(style.columnGap) || 0;
+    const rowGap = parseFloat(style.rowGap) || 0;
+    const cellWidth = (width - colGap * 6) / 7;
+    const rowHeight = (height - rowGap * (rows - 1)) / rows;
+    const next: CellMetrics = {
+      // ריפוד התא למעלה ולמטה (pt-1.5, pb-1) והמרווח מתחת למספר (mt-1)
+      space: rowHeight - num.offsetHeight - 14,
+      // ריפוד התא (px-1) וריפוד הבלוק (px-[3px])
+      textWidth: cellWidth - 14,
+      // ריפוד אנכי של הבלוק (py-px) והמרווח בין בלוקים
+      firstLine: chip.offsetHeight + 5,
+      extraLine: chip.offsetHeight,
+      row: row.offsetHeight + 3,
+      charWidth: chip.offsetWidth / PROBE_TEXT.length,
+    };
+    setMetrics((prev) =>
+      (Object.keys(next) as (keyof CellMetrics)[]).every(
+        (k) => Math.abs(prev[k] - next[k]) < 0.5,
+      )
+        ? prev
+        : next,
+    );
+  }, [ref, width, height, rows, fontsTick]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -112,11 +166,23 @@ export function MonthGrid({
       ref={ref}
       role="grid"
       aria-label="לוח החודש"
-      aria-rowcount={6}
+      aria-rowcount={rows}
       aria-colcount={7}
       onKeyDown={onKeyDown}
-      className="mb-auto grid max-h-[760px] lg:max-h-none min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-[2px] overflow-hidden px-1.5 lg:gap-1.5"
+      className="relative mb-auto grid max-h-[760px] lg:max-h-none min-h-0 flex-1 grid-cols-7 gap-[2px] overflow-hidden px-1.5 lg:gap-1.5"
+      style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
     >
+      <span
+        ref={probeRef}
+        aria-hidden="true"
+        className="pointer-events-none invisible absolute start-0 top-0 flex flex-col items-start"
+      >
+        <span className="text-daynum leading-[1.6]">30</span>
+        <span className="whitespace-nowrap text-micro font-medium leading-[1.15]">
+          {PROBE_TEXT}
+        </span>
+        <span className="text-tiny leading-[1.2]">א</span>
+      </span>
       <LayoutGroup id={layoutGroupId}>
         {weeks.map((week, rowIndex) => (
           <div
@@ -136,7 +202,7 @@ export function MonthGrid({
                   occurrences={data.occurrences.get(key) ?? []}
                   selected={key === selectedKey}
                   settings={settings}
-                  capacity={capacity}
+                  metrics={metrics}
                   onSelect={onSelectDay}
                   layoutGroupId={layoutGroupId}
                   focusable={key === selectedKey}

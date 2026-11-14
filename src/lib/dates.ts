@@ -84,6 +84,22 @@ export function monthGridDays(month: Date, weekStart: 0 | 1 = 0): Date[] {
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
+/**
+ * כמה שורות שבוע לוח החודש צריך: חמש, ושש רק כשהחודש באמת חוצה שישה
+ * שבועות (מתחיל בשישי או בשבת ויש בו 30-31 יום).
+ *
+ * שש שורות קבועות השאירו בכל חודש שורה שלמה של ימי גלישה, על חשבון
+ * הגובה של כל תא - ובתא נמוך כותרת של אירוע נחתכה למילה אחת. חודש של
+ * ארבעה שבועות בדיוק (פברואר שמתחיל בראשון) מקבל בכל זאת חמש, כדי
+ * שהלוח לא יקפוץ לתאים ענקיים פעם בכמה שנים.
+ */
+export function monthWeekCount(month: Date, weekStart: 0 | 1 = 0): 5 | 6 {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const offset = (first.getDay() - weekStart + 7) % 7;
+  const length = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return offset + length > 35 ? 6 : 5;
+}
+
 /** שמות הימים בסדר המתאים לתחילת השבוע שנבחרה. */
 export function orderedWeekdays(weekStart: 0 | 1 = 0): readonly string[] {
   if (weekStart === 0) return WEEKDAYS_SHORT_HE;

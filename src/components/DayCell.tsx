@@ -14,6 +14,7 @@ import type { Occurrence } from '@/lib/recurrence';
 import { MiniEventChip } from './EventChip';
 import { useIsDropTarget } from '@/lib/dragEngine';
 import { SNAP, TAP } from '@/lib/motion';
+import { planCell, type CellMetrics } from '@/lib/cellLayout';
 
 /**
  * מה שקורא מסך מקריא על התא. הכיתוב הקודם היה המספר והתאריך העברי
@@ -55,8 +56,8 @@ type Props = {
   occurrences: Occurrence[];
   selected: boolean;
   settings: Settings;
-  /** כמה שורות כיתוב נכנסות בתא לפי הגובה בפועל */
-  capacity: number;
+  /** המידות של התא והגופן, כפי שנמדדו ברשת */
+  metrics: CellMetrics;
   onSelect: (day: DayInfo) => void;
   layoutGroupId: string;
   /**
@@ -71,7 +72,7 @@ function DayCellInner({
   occurrences,
   selected,
   settings,
-  capacity,
+  metrics,
   onSelect,
   layoutGroupId,
   focusable,
@@ -91,16 +92,7 @@ function DayCellInner({
   const time = candles ?? havdalah;
 
   /*
-    תקציב השורות של התא, אחרי שזמן ההדלקה לוקח את שלו.
-
-    הזמן מוצמד לתחתית התא ולכן הוא יורד מהתקציב כאן ולא בנוסחה
-    הכללית: בלעדיו ימי שישי ושבת היו מציגים אירוע אחד פחות מכל יום
-    אחר בלי שאיש החליט על כך, וזה מה שגרם לתוצאה להשתנות מתא לתא.
-  */
-  const budget = Math.max(1, capacity - (time ? 1 : 0));
-
-  /*
-    מה שהמשתמש הכניס בעצמו קודם למועדים.
+    מה שהמשתמש הכניס קודם למועדים.
 
     קודם היה הפוך: מועד אחד היה מובטח תמיד, והאירועים קיבלו את מה
     שנשאר. בחודש עמוס במועדים - תשרי, למשל - זה דחק החוצה בדיוק את מה
@@ -109,22 +101,22 @@ function DayCellInner({
 
     מה שנדחק אינו נעלם: המונה בפינה סופר אותו, וחלונית היום מראה הכול.
 
-    אירוע מקבל שתי שורות רק כשיש עודף גם אחרי שמובטחת שורה לכל אירוע
-    שעוד ממתין, אחרת הראשון היה בולע את המקום של השני. פס רב־יומי נשאר
-    בשורה אחת כדי שגובהו יהיה זהה בכל הימים שהוא חוצה.
+    כותרת של אירוע נשברת לכמה שורות כמו שם של מועד, ולא נחתכת אחרי
+    מילה: בתא של טלפון נכנסים כשישה תווים בשורה. כמה שורות כל אחד מקבל,
+    ואיך זמן ההדלקה נשמר מראש בתקציב - ב-`planCell`.
   */
-  const shownEvents: { occ: Occurrence; lines: 1 | 2 }[] = [];
-  let left = budget;
-  occurrences.forEach((occ, i) => {
-    if (left <= 0) return;
-    const waiting = occurrences.length - i - 1;
-    const lines: 1 | 2 = left - waiting >= 2 && occ.spanLength === 1 ? 2 : 1;
-    shownEvents.push({ occ, lines });
-    left -= lines;
-  });
-
-  // המועדים לוקחים את מה שנשאר
-  const shownHolidays = holidays.slice(0, Math.max(0, left));
+  const plan = planCell(
+    occurrences.map((occ) => ({
+      title: occ.title,
+      multiDay: occ.spanLength > 1,
+      icon: Boolean(occ.shared),
+    })),
+    holidays.length,
+    Boolean(time),
+    metrics,
+  );
+  const shownEvents = plan.eventLines.map((lines, i) => ({ occ: occurrences[i], lines }));
+  const shownHolidays = holidays.slice(0, plan.holidays);
 
   const hidden =
     holidays.length - shownHolidays.length + (occurrences.length - shownEvents.length);

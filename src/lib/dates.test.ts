@@ -13,6 +13,7 @@ import {
   keyToDate,
   minutesToTime,
   monthGridDays,
+  monthWeekCount,
   orderedWeekdays,
   relativeDayLabel,
   timeToMinutes,
@@ -80,6 +81,40 @@ describe('monthGridDays', () => {
     const days = monthGridDays(new Date(2026, 8, 1), 0).map(dateKey);
     expect(days).toContain('2026-09-01');
     expect(days).toContain('2026-09-30');
+  });
+});
+
+describe('monthWeekCount', () => {
+  it('חמש שורות בחודש רגיל', () => {
+    // ספטמבר 2026 מתחיל בשלישי, 30 יום
+    expect(monthWeekCount(new Date(2026, 8, 1), 0)).toBe(5);
+  });
+
+  it('שש שורות כשהחודש חוצה שישה שבועות', () => {
+    // מאי 2026 מתחיל בשישי ויש בו 31 יום
+    expect(monthWeekCount(new Date(2026, 4, 1), 0)).toBe(6);
+    // אוגוסט 2026 מתחיל בשבת
+    expect(monthWeekCount(new Date(2026, 7, 1), 0)).toBe(6);
+  });
+
+  it('חמש גם בחודש של ארבעה שבועות בדיוק', () => {
+    // פברואר 2026 מתחיל בראשון ויש בו 28 יום
+    expect(monthWeekCount(new Date(2026, 1, 1), 0)).toBe(5);
+  });
+
+  it('תלוי בתחילת השבוע', () => {
+    // מרץ 2026 מתחיל בראשון: חמש מראשון, שש משני
+    expect(monthWeekCount(new Date(2026, 2, 1), 0)).toBe(5);
+    expect(monthWeekCount(new Date(2026, 2, 1), 1)).toBe(6);
+  });
+
+  it('הרשת המקוצרת מכילה את כל ימי החודש', () => {
+    for (let m = 0; m < 24; m++) {
+      const month = new Date(2026, m, 1);
+      const days = monthGridDays(month, 0).slice(0, monthWeekCount(month, 0) * 7);
+      const last = new Date(2026, m + 1, 0);
+      expect(days.map(dateKey)).toContain(dateKey(last));
+    }
   });
 });
 

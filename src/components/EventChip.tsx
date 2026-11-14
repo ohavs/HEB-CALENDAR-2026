@@ -15,6 +15,16 @@ import { ICON, STROKE, TAP, TAP_SCALE_LG } from '@/lib/motion';
 import { MarqueeText } from './ui/MarqueeText';
 
 /**
+ * מחלקות מלאות ולא `line-clamp-${n}`: Tailwind מוצא מחלקות בסריקת טקסט,
+ * ומחרוזת מורכבת לא הייתה נוצרת בכלל.
+ */
+const CLAMP: Record<number, string> = {
+  2: 'line-clamp-2',
+  3: 'line-clamp-3',
+  4: 'line-clamp-4',
+};
+
+/**
  * ייצוג האירוע בתוך תא בלוח, בשתי צורות לפי מה שהאירוע *הוא*:
  *
  * אירוע של יום אחד הוא נקודה בזמן, ולכן תווית: פס צבע בקצה ההתחלה
@@ -38,7 +48,7 @@ export function MiniEventChip({
   /** האם היום הזה נושא את הכותרת (רלוונטי רק לפס רב־יומי) */
   labelled?: boolean;
   /** כמה שורות טקסט מותר לתווית לתפוס, לפי המקום שנשאר בתא */
-  lines?: 1 | 2;
+  lines?: number;
 }) {
   const isDragging = useIsDraggingOccurrence(occurrence.occurrenceId);
   const multiDay = occurrence.spanLength > 1;
@@ -59,11 +69,11 @@ export function MiniEventChip({
         isStart ? 'rounded-s-[4px]' : '-ms-[3px] ps-[7px]',
         isEnd ? 'rounded-e-[4px]' : '-me-[3px] pe-[7px]',
       ].join(' ')
-    : 'rounded-[4px] px-1';
+    : 'rounded-[4px] px-[3px]';
 
   return (
     <div
-      className={`ev-${occurrence.color} ev-solid overflow-hidden py-px text-micro font-semibold leading-[1.2] text-white transition-opacity ${shape} ${
+      className={`ev-${occurrence.color} ev-solid overflow-hidden py-px text-micro font-medium leading-[1.15] text-white transition-opacity ${shape} ${
         isDragging ? 'opacity-25' : ''
       }`}
       style={{ touchAction: draggable ? 'none' : undefined }}
@@ -77,7 +87,7 @@ export function MiniEventChip({
         שמישהו אחר הוסיף. שם הרשימה עצמו אינו נכנס לתא - הוא מופיע
         בכרטיס בחלונית היום.
       */}
-      <span className={lines === 2 ? 'line-clamp-2' : 'block truncate'}>
+      <span className={lines > 1 ? `break-words ${CLAMP[Math.min(lines, 4)]}` : 'block truncate'}>
         {occurrence.shared && !(multiDay && !labelled) && (
           <Users
             size={ICON.xs}
