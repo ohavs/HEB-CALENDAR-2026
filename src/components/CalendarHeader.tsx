@@ -13,6 +13,7 @@ import type { CalendarView } from '@/types';
 import { GREG_MONTHS_HE } from '@/lib/dates';
 import { ICON } from '@/lib/motion';
 import { Avatar } from './ui/Avatar';
+import { DisplayText } from './ui/DisplayText';
 
 const VIEW_ICON = { month: LayoutGrid, week: Columns3, agenda: List } as const;
 const VIEW_LABEL: Record<CalendarView, string> = {
@@ -80,7 +81,7 @@ export function CalendarHeader({
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="screen-title block whitespace-nowrap"
             >
-              {label}
+              <DisplayText text={label} />
             </motion.span>
           </AnimatePresence>
           {hebrewMonthLabel && (

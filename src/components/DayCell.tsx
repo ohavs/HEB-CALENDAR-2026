@@ -33,17 +33,17 @@ function cellLabel(day: DayInfo, holidays: HolidayItem[], eventCount: number): s
  * צבע הכיתוב של מועד לפי סוגו.
  *
  * במצב כהה המשקל יורד: מספר היום מצויר ב-`text-ink` שהוא כמעט לבן, ושם
- * מועד מודגש ב-`brand-ink` בהיר התחרה בו על תשומת הלב. במצב בהיר אין
+ * מועד מודגש בדיו בהיר התחרה בו על תשומת הלב. במצב בהיר אין
  * בעיה כזו, כי המספר כהה משמעותית מהשם.
  */
 function holidayTone(kind: HolidayKind): string {
   switch (kind) {
     case 'yomtov':
     case 'majorfast':
-      return 'font-semibold dark:font-medium text-brand-ink';
+      return 'font-semibold dark:font-medium text-ink';
     case 'cholhamoed':
     case 'minor':
-      return 'text-brand-ink/85';
+      return 'text-ink/85';
     case 'modern':
       return 'text-[rgb(var(--c-shabbat))]';
     default:
@@ -130,7 +130,7 @@ function DayCellInner({
       onClick={() => onSelect(day)}
       className={`focus-ring-inset relative flex min-h-0 select-none flex-col items-stretch overflow-hidden rounded-2xl px-1 pb-1 pt-1.5 text-center transition-colors ${
         dim ? 'opacity-45' : ''
-      } ${day.isShabbat && !dim ? 'bg-brand/[0.045] dark:bg-brand/[0.06]' : ''}`}
+      } ${day.isShabbat && !dim ? 'bg-well/70' : ''}`}
       aria-label={cellLabel(day, shownHolidays, occurrences.length)}
       aria-selected={selected}
       aria-current={day.isToday ? 'date' : undefined}
@@ -138,37 +138,46 @@ function DayCellInner({
       {isDropTarget && (
         <motion.span
           layoutId="drop-target"
-          className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-brand bg-brand/10"
+          className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-ink bg-ink/10"
           transition={TAP}
         />
       )}
 
       {/*
         מספר היום, ולשמאלו התאריך העברי. ב-RTL "לשמאל" הוא סוף השורה,
-        ולכן הוא בא אחרי המספר. עיגול הבחירה נמדד ביחס לגודל הגופן
-        ולכן גדל איתו. העטיפה של המספר רחבה כמו העיגול, כדי שהתאריך העברי
+        ולכן הוא בא אחרי המספר. העיגולים נמדדים ביחס לגודל הגופן ולכן
+        גדלים איתו. העטיפה של המספר רחבה כמו העיגול, כדי שהתאריך העברי
         יתחיל אחריו ולא ייבלע בו ביום הנוכחי או הנבחר.
+
+        היום הוא עיגול דיו מלא, והנבחר טבעת. הפוך ממה שהיה: "היום" הוא
+        עוגן שהעין מחפשת בכל פתיחה, והבחירה זזה בכל הקשה - טבעת שזזה
+        שקטה יותר מעיגול מלא שקופץ בין תאים. כשהם אותו יום, העיגול קטן
+        ונכנס לתוך הטבעת, כדי ששניהם ייקראו.
       */}
       <span className="relative flex shrink-0 items-baseline justify-center gap-[3px] text-daynum">
         <span className="relative flex min-w-[1.75em] items-center justify-center">
           {selected && (
             <motion.span
               layoutId={`day-selection-${layoutGroupId}`}
-              className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand"
+              className="absolute h-[1.75em] w-[1.75em] rounded-full border-[1.5px] border-ink"
               transition={SNAP}
             />
           )}
-          {day.isToday && !selected && (
-            <span className="absolute h-[1.75em] w-[1.75em] rounded-full bg-brand-soft" />
+          {day.isToday && (
+            <span
+              className={`absolute rounded-full bg-inverse transition-[width,height] ${
+                selected ? 'h-[1.4em] w-[1.4em]' : 'h-[1.75em] w-[1.75em]'
+              }`}
+            />
           )}
           <span
             className={`tnum relative leading-[1.6] ${
-              selected
+              day.isToday
                 ? 'font-semibold text-on-inverse'
-                : day.isToday
-                  ? 'font-semibold text-brand-ink'
+                : selected
+                  ? 'font-semibold text-ink'
                   : day.isRestDay
-                    ? 'font-medium text-brand-ink'
+                    ? 'font-medium text-ink'
                     : 'font-medium text-ink'
             }`}
           >
@@ -179,7 +188,7 @@ function DayCellInner({
         {settings.showHebrewDates && (
           <span
             className={`text-[0.6em] leading-none ${
-              day.hebrewDay === 'א׳' ? 'font-medium text-brand-ink/70' : 'text-faint'
+              day.hebrewDay === 'א׳' ? 'font-medium text-muted' : 'text-faint'
             }`}
           >
             {day.hebrewDay}

@@ -80,7 +80,8 @@ export function TemplateStrip({
             key={template.id}
             type="button"
             // touch-none כדי שהדפדפן לא יפרש את הלחיצה הארוכה כגלילה
-            className={`ev ev-${template.color} focus-ring flex shrink-0 touch-none select-none items-center gap-2 rounded-xl px-3 py-2 text-right ${
+            // אריח ולא צ׳יפ: זה דבר שמשבצים באצבע, ולעיתים קרובות גוררים
+            className={`ev ev-${template.color} focus-ring flex min-w-[7.5rem] max-w-[13rem] shrink-0 touch-none select-none items-center gap-2 rounded-field px-4 py-3 text-right ${
               pressing === TEMPLATE_DRAG_PREFIX + template.id ? 'opacity-50' : ''
             }`}
             whileTap={{ scale: 0.95 }}
@@ -92,10 +93,10 @@ export function TemplateStrip({
             }}
           >
             <span className="min-w-0">
-              <span className="block truncate text-label font-semibold leading-tight">
+              <span className="block truncate text-body font-semibold leading-tight">
                 {template.title}
               </span>
-              <span className="mt-0.5 block text-tiny opacity-70">{templateHint(template)}</span>
+              <span className="mt-1 block truncate text-caption opacity-75">{templateHint(template)}</span>
             </span>
           </motion.button>
         ))}

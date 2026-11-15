@@ -61,20 +61,25 @@ export function MiniEventChip({
     לפניו, ורב־יומי היה גוון חיוור עם פס חזק מתחתיו - כלומר רק חלק
     מהבלוק נשא את הצבע, והקו נראה כמו לכלוך ליד הכותרת.
 
-    ברב־יומי הפינות בקצוות בלבד, ובאמצע הפס נמשך אל מחוץ לתא כדי לכסות
-    את המרווח, כך שהמקטעים נקראים כאובייקט אחד.
+    הפסטל ולא הצבע המלא, והכותרת בדיו של הצבע עצמו (`ev`): בלוח שכולו
+    שחור-לבן, עשרים בלוקים רוויים עם טקסט לבן היו הדבר הרועש ביותר על
+    המסך. גרפיט, ברירת המחדל, יוצא דיו על גוון של `well`.
+
+    ברב־יומי הפינות בקצוות בלבד, ובאמצע הפס נמשך עד קצה התא, דרך הריפוד
+    שלו (px-1), כך שהמקטעים נקראים כאובייקט אחד. מעבר לזה אי אפשר:
+    התא חותך (`overflow-hidden`), ונשאר רק המרווח של הרשת.
   */
   const shape = multiDay
     ? [
         'px-1',
-        isStart ? 'rounded-s-[4px]' : '-ms-[3px] ps-[7px]',
-        isEnd ? 'rounded-e-[4px]' : '-me-[3px] pe-[7px]',
+        isStart ? 'rounded-s-[4px]' : '-ms-1 ps-2',
+        isEnd ? 'rounded-e-[4px]' : '-me-1 pe-2',
       ].join(' ')
     : 'rounded-[4px] px-[3px]';
 
   return (
     <div
-      className={`ev-${occurrence.color} ev-solid overflow-hidden py-px text-micro font-medium leading-[1.15] text-white transition-opacity ${shape} ${
+      className={`ev ev-${occurrence.color} overflow-hidden py-px text-micro font-medium leading-[1.15] transition-opacity ${shape} ${
         isDragging ? 'opacity-25' : ''
       }`}
       style={{ touchAction: draggable ? 'none' : undefined }}
@@ -165,7 +170,7 @@ export function EventCard({
   */
   return (
     <div
-      className={`ev ev-${occurrence.color} flex w-full items-center gap-2 rounded-2xl p-3 ${
+      className={`ev ev-${occurrence.color} flex w-full items-center gap-2 rounded-card p-3 ${
         occurrence.done ? 'opacity-55' : ''
       }`}
     >
@@ -203,7 +208,7 @@ export function EventCard({
       >
       {/* תג השעה - מלא בצבע האירוע */}
       <span
-        className="ev-solid flex h-14 w-16 shrink-0 flex-col items-center justify-center rounded-xl text-white"
+        className="ev-solid flex h-14 w-16 shrink-0 flex-col items-center justify-center rounded-field text-white"
         aria-hidden="true"
       >
         {occurrence.spanLength > 1 ? (

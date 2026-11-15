@@ -106,7 +106,7 @@ export function DayView({
         <button
           type="button"
           onClick={onAddEvent}
-          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse"
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-inverse py-4 text-label font-semibold text-on-inverse"
         >
           <Plus size={ICON.md} />
           אירוע חדש ב{relativeDayLabel(day.date)}
@@ -119,12 +119,12 @@ export function DayView({
           {day.holidays.map((h) => (
             <div
               key={h.id}
-              className="flex items-center gap-3.5 rounded-2xl bg-brand-soft px-4 py-4"
+              className="flex items-center gap-3.5 rounded-2xl bg-well px-4 py-4"
             >
               {h.emoji && <span className="text-heading leading-none">{h.emoji}</span>}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-body font-semibold text-brand-ink">{h.title}</p>
-                {h.restWork && <p className="mt-0.5 text-caption text-brand-ink/70">אסור בעשיית מלאכה</p>}
+                <p className="truncate text-body font-semibold text-ink">{h.title}</p>
+                {h.restWork && <p className="mt-0.5 text-caption text-muted">אסור בעשיית מלאכה</p>}
               </div>
             </div>
           ))}
@@ -161,7 +161,7 @@ export function DayView({
                   t.kind === 'candles'
                     ? 'bg-[rgb(var(--c-shabbat)/0.1)]'
                     : t.kind === 'havdalah'
-                      ? 'bg-brand-soft'
+                      ? 'bg-well'
                       : 'bg-well'
                 }`}
               >

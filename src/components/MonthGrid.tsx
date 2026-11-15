@@ -27,7 +27,7 @@ export function WeekdayHeader() {
           key={name}
           role="columnheader"
           className={`text-center text-tiny font-medium ${
-            i === 6 ? 'text-brand-ink/70' : 'text-faint'
+            i === 6 ? 'text-muted' : 'text-faint'
           }`}
         >
           {name}

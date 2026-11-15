@@ -27,6 +27,7 @@ import { useSettings, useSettingsStore } from '@/store/settings';
 import { AGENDA_CATEGORIES, filterAgendaDay, toggleCategory } from '@/lib/agendaFilters';
 import { AgendaFilterButton, AgendaFilterSheet } from './AgendaFilters';
 import { EventCard } from './EventChip';
+import { DisplayText } from './ui/DisplayText';
 import { ICON, TAP, TAP_SCALE } from '@/lib/motion';
 
 /** כמה ימים נטענים בכל פעם */
@@ -47,8 +48,8 @@ type AgendaEntry = { day: DayInfo; occurrences: Occurrence[] };
 function MonthDivider({ date, hebrew }: { date: Date; hebrew: string | null }) {
   return (
     <div className="flex items-baseline gap-2.5 pb-3 pt-4 first:pt-0">
-      <h2 className="shrink-0 text-label font-bold text-ink">
-        {GREG_MONTHS_HE[date.getMonth()]} {date.getFullYear()}
+      <h2 className="shrink-0 font-display text-k-heading font-bold leading-none text-ink">
+        <DisplayText text={`${GREG_MONTHS_HE[date.getMonth()]} ${date.getFullYear()}`} />
       </h2>
       {hebrew && <span className="shrink-0 text-caption text-muted">{hebrew}</span>}
       <span aria-hidden="true" className="h-px min-w-4 flex-1 bg-hairline" />
@@ -90,8 +91,8 @@ function DayGroup({
         className="focus-ring w-14 shrink-0 rounded-2xl pt-1 text-center"
       >
         <span
-          className={`tnum mx-auto flex h-11 w-11 items-center justify-center rounded-2xl text-title font-bold leading-none ${
-            day.isToday ? 'bg-brand text-on-inverse' : day.isRestDay ? 'bg-brand-soft text-brand-ink' : 'text-ink'
+          className={`tnum mx-auto flex h-11 w-11 items-center justify-center rounded-full text-title font-bold leading-none ${
+            day.isToday ? 'bg-inverse text-on-inverse' : day.isRestDay ? 'bg-well text-ink' : 'text-ink'
           }`}
         >
           {day.date.getDate()}
@@ -102,8 +103,8 @@ function DayGroup({
       {/* תוכן היום */}
       <div className="min-w-0 flex-1 space-y-2 pb-7">
         <h3 className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-          <span className="text-label font-semibold text-ink">
-            {relativeDayLabel(day.date)}
+          <span className="font-display text-k-title font-bold text-ink">
+            <DisplayText text={relativeDayLabel(day.date)} />
           </span>
           <span className="text-caption text-muted">
             {day.hebrewDay} ב{day.hebrewMonth}
@@ -113,16 +114,16 @@ function DayGroup({
         {day.holidays.map((h) => (
           <div
             key={h.id}
-            className="flex items-center gap-2.5 rounded-2xl bg-brand-soft px-3.5 py-2.5"
+            className="flex items-center gap-2.5 rounded-2xl bg-well px-3.5 py-2.5"
           >
             <span aria-hidden="true" className="text-label leading-none">
               {h.emoji ?? '✦'}
             </span>
-            <span className="min-w-0 flex-1 truncate text-caption font-semibold text-brand-ink">
+            <span className="min-w-0 flex-1 truncate text-caption font-semibold text-ink">
               {h.title}
             </span>
             {h.restWork && (
-              <span className="shrink-0 text-micro text-brand-ink/70">אסור במלאכה</span>
+              <span className="shrink-0 text-micro text-muted">אסור במלאכה</span>
             )}
           </div>
         ))}
@@ -135,7 +136,7 @@ function DayGroup({
               </span>
             )}
             {havdalah && (
-              <span className="tnum rounded-xl bg-brand-soft px-3 py-1.5 text-caption font-medium text-brand-ink">
+              <span className="tnum rounded-xl bg-well px-3 py-1.5 text-caption font-medium text-ink">
                 ✦ {havdalah.time}
               </span>
             )}
@@ -270,7 +271,7 @@ export function AgendaView({
                 whileTap={{ scale: 0.92 }}
                 transition={TAP}
                 aria-label="אירוע חדש"
-                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-brand text-on-inverse shadow-raised"
+                className="focus-ring flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl bg-inverse text-on-inverse shadow-raised"
               >
                 <Plus size={ICON.md} weight="bold" />
               </motion.button>
@@ -287,7 +288,7 @@ export function AgendaView({
                   type="button"
                   whileTap={TAP_SCALE}
                   onClick={() => setValue('agendaHidden', [])}
-                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
+                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-well px-5 py-3 text-label font-semibold text-ink"
                 >
                   <RotateCcw size={ICON.md} />
                   הצגת הכול
@@ -300,7 +301,7 @@ export function AgendaView({
                   type="button"
                   whileTap={TAP_SCALE}
                   onClick={onAddEvent}
-                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
+                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-well px-5 py-3 text-label font-semibold text-ink"
                 >
                   <CalendarPlus size={ICON.md} />
                   הוספת אירוע

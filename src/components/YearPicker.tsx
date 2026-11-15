@@ -76,7 +76,7 @@ export function YearPicker({
       <div className="space-y-6 pb-4">
         {months.map(({ month, days }) => (
           <section key={month} ref={month === focusMonth ? scrollTarget : undefined}>
-            <h3 className="mb-1.5 text-title font-semibold text-ink">
+            <h3 className="mb-1.5 font-display text-k-title font-bold text-ink">
               {GREG_MONTHS_HE[month]}
             </h3>
             <div className="mb-1 grid grid-cols-7">
@@ -101,13 +101,13 @@ export function YearPicker({
                     className="flex items-center justify-center py-0.5"
                   >
                     <span
-                      className={`tnum flex h-7 w-7 items-center justify-center rounded-xl text-caption ${
+                      className={`tnum flex h-7 w-7 items-center justify-center rounded-full text-caption ${
                         !inMonth
                           ? 'text-faint/50'
                           : isToday
-                            ? 'bg-brand font-semibold text-on-inverse'
+                            ? 'bg-inverse font-semibold text-on-inverse'
                             : d.getDay() === 6
-                              ? 'font-medium text-brand-ink'
+                              ? 'font-medium text-ink'
                               : 'text-ink'
                       }`}
                     >

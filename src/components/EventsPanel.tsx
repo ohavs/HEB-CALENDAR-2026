@@ -24,6 +24,7 @@ import { TemplateStrip } from './TemplateStrip';
 import { useElementSize } from '@/hooks/useElementSize';
 import { GLIDE, ICON, SNAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
+import { DisplayText } from './ui/DisplayText';
 
 /**
  * כמה מהחלונית נשאר גלוי כשהיא מקופלת.
@@ -117,21 +118,21 @@ function DayPanelContent({
 
       {/* מועדים - שורות עם נקודת צבע, לא גלולות */}
       {day.holidays.length > 0 && (
-        <div className="overflow-hidden rounded-2xl bg-brand-soft">
+        <div className="overflow-hidden rounded-2xl bg-well">
           {day.holidays.map((h, i) => (
             <div
               key={h.id}
               className={`flex items-center gap-3 px-4 py-3.5 ${
-                i > 0 ? 'border-t border-brand/10' : ''
+                i > 0 ? 'border-t border-hairline' : ''
               }`}
             >
               <span className="text-title leading-none">{h.emoji ?? '✦'}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-body font-semibold text-brand-ink">
+                <span className="block truncate text-body font-semibold text-ink">
                   {h.title}
                 </span>
                 {h.restWork && (
-                  <span className="mt-0.5 block text-caption text-brand-ink/70">
+                  <span className="mt-0.5 block text-caption text-muted">
                     אסור בעשיית מלאכה
                   </span>
                 )}
@@ -155,8 +156,8 @@ function DayPanelContent({
             </div>
           )}
           {havdalah && (
-            <div className="flex-1 rounded-2xl bg-brand-soft px-4 py-3.5">
-              <span className="block text-caption font-medium text-brand-ink">
+            <div className="flex-1 rounded-2xl bg-well px-4 py-3.5">
+              <span className="block text-caption font-medium text-ink">
                 ✦ {havdalah.title}
               </span>
               <span className="tnum mt-1 block text-heading font-semibold text-ink">
@@ -186,7 +187,7 @@ function DayPanelContent({
           <button
             type="button"
             onClick={onAddEvent}
-            className="mt-3.5 inline-flex items-center gap-2 rounded-2xl bg-brand-soft px-5 py-3 text-label font-semibold text-brand-ink"
+            className="mt-3.5 inline-flex items-center gap-2 rounded-2xl bg-well px-5 py-3 text-label font-semibold text-ink"
           >
             <Plus size={ICON.md} />
             הוספת אירוע
@@ -242,11 +243,21 @@ export function DockedDayPanel(props: ContentProps) {
       */}
       <header className="flex shrink-0 items-center gap-3 border-b border-hairline px-5 py-5">
         <span className="min-w-0 flex-1">
-          <h2 className="truncate text-title font-semibold leading-tight text-ink">
-            {day ? relativeDayLabel(day.date) : ''}
+          <h2 className="truncate font-display text-k-heading font-bold leading-none text-ink">
+            {day ? <DisplayText text={relativeDayLabel(day.date)} /> : ''}
           </h2>
-          <p className="mt-1 truncate text-caption text-muted">
-            {day ? dayTitleLabel(day.date) : ''}
+          {/* הלועזי רק כשהכותרת היא "היום" או "מחר", אחרת הוא כבר שם */}
+          <p className="mt-1.5 truncate text-caption text-muted">
+            {day
+              ? [
+                  relativeDayLabel(day.date) !== dayTitleLabel(day.date)
+                    ? dayTitleLabel(day.date)
+                    : null,
+                  day.hebrewFull,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : ''}
           </p>
         </span>
         <motion.button
@@ -255,7 +266,7 @@ export function DockedDayPanel(props: ContentProps) {
           whileTap={{ scale: 0.9 }}
           transition={SNAP}
           aria-label="אירוע חדש ביום הזה"
-          className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+          className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-ink"
         >
           <Plus size={ICON.lg} />
         </motion.button>
@@ -418,7 +429,7 @@ export function EventsPanel({
           whileTap={{ scale: 0.9 }}
           transition={SNAP}
           aria-label="אירוע חדש ביום הזה"
-          className="focus-ring me-4 ms-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+          className="focus-ring me-4 ms-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-ink"
         >
           <Plus size={ICON.lg} />
         </motion.button>

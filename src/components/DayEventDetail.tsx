@@ -40,7 +40,7 @@ export function DayEventDetail({
 
   return (
     <div
-      className={`ev ev-${occ.color} flex items-start gap-3 rounded-2xl p-4 ${
+      className={`ev ev-${occ.color} flex items-start gap-3 rounded-card p-4 ${
         occ.done ? 'opacity-55' : ''
       }`}
     >
@@ -135,13 +135,13 @@ export function DayEventDetail({
   );
 }
 
-/** קו "עכשיו" בין האירועים של היום. */
+/** קו "עכשיו" בין האירועים של היום - בדיו, כי אדום כאן נקרא כאזהרה. */
 export function NowMarker({ time }: { time: string }) {
   return (
     <div className="flex items-center gap-2 px-1" role="presentation">
-      <span className="tnum text-micro font-semibold text-brand">עכשיו {time}</span>
-      <span className="h-px flex-1 bg-brand/50" />
-      <span className="h-2 w-2 rounded-full bg-brand" />
+      <span className="tnum text-micro font-semibold text-ink">עכשיו {time}</span>
+      <span className="h-px flex-1 bg-ink/50" />
+      <span className="h-2 w-2 rounded-full bg-inverse" />
     </div>
   );
 }

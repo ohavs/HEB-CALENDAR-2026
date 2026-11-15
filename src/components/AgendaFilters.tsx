@@ -47,29 +47,31 @@ export function AgendaFilterButton({
   const filtering = hidden.length > 0;
 
   return (
-    <div className="sticky top-0 z-20 -mx-[var(--gutter)] flex items-center gap-2 bg-canvas/95 px-[var(--gutter)] pb-3 pt-1 backdrop-blur">
+    <div className="glass-thin sticky top-0 z-20 -mx-[var(--gutter)] flex items-center gap-2 px-[var(--gutter)] pb-3 pt-1">
       <motion.button
         type="button"
         whileTap={TAP_SCALE}
         onClick={onOpen}
         className={`focus-ring flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-3 text-right transition-colors ${
-          filtering ? 'bg-brand-soft' : 'bg-well'
+          // מסנן פעיל הוא "נבחר", ולכן דיו מלא: כש-brand-soft הפך ל-well,
+          // מסונן ולא מסונן נראו אותו דבר
+          filtering ? 'bg-inverse' : 'bg-well'
         }`}
       >
         <SlidersHorizontal
           size={ICON.sm}
-          className={`shrink-0 ${filtering ? 'text-brand-ink' : 'text-muted'}`}
+          className={`shrink-0 ${filtering ? 'text-on-inverse' : 'text-muted'}`}
         />
         <span
           className={`min-w-0 flex-1 truncate text-caption font-semibold ${
-            filtering ? 'text-brand-ink' : 'text-muted'
+            filtering ? 'text-on-inverse' : 'text-muted'
           }`}
         >
           {summary(hidden)}
         </span>
         <span
           className={`shrink-0 text-caption font-medium ${
-            filtering ? 'text-brand-ink/70' : 'text-faint'
+            filtering ? 'text-on-inverse/70' : 'text-faint'
           }`}
         >
           סינון

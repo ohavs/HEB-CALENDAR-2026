@@ -143,8 +143,8 @@ function DayColumn({
     <div
       data-drop-key={day.key}
       className={`relative border-s border-hairline transition-colors ${
-        day.isRestDay ? "bg-brand-soft/25" : ""
-      } ${isDropTarget ? "bg-brand-soft" : ""}`}
+        day.isRestDay ? "bg-well/70" : ""
+      } ${isDropTarget ? "bg-well" : ""}`}
       style={{ height: HOUR_HEIGHT * 24 }}
     >
       {/*
@@ -164,7 +164,7 @@ function DayColumn({
           type="button"
           onClick={() => onAddAt(day.key, h)}
           aria-label={`אירוע חדש ב-${String(h).padStart(2, "0")}:00, ${day.hebrewFull}`}
-          className="focus-ring-inset absolute inset-x-0 border-t border-hairline/60 transition-colors active:bg-brand-soft/60"
+          className="focus-ring-inset absolute inset-x-0 border-t border-hairline/60 transition-colors active:bg-well"
           style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }}
         />
       ))}
@@ -173,10 +173,10 @@ function DayColumn({
       {nowMinutes !== null && (
         <span
           aria-hidden="true"
-          className="absolute inset-x-0 z-10 border-t-2 border-brand"
+          className="absolute inset-x-0 z-10 border-t-2 border-ink"
           style={{ top: `${(nowMinutes / 1440) * 100}%` }}
         >
-          <span className="absolute -top-[5px] -start-[3px] block h-2 w-2 rounded-full bg-brand" />
+          <span className="absolute -top-[5px] -start-[3px] block h-2 w-2 rounded-full bg-inverse" />
         </span>
       )}
 
@@ -312,8 +312,13 @@ export function WeekView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* כותרות הימים + כל מה שאין לו שעה */}
-      <div className="relative shrink-0 overflow-hidden border-b border-hairline bg-surface/95 backdrop-blur">
+      {/*
+        כותרות הימים + כל מה שאין לו שעה.
+
+        אטום ולא זכוכית: הציר נגלל *מתחתיו* בעמודה נפרדת ולא עובר מאחוריו,
+        כך שטשטוש לא היה מראה דבר - רק עולה בכל פריים של גלילה.
+      */}
+      <div className="relative shrink-0 overflow-hidden border-b border-hairline bg-canvas">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={weekKey}
@@ -347,18 +352,21 @@ export function WeekView({
                   >
                     <span
                       className={`text-micro font-medium ${
-                        day.isShabbat ? "text-brand-ink/70" : "text-faint"
+                        day.isShabbat ? "text-muted" : "text-faint"
                       }`}
                     >
                       {WEEKDAYS_SHORT_HE[date.getDay()]}
                     </span>
                     <span
+                      // כמו בלוח החודש: היום מלא, הנבחר טבעת, ושניהם יחד - טבעת מסביב למלא
                       className={`tnum flex h-8 w-8 items-center justify-center rounded-full text-label font-semibold ${
-                        key === today
-                          ? "bg-brand text-on-inverse"
-                          : selected
-                            ? "bg-brand-soft text-brand-ink"
-                            : "text-ink"
+                        key === today ? "bg-inverse text-on-inverse" : "text-ink"
+                      } ${
+                        selected
+                          ? key === today
+                            ? "ring-[1.5px] ring-ink ring-offset-2 ring-offset-canvas"
+                            : "ring-[1.5px] ring-inset ring-ink"
+                          : ""
                       }`}
                     >
                       {date.getDate()}
@@ -396,7 +404,7 @@ export function WeekView({
                       <span
                         key={h.id}
                         title={h.title}
-                        className="block truncate rounded bg-brand-soft px-1 py-0.5 text-micro font-medium leading-tight text-brand-ink"
+                        className="block truncate rounded bg-well px-1 py-0.5 text-micro font-medium leading-tight text-ink"
                       >
                         {h.shortTitle}
                       </span>

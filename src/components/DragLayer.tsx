@@ -35,10 +35,13 @@ function TrashTarget() {
         data-drag-trash
         animate={{ scale: over ? 1.18 : 1 }}
         transition={SNAP}
-        className={`flex h-[62px] w-[62px] items-center justify-center rounded-full shadow-floating ring-[3px] ring-canvas transition-colors ${
-          over
-            ? 'bg-danger text-on-danger'
-            : 'bg-surface text-danger'
+        /*
+          זכוכית, כי הוא מרחף מעל הימים ואסור לו להסתיר אותם. כשהאירוע
+          מעליו הוא מתמלא באדום אטום: בזכוכית הימים שמתחת נראים, ואין
+          ספק אם השחרור ימחק.
+        */
+        className={`flex h-[62px] w-[62px] items-center justify-center rounded-full transition-colors ${
+          over ? 'bg-danger text-on-danger shadow-floating' : 'glass text-danger'
         }`}
       >
         <Trash2 size={ICON.lg} />
@@ -77,13 +80,13 @@ export function DragLayer() {
           className="pointer-events-none fixed left-0 top-0 z-[60]"
           style={{ x, y }}
           initial={{ opacity: 0, scale: 0.86, rotate: 0 }}
-          animate={{ opacity: 1, scale: 1.05, rotate: -2.5 }}
+          animate={{ opacity: 1, scale: 1.04, rotate: -2.5 }}
           exit={{ opacity: 0, scale: 0.9, rotate: 0 }}
           transition={SNAP}
         >
           {overKey && overKey !== fromKey && (
             <div className="mb-1.5 text-center">
-              <span className="rounded-xl bg-ink/85 px-2.5 py-1 text-tiny font-medium text-canvas">
+              <span className="rounded-full bg-inverse px-3 py-1 text-tiny font-medium text-on-inverse">
                 {overKey === 'undated'
                   ? 'העברה לבלי תאריך'
                   : (() => {
@@ -99,7 +102,7 @@ export function DragLayer() {
             בין שתיים אחרות.
           */}
           <div
-            className={`ev ev-${occurrence.color} w-[150px] rounded-xl px-3 py-2.5 shadow-floating ring-[3px] ring-canvas`}
+            className={`ev ev-${occurrence.color} w-[150px] rounded-field px-3 py-2.5 shadow-floating ring-[3px] ring-canvas`}
           >
             <span className="block truncate text-caption font-semibold leading-tight">
               {occurrence.title}
