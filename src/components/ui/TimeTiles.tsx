@@ -48,7 +48,7 @@ export function TimeTiles({
           {label}
         </span>
         {/* שעה נקראת משמאל לימין גם בממשק עברי */}
-        <span dir="ltr" className="tnum text-hero font-semibold leading-none">
+        <span dir="ltr" className="tnum text-hero font-bold leading-none">
           {value}
         </span>
       </motion.button>

@@ -265,22 +265,6 @@ export function EventFields({
             {whenToggle}
             {scheduled && (
               <>
-                {/*
-                  "בשעות" ו"כל היום" הם שתי תשובות לאותה שאלה, ולכן מתג
-                  מצב ולא צ׳יפ דלוק־כבוי. במצב "כל היום" השעות מתקפלות:
-                  המתג עצמו אומר שיש שעות, ואריחים מעומעמים בגודל כזה היו
-                  תופסים חצי מסך בשביל רמז.
-                */}
-                <Segmented<'timed' | 'allDay'>
-                  label="סוג המועד"
-                  value={draft.allDay ? 'allDay' : 'timed'}
-                  onChange={(v) => setAllDay(v === 'allDay')}
-                  options={[
-                    { value: 'timed', label: 'בשעות' },
-                    { value: 'allDay', label: 'כל היום' },
-                  ]}
-                />
-
                 <DayStrip
                   value={editingEnd ? (draft.endDate ?? draft.date) : draft.date}
                   onChange={pickDay}
@@ -316,25 +300,45 @@ export function EventFields({
                   />
                 )}
 
-                <AnimatePresence initial={false}>
-                  {!draft.allDay && (
-                    <motion.div
-                      key="times"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0, transition: { height: GLIDE, opacity: EXIT } }}
-                      transition={{ height: GLIDE, opacity: ENTER }}
-                      className="overflow-hidden"
-                    >
-                      <TimeTiles
-                        start={draft.startTime ?? DEFAULT_START}
-                        end={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
-                        onStart={onStartChange}
-                        onEnd={(endTime) => patch({ endTime })}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/*
+                  "בשעות" ו"כל היום" יושב צמוד לאריחי השעות ולא בראש
+                  הקבוצה: הוא שואל על השעות, וכשהיה מעל רצועת הימים הוא
+                  נקרא כשאלה על היום. מתג מצב ולא צ׳יפ דלוק־כבוי, כי שתי
+                  התשובות שוות. במצב "כל היום" השעות מתקפלות: המתג עצמו
+                  אומר שיש שעות, ואריחים מעומעמים בגודל כזה היו תופסים
+                  חצי מסך בשביל רמז.
+                */}
+                <div className="space-y-2">
+                  <Segmented<'timed' | 'allDay'>
+                    label="סוג המועד"
+                    value={draft.allDay ? 'allDay' : 'timed'}
+                    onChange={(v) => setAllDay(v === 'allDay')}
+                    options={[
+                      { value: 'timed', label: 'בשעות' },
+                      { value: 'allDay', label: 'כל היום' },
+                    ]}
+                  />
+
+                  <AnimatePresence initial={false}>
+                    {!draft.allDay && (
+                      <motion.div
+                        key="times"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0, transition: { height: GLIDE, opacity: EXIT } }}
+                        transition={{ height: GLIDE, opacity: ENTER }}
+                        className="overflow-hidden"
+                      >
+                        <TimeTiles
+                          start={draft.startTime ?? DEFAULT_START}
+                          end={draft.endTime ?? defaultEndFor(draft.startTime ?? DEFAULT_START)}
+                          onStart={onStartChange}
+                          onEnd={(endTime) => patch({ endTime })}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <p className="px-1 text-caption leading-relaxed text-muted" aria-live="polite">
                   {whenSummary(draft)}

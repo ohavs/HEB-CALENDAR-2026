@@ -168,7 +168,6 @@ export function LocationPicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="חיפוש מקום, כתובת או עסק"
-          autoFocus
           className="field-reset bg-transparent p-0 text-body text-ink placeholder:text-faint"
         />
         {query && (
