@@ -12,17 +12,15 @@
  */
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarPlus, Pencil, Plus } from '@/components/ui/icons';
+import { CalendarPlus, MapPin, Plus } from '@/components/ui/icons';
 import type { DateKey, EventColor, EventTemplate } from '@/types';
 import { useSettings, useSettingsStore } from '@/store/settings';
-import { EVENT_COLORS } from '@/store/events';
 import {
   MAX_TEMPLATES,
   addTemplate,
   emptyTemplate,
   isValidTemplate,
   removeTemplate,
-  templateHint,
   updateTemplate,
 } from '@/lib/templates';
 import { TemplatePlaceSheet } from './TemplatePlaceSheet';
@@ -83,7 +81,7 @@ export function TemplatesView({
   return (
     <div className="pb-4" style={{ paddingBottom: bottomInset + 16 }}>
       {/* ------------------------------ יצירה ------------------------------ */}
-      <div className="rounded-3xl bg-surface p-2.5 shadow-raised">
+      <div className="rounded-card bg-surface p-2.5 shadow-raised">
         <div className="field-shell flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5">
           <input
             type="text"
@@ -105,7 +103,7 @@ export function TemplatesView({
                 whileTap={{ scale: 0.9 }}
                 transition={SNAP}
                 aria-label="יצירת תבנית"
-                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse"
+                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-inverse text-on-inverse"
               >
                 <Plus size={ICON.md} weight="bold" />
               </motion.button>
@@ -137,46 +135,48 @@ export function TemplatesView({
           "מילואים", "יום כביסה" - ואז משבצים אותה לימים שרוצים, שוב ושוב.
         </p>
       ) : (
-        <div className="mt-5 space-y-2">
+        <div className="mt-6 space-y-3">
           {templates.map((template) => (
+            /*
+              בפסטל של התבנית, כמו כל אירוע - ובלי פס צבע בצד: פס אנכי
+              לפני הטקסט הוא קישוט ריק, ואין לו מקום באפליקציה (CLAUDE.md).
+              כפתור השיבוץ בדיו ולא בצבע מלא עם לבן, שבחמאה או במנטה כמעט
+              לא נקרא.
+            */
             <motion.div
               key={template.id}
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={ENTER}
-              className={`ev ev-${template.color} flex items-center gap-2 rounded-2xl p-3`}
+              className={`ev ev-${template.color} flex items-center gap-3 rounded-card py-3 pe-3 ps-4`}
             >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-body font-semibold leading-snug">
-                  {template.title}
-                </span>
-                <span className="mt-0.5 block text-caption opacity-70">
-                  {templateHint(template)}
-                </span>
-              </span>
 
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.99 }}
                 transition={TAP}
                 onClick={() => setEditing(template)}
                 aria-label={`עריכת ${template.title}`}
-                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl opacity-70"
+                className="focus-ring min-w-0 flex-1 rounded-field py-1 text-right"
               >
-                <Pencil size={ICON.sm} />
+                <span className="block truncate text-title font-semibold leading-snug">
+                  {template.title}
+                </span>
+                <TemplateMeta template={template} />
               </motion.button>
 
               <motion.button
                 type="button"
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.94 }}
                 transition={TAP}
                 onClick={() => {
                   void haptic('light');
                   setPlacing(template);
                 }}
-                className="focus-ring ev-solid flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-caption font-semibold text-white"
+                aria-label={`שיבוץ ${template.title} לימים`}
+                className="focus-ring flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-inverse px-4 text-label font-semibold text-on-inverse"
               >
-                <CalendarPlus size={ICON.sm} />
+                <CalendarPlus size={ICON.md} />
                 שיבוץ
               </motion.button>
             </motion.div>
@@ -237,27 +237,12 @@ function TemplateEditSheet({
           placeholder="חופש מהעבודה"
         />
 
-        <p className="mb-2 mt-5 text-caption font-semibold text-muted">צבע</p>
-        <div className="flex flex-wrap gap-2">
-          {EVENT_COLORS.map((c) => (
-            <motion.button
-              key={c.id}
-              type="button"
-              whileTap={{ scale: 0.9 }}
-              transition={TAP}
-              onClick={() => {
-                void haptic('light');
-                setDraft({ ...draft, color: c.id as EventColor });
-              }}
-              aria-label={c.label}
-              aria-pressed={draft.color === c.id}
-              className={`ev ev-${c.id} h-11 w-11 rounded-full ${
-                draft.color === c.id ? 'ring-2 ring-brand ring-offset-2 ring-offset-surface' : ''
-              }`}
-            >
-              <span className="ev-solid mx-auto block h-3 w-3 rounded-full" />
-            </motion.button>
-          ))}
+        <div className="mt-5">
+          <ColorRow
+            value={draft.color}
+            onChange={(color) => setDraft({ ...draft, color })}
+            label="צבע התבנית"
+          />
         </div>
 
         <div className="mt-6">
@@ -294,5 +279,31 @@ function TemplateEditSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * שורת המשנה של כרטיס: מתי ואיפה.
+ *
+ * רק השעה אמרה מעט מדי - "09:00" לא אומר עד מתי, ו"מילואים" ו"משמרת
+ * בבסיס" נבדלות בדיוק במקום.
+ */
+function TemplateMeta({ template }: { template: EventTemplate }) {
+  const when = template.allDay
+    ? 'כל היום'
+    : template.startTime && template.endTime
+      ? `${template.startTime}–${template.endTime}`
+      : (template.startTime ?? '');
+  if (!when && !template.location) return null;
+  return (
+    <span className="mt-1 flex items-center gap-2 text-caption opacity-75">
+      {when && <span className="tnum shrink-0">{when}</span>}
+      {template.location && (
+        <span className="flex min-w-0 items-center gap-1">
+          <MapPin size={ICON.xs} className="shrink-0" />
+          <span className="truncate">{template.location}</span>
+        </span>
+      )}
+    </span>
   );
 }

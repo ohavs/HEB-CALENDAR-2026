@@ -37,6 +37,7 @@ export function DayStrip({
   range,
   headerEnd,
   label = 'תאריך',
+  picked,
 }: {
   value: DateKey;
   onChange: (next: DateKey) => void;
@@ -47,7 +48,15 @@ export function DayStrip({
   /** תוכן בקצה שורת החודש - הצ׳יפ "כמה ימים" */
   headerEnd?: ReactNode;
   label?: string;
+  /**
+   * בחירה מרובה - שיבוץ תבנית. כל הקשה מוסיפה או מסירה (`onChange` מקבל
+   * את היום, והקורא מחליט), והחודש הפרוש נשאר פתוח בין הקשות: מי שבוחר
+   * שלושה ימים לא אמור לפתוח אותו שלוש פעמים. `value` הוא אז העוגן בלבד -
+   * היום שהרצועה נפתחת עליו.
+   */
+  picked?: ReadonlySet<DateKey>;
 }) {
+  const multi = picked !== undefined;
   const [expanded, setExpanded] = useState(false);
   /*
     החלון נעוץ בשבוע, ולא ממורכז סביב הבחירה: חלון שזז עם כל הקשה היה
@@ -129,9 +138,10 @@ export function DayStrip({
               min={min}
               range={range}
               onWell
+              picked={picked}
               onChange={(key) => {
                 onChange(key);
-                setExpanded(false);
+                if (!multi) setExpanded(false);
               }}
             />
           </motion.div>
@@ -142,7 +152,7 @@ export function DayStrip({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: EXIT }}
             transition={ENTER}
-            role="radiogroup"
+            role={multi ? 'group' : 'radiogroup'}
             aria-label={label}
             /*
               רצועה נגללת הצידה אינה ידית של הגיליון: המחווה שלה אופקית,
@@ -153,16 +163,17 @@ export function DayStrip({
           >
             {days.map((d, i) => {
               const key = dateKey(d);
-              const selected = key === value;
+              const anchor = key === value;
+              const selected = multi ? picked.has(key) : anchor;
               const inRange = Boolean(range && key > range.from && key < range.to);
               const edge = Boolean(range && (key === range.from || key === range.to));
               const disabled = Boolean(min && key < min);
               return (
                 <button
                   key={key}
-                  ref={selected ? revealSelected : undefined}
+                  ref={anchor ? revealSelected : undefined}
                   type="button"
-                  role="radio"
+                  role={multi ? 'checkbox' : 'radio'}
                   aria-checked={selected}
                   aria-label={`${WEEKDAYS_HE[d.getDay()]} ${d.getDate()} ב${GREG_MONTHS_HE[d.getMonth()]}, ${hebrew[i]}`}
                   disabled={disabled}

@@ -72,9 +72,13 @@ export function MarqueeText({ text, className = '' }: { text: string; className?
           : undefined
       }
     >
+      {/*
+        `text-decoration: inherit` במפורש: קישוט אינו עובר לתוך
+        `inline-block`, ולכן קו חוצה של "בוצע" על המעטפת פשוט לא צויר.
+      */}
       <span
         ref={inner}
-        className={reduceMotion ? '' : 'inline-block will-change-transform'}
+        className={`[text-decoration:inherit] ${reduceMotion ? '' : 'inline-block will-change-transform'}`}
         style={moving ? { paddingInline: fade } : undefined}
       >
         {text}

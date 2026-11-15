@@ -45,7 +45,9 @@ import { ListPickerSheet } from './ListPickerSheet';
 import { ComposeRow, useComposeRow } from './ui/ComposeRow';
 import { buildReminderDraft } from '@/lib/reminderCompose';
 import { PrimaryButton } from './ui/controls';
-import { CategoryChip, CategorySection, ReminderRow } from './ui/ReminderParts';
+import { DisplayText } from './ui/DisplayText';
+import { CategoryChip, CategorySection, DayGroupHeader, ReminderRow } from './ui/ReminderParts';
+import { MemberStack } from './ui/Avatar';
 
 export function SharedReminders({ bottomInset }: { bottomInset: number }) {
   const user = useAuthStore((s) => s.user);
@@ -192,10 +194,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
   /** קבוצה של יום, באותה צורה של הרשימה האישית ובאותה שורה */
   const renderGroup = (group: ReminderGroup) => (
     <section key={group.key}>
-      <header className="flex items-baseline gap-2.5 px-2 pb-2">
-        <h2 className="text-label font-semibold text-ink">{group.label}</h2>
-        {group.hebrew && <span className="truncate text-caption text-faint">{group.hebrew}</span>}
-      </header>
+      <DayGroupHeader label={group.label} hebrew={group.hebrew} />
       <div className="space-y-2">
         {group.items.map((item) => {
           const source = allItems.find((i) => i.id === item.baseId);
@@ -249,22 +248,22 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
             transition={{ height: GLIDE, opacity: ENTER }}
             className="overflow-hidden"
           >
-            <div className="mb-3 rounded-2xl bg-brand-soft p-4">
-              <p className="text-label font-semibold text-brand-ink">
+            <div className="mb-3 rounded-card bg-surface p-4 shadow-raised">
+              <p className="text-body font-semibold text-ink">
                 {inv.fromName || 'מישהו'} הזמין אתכם ל״{inv.listName}״
               </p>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => void acceptInvite(inv).then(() => select(inv.listId))}
-                  className="focus-ring flex-1 rounded-xl bg-brand py-2.5 text-caption font-semibold text-on-inverse"
+                  className="focus-ring h-12 flex-1 rounded-field bg-inverse text-label font-semibold text-on-inverse"
                 >
                   להצטרף
                 </button>
                 <button
                   type="button"
                   onClick={() => void declineInvite(inv)}
-                  className="focus-ring rounded-xl bg-surface px-4 py-2.5 text-caption font-medium text-muted"
+                  className="focus-ring h-12 rounded-field bg-well px-5 text-label font-medium text-ink"
                 >
                   לא תודה
                 </button>
@@ -326,8 +325,8 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
             נדירה ולכן היא עברה לגיליון; סינון קטגוריה הוא פעולה תכופה
             ולכן הוא נשאר בהקשה אחת, עם המונים גלויים.
           */}
-          <div className="mb-3 overflow-hidden rounded-3xl bg-surface shadow-raised">
-            <div className="flex items-center gap-1 px-2 py-1.5">
+          <div className="mb-3 overflow-hidden rounded-card bg-surface shadow-raised">
+            <div className="flex items-center gap-1 px-2 py-2">
               <motion.button
                 type="button"
                 onClick={() => {
@@ -341,11 +340,19 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 className="focus-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl px-2.5 py-2 text-right"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-title font-semibold leading-tight text-ink">
-                    {list?.name}
+                  <span className="block truncate font-display text-k-heading font-bold text-ink">
+                    {list && <DisplayText text={list.name} />}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
-                    <Users size={ICON.xs} />
+                  <span className="mt-1 flex items-center gap-2 text-caption text-muted">
+                    {/*
+                      הפנים ולא מספר: "מי עוד רואה את זה" היא השאלה של
+                      הלשונית הזו, ומספר עונה עליה רק חלקית.
+                    */}
+                    {list && list.memberUids.length > 1 ? (
+                      <MemberStack list={list} />
+                    ) : (
+                      <Users size={ICON.xs} />
+                    )}
                     {list && list.memberUids.length > 1
                       ? `${list.memberUids.length} חברים`
                       : 'רק אתם'}
@@ -359,7 +366,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 type="button"
                 onClick={() => setManagerOpen(true)}
                 aria-label="ניהול הרשימה"
-                className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-muted"
+                className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-well text-ink"
               >
                 <Settings2 size={ICON.md} />
               </button>
@@ -409,14 +416,16 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                 void haptic('light');
                 setManagerOpen(true);
               }}
-              className="focus-ring mb-3 flex w-full items-center gap-3 rounded-2xl bg-brand-soft px-4 py-3.5 text-right"
+              className="focus-ring mb-3 flex min-h-[60px] w-full items-center gap-3.5 rounded-group bg-well px-4 py-3.5 text-right"
             >
-              <UserPlus size={ICON.md} className="shrink-0 text-brand-ink" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-inverse text-on-inverse">
+                <UserPlus size={ICON.md} />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-label font-semibold text-brand-ink">
+                <span className="block text-body font-semibold text-ink">
                   הזמינו מישהו ל״{list.name}״
                 </span>
-                <span className="mt-0.5 block text-caption text-brand-ink/70">
+                <span className="mt-0.5 block text-caption text-muted">
                   לפי כתובת הגוגל שלו. עד אז הרשימה היא שלכם בלבד.
                 </span>
               </span>
@@ -424,7 +433,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
           )}
 
           {/* ---------------------------- הוספה ---------------------------- */}
-          <div className="rounded-3xl bg-surface p-2.5 shadow-raised">
+          <div className="rounded-card bg-surface p-2.5 shadow-raised">
             <div className="field-shell flex items-center gap-2 rounded-2xl bg-well ps-4 pe-1.5">
               <input
                 type="text"
@@ -446,7 +455,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
                     whileTap={{ scale: 0.9 }}
                     transition={SNAP}
                     aria-label="הוספה"
-                    className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-50"
+                    className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-inverse text-on-inverse disabled:opacity-50"
                   >
                     <Plus size={ICON.md} weight="bold" />
                   </motion.button>
@@ -463,7 +472,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
           </div>
 
           {/* ---------------------------- הרשימה ---------------------------- */}
-          <div className="mt-5 space-y-5">
+          <div className="mt-6 space-y-7">
             {sections ? (
               sections.map((section) => (
                 <CategorySection

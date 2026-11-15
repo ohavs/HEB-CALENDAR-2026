@@ -29,6 +29,24 @@ describe('design system', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('has no vertical accent bar', () => {
+    /*
+      פס צבע דק לצד טקסט - בכרטיס, בשורה או בין שעות - הוא קישוט שאינו
+      אומר דבר: הצבע כבר יושב ברקע הפסטל. הוא הוסר מכל מקום, והבדיקה
+      תופסת את החזרה שלו: המחלקה הישנה, ופס צר שנמתח לגובה השורה.
+    */
+    const thin = String.raw`\bw-(?:0\.5|1\.5|1|\[[1-4]px\])(?![\w.\-\]])`;
+    const tall = String.raw`\b(?:self-stretch|flex-1|h-full)\b`;
+    const bar = new RegExp(
+      String.raw`\bev-bar\b|\bborder-[se]-[2-8]\b|` +
+        `${thin}[^"'\`]*${tall}|${tall}[^"'\`]*${thin}`,
+    );
+    const offenders = sources(join(SRC, 'components')).filter((file) =>
+      bar.test(readFileSync(file, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it('has no Segmented-like pill outside the shared lens', () => {
     // גלולה שמחליקה בקפיץ משלה היא בדיוק מה ש-useLens החליף
     const offenders = sources(join(SRC, 'components')).filter((file) =>

@@ -22,6 +22,7 @@
 import { useEffect, useState } from 'react';
 import { User } from './icons';
 import { ICON } from '@/lib/motion';
+import type { SharedList } from '@/lib/sharedLists';
 
 /** אחרי כמה זמן ניסיון שני, אם הראשון נכשל */
 const RETRY_MS = 1500;
@@ -36,7 +37,7 @@ export function Avatar({
   photoURL: string | null;
   /** ממנו נגזרת האות כשאין תמונה */
   name?: string | null;
-  size?: 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
 }) {
   const [load, setLoad] = useState<Load>('loading');
   /** מספר הניסיון. שינוי שלו מרכיב את התמונה מחדש, כלומר בקשה חדשה */
@@ -92,16 +93,63 @@ export function Avatar({
 }
 
 /** האות הראשונה של השם, או צללית כשאין שם. */
-function Initial({ name, size }: { name?: string | null; size: 'md' | 'lg' }) {
+function Initial({ name, size }: { name?: string | null; size: 'sm' | 'md' | 'lg' }) {
   const initial = (name ?? '').trim().slice(0, 1);
+  const text = { sm: 'text-micro', md: 'text-label', lg: 'text-title' }[size];
+  const icon = { sm: ICON.xs, md: ICON.lg, lg: ICON.xl }[size];
   return (
     <span className="flex h-full w-full items-center justify-center text-muted">
       {initial ? (
-        <span className={size === 'lg' ? 'text-title font-semibold' : 'text-label font-semibold'}>
-          {initial}
-        </span>
+        <span className={`${text} font-semibold`}>{initial}</span>
       ) : (
-        <User size={size === 'lg' ? ICON.xl : ICON.lg} />
+        <User size={icon} />
+      )}
+    </span>
+  );
+}
+
+/**
+ * פני החברים ברשימה משותפת, בערימה.
+ *
+ * כל פנים חופפות את הקודמות ומוקפות בטבעת בגוון המשטח, כך שהערימה
+ * נקראת כקבוצה ולא כשורה של עיגולים. מעבר לתקרה - מונה, כי שש פנים
+ * בגודל כזה כבר אינן מזוהות.
+ */
+export function MemberStack({
+  list,
+  max = 4,
+  ring = 'ring-surface',
+}: {
+  list: SharedList;
+  max?: number;
+  /** בגוון המשטח שמתחת - הטבעת היא מה שמפריד בין פנים חופפות */
+  ring?: string;
+}) {
+  const shown = list.memberUids.slice(0, max);
+  const rest = list.memberUids.length - shown.length;
+  return (
+    <span className="flex shrink-0 items-center" aria-hidden>
+      {shown.map((uid, i) => {
+        const member = list.members[uid];
+        return (
+          <span
+            key={uid}
+            className={`block h-6 w-6 overflow-hidden rounded-full bg-well ring-2 ${ring} ${
+              i > 0 ? '-ms-2' : ''
+            }`}
+          >
+            <Avatar
+              photoURL={member?.photo ?? null}
+              name={member?.name || member?.email}
+              size="sm"
+            />
+          </span>
+        );
+      })}
+      {rest > 0 && (
+        <span className={`tnum -ms-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-well px-1 text-micro font-semibold text-ink ring-2 ${ring}`}>
+          +{rest}
+        </span>
       )}
     </span>
   );

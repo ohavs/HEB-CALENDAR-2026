@@ -14,6 +14,7 @@ import { Check, Plus, Users } from '@/components/ui/icons';
 import type { DateKey } from '@/types';
 import { countByCategory, type SharedItem, type SharedList } from '@/lib/sharedLists';
 import { Sheet } from './ui/Sheet';
+import { MemberStack } from './ui/Avatar';
 import { ICON, TAP_SCALE } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 
@@ -61,38 +62,31 @@ export function ListPickerSheet({
                 onClose();
               }}
               aria-pressed={active}
-              className={`focus-ring flex items-center gap-3.5 rounded-2xl px-4 py-3.5 text-right transition-colors ${
-                active ? 'bg-brand-soft' : 'bg-well'
+              /*
+                הפעילה בדיו מלא, כמו כל "נבחר" באפליקציה. כשהיא הייתה
+                `brand-soft` - שהפך ל-`well` - היא נראתה בדיוק כמו השאר.
+              */
+              className={`focus-ring flex min-h-[64px] items-center gap-3.5 rounded-group px-4 py-3 text-right transition-colors ${
+                active ? 'bg-inverse text-on-inverse' : 'bg-well text-ink'
               }`}
             >
-              <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                  active ? 'bg-brand text-on-inverse' : 'bg-surface text-muted'
-                }`}
-              >
-                {active ? (
-                  <Check size={ICON.md} weight="bold" />
-                ) : (
-                  <Users size={ICON.md} />
-                )}
-              </span>
               <span className="min-w-0 flex-1">
+                <span className="block truncate text-body font-semibold">{list.name}</span>
                 <span
-                  className={`block truncate text-body font-semibold ${
-                    active ? 'text-brand-ink' : 'text-ink'
+                  className={`mt-1 flex items-center gap-2 truncate text-caption ${
+                    active ? 'opacity-75' : 'text-muted'
                   }`}
                 >
-                  {list.name}
-                </span>
-                <span
-                  className={`mt-0.5 block truncate text-caption ${
-                    active ? 'text-brand-ink/70' : 'text-muted'
-                  }`}
-                >
+                  {list.memberUids.length > 1 ? (
+                    <MemberStack list={list} max={3} ring={active ? 'ring-inverse' : 'ring-well'} />
+                  ) : (
+                    <Users size={ICON.xs} />
+                  )}
                   {list.memberUids.length > 1 ? `${list.memberUids.length} חברים` : 'רק אתם'}
                   {open_ > 0 && ` · ${open_} פתוחים`}
                 </span>
               </span>
+              {active && <Check size={ICON.lg} weight="bold" className="shrink-0" />}
             </motion.button>
           );
         })}
@@ -106,9 +100,9 @@ export function ListPickerSheet({
             onCreate();
             onClose();
           }}
-          className="focus-ring mt-1 flex items-center gap-3.5 rounded-2xl border border-dashed border-hairline px-4 py-3.5 text-right disabled:opacity-50"
+          className="focus-ring mt-1 flex min-h-[64px] items-center gap-3.5 rounded-group border border-dashed border-hairline px-4 py-3 text-right disabled:opacity-50"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-ink">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-ink">
             <Plus size={ICON.md} weight="bold" />
           </span>
           <span className="min-w-0 flex-1">

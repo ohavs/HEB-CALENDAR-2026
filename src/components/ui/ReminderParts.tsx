@@ -16,6 +16,29 @@ import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
 import { MarqueeText } from './MarqueeText';
 import { CheckMark } from './controls';
+import { DisplayText } from './DisplayText';
+
+/* ==========================================================================
+   כותרת יום
+   ========================================================================== */
+
+/**
+ * "היום", "מחר", "יום שלישי 24/11" - ובצד התאריך העברי.
+ *
+ * רכיב אחד לשתי הרשימות, כי הכותרת הייתה כתובה פעמיים ושתי ההעתקות כבר
+ * התחילו להיפרד. ב-Karantina כמו כותרות סדר היום, והספרות ב-Heebo
+ * (`DisplayText`) - תאריך בכותרת נקרא במבט.
+ */
+export function DayGroupHeader({ label, hebrew }: { label: string; hebrew?: string }) {
+  return (
+    <header className="flex items-baseline gap-2.5 px-1 pb-2.5">
+      <h2 className="shrink-0 font-display text-k-title font-bold text-ink">
+        <DisplayText text={label} />
+      </h2>
+      {hebrew && <span className="truncate text-caption text-muted">{hebrew}</span>}
+    </header>
+  );
+}
 
 /* ==========================================================================
    שורה
@@ -47,9 +70,15 @@ export function ReminderRow({
   const hasMeta = Boolean(item.time || who || item.hasPlace || item.hasAlarm || item.repeating);
 
   return (
+    /*
+      מה שבוצע מאבד את הפסטל ונשאר קו מתאר, בגוון `faint` ועם קו חוצה.
+      בשקיפות לבדה הוא נשאר בצבע שלו, ושורה שבוצעה התחרתה בפתוחות על
+      תשומת הלב. ומתאר ולא `well`: גרפיט, ברירת המחדל, הוא כמעט `well`,
+      ושורה שבוצעה נראתה כמו פתוחה.
+    */
     <div
-      className={`ev ev-${item.color} flex w-full items-center gap-2 rounded-2xl p-3 transition-opacity ${
-        item.done ? 'opacity-55' : ''
+      className={`flex min-h-[60px] w-full items-center gap-2.5 rounded-field p-3 transition-[opacity,background-color,color] ${
+        item.done ? 'text-faint ring-1 ring-inset ring-hairline' : `ev ev-${item.color}`
       } ${dragging ? 'opacity-25' : ''}`}
     >
       <motion.button
@@ -63,8 +92,12 @@ export function ReminderRow({
         }}
         whileTap={{ scale: 0.88 }}
         transition={TAP}
+        /*
+          התיבה מתמלאת בדיו ולא בצבע האירוע: "בוצע" הוא מצב של הממשק, לא
+          מידע על האירוע, ולבן על צבע בהיר כמו חמאה כמעט לא נקרא.
+        */
         className={`focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-          item.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
+          item.done ? 'border-transparent bg-inverse text-on-inverse' : 'border-current opacity-45'
         }`}
       >
         {item.done && <CheckMark size={ICON.sm} />}
@@ -198,9 +231,11 @@ export function CategorySection({
         aria-expanded={!collapsed}
         className="focus-ring flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-right"
       >
-        <span className="min-w-0 flex-1 truncate text-title font-semibold text-ink">{name}</span>
+        <span className="min-w-0 flex-1 truncate font-display text-k-heading font-bold text-ink">
+          <DisplayText text={name} />
+        </span>
         {open > 0 && (
-          <span className="tnum rounded-full bg-surface px-2 py-0.5 text-caption font-semibold text-muted shadow-raised">
+          <span className="tnum rounded-full bg-well px-2.5 py-0.5 text-caption font-semibold text-ink">
             {open}
           </span>
         )}
@@ -223,7 +258,7 @@ export function CategorySection({
             transition={{ height: GLIDE, opacity: collapsed ? EXIT : ENTER }}
             className="overflow-hidden"
           >
-            <div className="space-y-4 pt-2">{children}</div>
+            <div className="space-y-6 pt-3">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

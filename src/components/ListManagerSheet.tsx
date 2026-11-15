@@ -26,6 +26,7 @@ import {
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton, SettingRow, SettingsGroup } from './ui/controls';
 import { TextField } from './ui/fields';
+import { Avatar } from './ui/Avatar';
 import { haptic } from '@/lib/native';
 import { ICON, TAP } from '@/lib/motion';
 
@@ -100,7 +101,7 @@ export function ListManagerSheet({
     <Sheet open={open} onClose={onClose} size="tall" title="ניהול הרשימה" subtitle={list.name}>
       <div className="pb-2">
         {note && (
-          <p className="mb-4 rounded-xl bg-brand-soft px-3.5 py-2.5 text-caption leading-relaxed text-brand-ink">
+          <p className="mb-4 rounded-field bg-well px-4 py-3 text-label leading-relaxed text-ink" role="status">
             {note}
           </p>
         )}
@@ -153,7 +154,7 @@ export function ListManagerSheet({
                 whileTap={{ scale: 0.9 }}
                 transition={TAP}
                 aria-label={`מחיקת ${c.name}`}
-                className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-muted"
+                className="focus-ring flex h-10 w-10 items-center justify-center rounded-full text-muted"
               >
                 <X size={ICON.md} />
               </motion.button>
@@ -166,7 +167,7 @@ export function ListManagerSheet({
               onChange={(e) => setCategory(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addCategory()}
               placeholder="קטגוריה חדשה"
-              className="field-reset field-shell min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
+              className="field-reset field-shell h-12 min-w-0 flex-1 rounded-field bg-well px-4 text-body text-ink placeholder:text-faint"
             />
             <motion.button
               type="button"
@@ -175,7 +176,7 @@ export function ListManagerSheet({
               whileTap={{ scale: 0.92 }}
               transition={TAP}
               aria-label="הוספת קטגוריה"
-              className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse disabled:opacity-40"
+              className="focus-ring flex h-12 w-12 shrink-0 items-center justify-center rounded-field bg-inverse text-on-inverse disabled:opacity-40"
             >
               <Plus size={ICON.md} weight="bold" />
             </motion.button>
@@ -190,16 +191,30 @@ export function ListManagerSheet({
         >
           {list.memberUids.map((uid) => {
             const member = list.members[uid];
+            const name = member?.name?.trim() || member?.email || 'חבר';
             return (
-              <SettingRow
-                key={uid}
-                title={member?.name?.trim() || member?.email || 'חבר'}
-                hint={uid === list.ownerUid ? 'בעלים' : member?.email}
-              >
+              /*
+                הפנים ולא אייקון בריבוע: זו שורה של אדם, וזו אותה תמונה
+                שמופיעה בפינת כל פריט שהוא הוסיף. כך מזהים אותו בשני המקומות.
+              */
+              <div key={uid} className="flex min-h-[60px] items-center gap-3.5 px-4 py-3 lg:px-5">
+                <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-full bg-well">
+                  <Avatar photoURL={member?.photo ?? null} name={name} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-body font-medium leading-snug text-ink">
+                    {name}
+                  </span>
+                  <span className="mt-0.5 block truncate text-caption text-muted">
+                    {uid === list.ownerUid ? 'בעלים' : member?.email}
+                  </span>
+                </span>
                 {uid === user?.uid && (
-                  <span className="text-caption font-medium text-faint">אני</span>
+                  <span className="shrink-0 rounded-full bg-well px-2.5 py-0.5 text-caption font-medium text-ink">
+                    אני
+                  </span>
                 )}
-              </SettingRow>
+              </div>
             );
           })}
           <div className="flex items-center gap-2 px-5 py-4 lg:px-6">
@@ -211,7 +226,7 @@ export function ListManagerSheet({
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendInvite()}
               placeholder="אימייל להזמנה"
-              className="field-reset field-shell min-w-0 flex-1 rounded-xl bg-well px-3.5 py-2.5 text-label text-ink placeholder:text-faint"
+              className="field-reset field-shell h-12 min-w-0 flex-1 rounded-field bg-well px-4 text-body text-ink placeholder:text-faint"
             />
             <motion.button
               type="button"
@@ -219,7 +234,7 @@ export function ListManagerSheet({
               disabled={busy || !email.trim()}
               whileTap={{ scale: 0.92 }}
               transition={TAP}
-              className="focus-ring shrink-0 rounded-xl bg-brand px-4 py-2.5 text-caption font-semibold text-on-inverse disabled:opacity-40"
+              className="focus-ring h-12 shrink-0 rounded-field bg-inverse px-5 text-label font-semibold text-on-inverse disabled:opacity-40"
             >
               הזמנה
             </motion.button>

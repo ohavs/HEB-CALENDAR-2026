@@ -519,6 +519,7 @@ export function MonthCalendar({
   min,
   range,
   onWell = false,
+  picked,
 }: {
   /** YYYY-MM-DD */
   value: string;
@@ -529,6 +530,11 @@ export function MonthCalendar({
   range?: { from: string; to: string };
   /** פרוש בתוך קופסה בגוון `well` - הכפתורים והמועדים מקבלים גוון אחר */
   onWell?: boolean;
+  /**
+   * בחירה מרובה: הימים שנבחרו. `value` נשאר רק העוגן של החודש המוצג,
+   * ו-`onChange` מקבל כל הקשה - הקורא מוסיף או מסיר.
+   */
+  picked?: ReadonlySet<string>;
 }) {
   const raised = onWell ? 'bg-surface' : 'bg-well';
   const selected = keyToDate(value);
@@ -600,7 +606,7 @@ export function MonthCalendar({
         {days.map((d) => {
           const key = dateKey(d);
           const inMonth = d.getMonth() === month.getMonth();
-          const isSelected = key === value;
+          const isSelected = picked ? picked.has(key) : key === value;
           const inRange = Boolean(range && key >= range.from && key <= range.to);
           const mark = markers.get(key);
           const hasHoliday = Boolean(mark?.holidays.length);

@@ -65,7 +65,6 @@ export function DayEventDetail({
           ) : (
             <span className="text-caption font-semibold leading-tight">כל היום</span>
           )}
-          <span className="ev-solid my-0.5 w-[3px] flex-1 rounded-full opacity-60" aria-hidden="true" />
           {timed && occ.endTime && (
             <span className="tnum text-caption font-medium leading-none opacity-80">
               {occ.endTime}

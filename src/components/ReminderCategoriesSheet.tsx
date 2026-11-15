@@ -50,17 +50,17 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
     >
       <div className="space-y-2.5 pb-2">
         {categories.length > 0 && (
-          <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+          <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">
             {categories.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 py-1 pe-1.5 ps-4">
-                <span className="min-w-0 flex-1 truncate text-label font-medium text-ink">{c.name}</span>
+              <div key={c.id} className="flex min-h-[56px] items-center gap-3 pe-2 ps-4">
+                <span className="min-w-0 flex-1 truncate text-body font-medium text-ink">{c.name}</span>
                 <motion.button
                   type="button"
                   onClick={() => remove(c)}
                   whileTap={{ scale: 0.9 }}
                   transition={TAP}
                   aria-label={`מחיקת ${c.name}`}
-                  className="focus-ring flex h-10 w-10 items-center justify-center rounded-xl text-muted"
+                  className="focus-ring flex h-10 w-10 items-center justify-center rounded-full text-muted"
                 >
                   <X size={ICON.md} />
                 </motion.button>
@@ -77,7 +77,7 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
             onKeyDown={(e) => e.key === 'Enter' && add()}
             placeholder={categories.length ? 'קטגוריה נוספת' : 'למשל: בית, עבודה, קניות'}
             aria-label="שם הקטגוריה"
-            className="field-reset field-shell min-w-0 flex-1 rounded-2xl bg-well px-4 py-3 text-label text-ink placeholder:text-faint"
+            className="field-reset field-shell h-12 min-w-0 flex-1 rounded-field bg-well px-4 text-body text-ink placeholder:text-faint"
           />
           <motion.button
             type="button"
@@ -86,7 +86,7 @@ export function ReminderCategoriesSheet({ open, onClose }: { open: boolean; onCl
             whileTap={{ scale: 0.92 }}
             transition={TAP}
             aria-label="הוספת קטגוריה"
-            className="focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-inverse disabled:opacity-40"
+            className="focus-ring flex h-12 w-12 shrink-0 items-center justify-center rounded-field bg-inverse text-on-inverse disabled:opacity-40"
           >
             <Plus size={ICON.md} weight="bold" />
           </motion.button>

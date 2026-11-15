@@ -48,7 +48,7 @@ import { Segmented } from './ui/controls';
 import { SharedReminders } from './SharedReminders';
 import { TemplatesView } from './TemplatesView';
 import { ReminderCategoriesSheet } from './ReminderCategoriesSheet';
-import { CategoryChip, CategorySection, ReminderRow } from './ui/ReminderParts';
+import { CategoryChip, CategorySection, DayGroupHeader, ReminderRow } from './ui/ReminderParts';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
 
 export function RemindersScreen({
@@ -235,7 +235,7 @@ export function RemindersScreen({
             type="button"
             onClick={() => setCategoriesOpen(true)}
             aria-label="קטגוריות"
-            className="focus-ring mt-1 flex h-10 shrink-0 items-center gap-1.5 rounded-2xl bg-surface px-3 text-caption font-medium text-muted shadow-raised"
+            className="focus-ring mt-1 flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-well px-3.5 text-caption font-medium text-ink"
           >
             <Tag size={ICON.sm} />
             קטגוריות
@@ -248,7 +248,7 @@ export function RemindersScreen({
         וברקע המסך - שהוא באותו גוון - היא נעלמת, והאפשרות שלא נבחרה
         נראית כמו טקסט מרחף. על `bg-surface` המסילה חוזרת להיראות.
       */}
-      <div className="mb-4 rounded-3xl bg-surface p-1.5 shadow-raised">
+      <div className="mb-4 rounded-card bg-surface p-1.5 shadow-raised">
         <Segmented
           value={view}
           onChange={(next) => {
@@ -282,7 +282,7 @@ export function RemindersScreen({
         קטגוריה", עם מונה של מה שפתוח. מוצגים רק כשיש קטגוריות.
       */}
       {categories.length > 0 && (
-        <div className="no-scrollbar mb-3 flex gap-1.5 overflow-x-auto rounded-3xl bg-surface px-2.5 py-2.5 shadow-raised">
+        <div className="no-scrollbar mb-3 flex gap-1.5 overflow-x-auto rounded-card bg-surface px-2.5 py-2.5 shadow-raised">
           <CategoryChip
             label="הכול"
             active={activeCategory === null}
@@ -313,7 +313,7 @@ export function RemindersScreen({
         לשייך: קודם הן ישבו שם תמיד, ארבע גלולות ברוחב משתנה מתחת לשדה
         ריק, ולקחו שליש מגובה הכרטיס כדי לענות על שאלה שאיש לא שאל.
       */}
-      <div className="rounded-3xl bg-surface p-2.5 shadow-raised">
+      <div className="rounded-card bg-surface p-2.5 shadow-raised">
         {/*
           אותה שפה של שאר השדות באפליקציה: מגרעת `bg-well` שמצייר אותה
           ה-wrapper, וטבעת המיקוד עליו. ה-outline של ה-input עצמו נכבה -
@@ -341,7 +341,7 @@ export function RemindersScreen({
                 whileTap={{ scale: 0.9 }}
                 transition={SNAP}
                 aria-label="הוספת תזכורת"
-                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-brand text-on-inverse"
+                className="focus-ring flex h-9 shrink-0 items-center justify-center rounded-xl bg-inverse text-on-inverse"
               >
                 <Plus size={ICON.md} weight="bold" />
               </motion.button>
@@ -361,7 +361,11 @@ export function RemindersScreen({
       </div>
 
       {/* ------------------------------ הרשימה ------------------------------ */}
-      <div className="mt-5 space-y-5">
+      {/*
+        רווח גדול בין קבוצות: הכותרת ב-Karantina היא מה שמפריד, ולא קו.
+        ברווח של 20 שתי קבוצות נקראו כרשימה אחת עם כותרת באמצע.
+      */}
+      <div className="mt-6 space-y-7">
         {sections ? (
           sections.map((section) => (
             <CategorySection
@@ -453,7 +457,7 @@ function previewIndex(
 /** השורה שמראה לאן זה נוחת. אפורה ומקווקוות - מקום פנוי, לא פריט. */
 function PreviewRow({ title }: { title: string }) {
   return (
-    <div className="animate-fade-in flex w-full items-center gap-2 rounded-2xl border-2 border-dashed border-muted/40 p-3">
+    <div className="animate-fade-in flex min-h-[60px] w-full items-center gap-2.5 rounded-field border-2 border-dashed border-muted/40 p-3">
       <span className="h-8 w-8 shrink-0 rounded-full border-2 border-muted/30" />
       <span className="min-w-0 flex-1 truncate text-body font-medium text-muted/80">{title}</span>
     </div>
@@ -510,17 +514,14 @@ function Group({
       נתפס: שטח הפגיעה רחב מהסימון הוויזואלי, וזה בדיוק מה שרוצים.
     */
     <section data-day-key={groupKey}>
-      <header className="flex items-baseline gap-2.5 px-2 pb-2">
-        <h2 className="text-label font-semibold text-ink">{label}</h2>
-        {hebrew && <span className="truncate text-caption text-faint">{hebrew}</span>}
-      </header>
+      <DayGroupHeader label={label} hebrew={hebrew} />
 
       {items.length || preview ? (
         <div
           // שוליים שליליים כנגד הריפוד: המסגרת מקיפה את השורות מבחוץ
           // בלי להזיז אותן כשהיא מופיעה
-          className={`-mx-1.5 space-y-2 rounded-2xl p-1.5 transition-colors ${
-            isTarget ? 'bg-brand-soft ring-2 ring-brand' : ''
+          className={`-mx-1.5 space-y-2 rounded-group p-1.5 transition-colors ${
+            isTarget ? 'bg-well ring-2 ring-ink/40' : ''
           }`}
         >
           {items.map((item, i) => (
@@ -533,10 +534,8 @@ function Group({
         </div>
       ) : dragging ? (
         <p
-          className={`-mx-1.5 rounded-2xl border border-dashed px-4 py-6 text-center text-caption transition-colors ${
-            isTarget
-              ? 'border-brand bg-brand-soft text-brand-ink'
-              : 'border-hairline text-faint'
+          className={`-mx-1.5 rounded-group border border-dashed px-4 py-6 text-center text-caption transition-colors ${
+            isTarget ? 'border-ink/40 bg-well text-ink' : 'border-hairline text-faint'
           }`}
         >
           גררו לכאן תזכורת
@@ -547,7 +546,7 @@ function Group({
           כשיש מה לגרור - אחרת היא תופסת רבע מסך כדי להסביר מחווה שאיש
           לא התחיל.
         */
-        <p className="px-2 pb-1 text-caption text-faint">אין תזכורות</p>
+        <p className="px-1 pb-1 text-caption text-faint">אין תזכורות</p>
       )}
     </section>
   );
