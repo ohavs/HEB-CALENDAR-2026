@@ -4,12 +4,22 @@
  * המנגנון - מדידה, מתיחה, גרירה ומקלדת - ב-`useLens`, משותף עם
  * `Segmented`. כאן רק המראה: זכוכית, ואייקון שמתמלא כשהעדשה מעליו.
  */
-import { motion, type MotionValue } from 'framer-motion';
-import { forwardRef, useRef, useState } from 'react';
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+  type MotionValue,
+  type ValueAnimationTransition,
+} from 'framer-motion';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { CalendarDays, ListChecks, Settings, Sunset, type Icon } from './ui/icons';
 import { announce } from '@/lib/announce';
-import { ICON } from '@/lib/motion';
+import { ICON, SNAP } from '@/lib/motion';
 import { useLens, useLensLight, type LensSlot } from '@/hooks/useLens';
+import { useIsDesktop } from '@/hooks/useMediaQuery';
+import { useScrollCollapse } from '@/hooks/useScrollCollapse';
 
 export type TabId = 'calendar' | 'reminders' | 'shabbat' | 'settings';
 
@@ -22,6 +32,16 @@ const TABS: { id: TabId; label: string; Icon: Icon }[] = [
 
 /** גובה הגלולה עצמה. המקור היחיד - App מחבר אליו את המרווחים. */
 export const TAB_BAR_HEIGHT = 64;
+
+/*
+  הסרגל המקופל: אותה גלולה בקנה מידה קטן, בלי תוויות, והאייקונים יורדים
+  למרכז. קנה מידה ולא גובה - שינוי גובה היה מודד מחדש את העדשה ואת
+  הפריסה בכל פריים, וטרנספורם עובר במעבד הגרפי. הריפוד בתחתית המסכים
+  (`bottomInset`) נשאר לפי הגובה המלא, כדי שהתוכן לא יקפוץ.
+*/
+const FOLD_SCALE = 0.8;
+/** חצי מהתווית והרווח שמעליה: כמה האייקון יורד כדי לשבת במרכז */
+const ICON_DROP = 7;
 
 export function TabBar({
   active,
@@ -54,6 +74,27 @@ export function TabBar({
     }
   }
   const index = TABS.findIndex((t) => t.id === picked);
+
+  /*
+    מתקפל בגלילה למטה וחוזר בגלילה למעלה, במעבר לשונית או בנגיעה בו
+    (`useScrollCollapse`). לא במחשב: שם התוויות בשורה אחת עם האייקון, ויש
+    מקום.
+  */
+  const desktop = useIsDesktop();
+  const reduceMotion = useReducedMotion();
+  const { collapsed, expand } = useScrollCollapse(picked, !desktop);
+  const fold = useMotionValue(0);
+  useEffect(() => {
+    const to = collapsed ? 1 : 0;
+    if (reduceMotion) {
+      fold.set(to);
+      return;
+    }
+    const controls = animate(fold, to, SNAP as ValueAnimationTransition<number>);
+    return () => controls.stop();
+  }, [collapsed, reduceMotion, fold]);
+  const scale = useTransform(fold, [0, 1], [1, FOLD_SCALE]);
+
   const lens = useLens({
     count: TABS.length,
     index,
@@ -69,10 +110,16 @@ export function TabBar({
   });
 
   return (
-    <nav
+    <motion.nav
       aria-label="ניווט ראשי"
       className="glass absolute inset-x-3 z-40 rounded-full p-1 lg:inset-x-auto lg:left-1/2 lg:-translate-x-1/2"
-      style={{ bottom, height: TAB_BAR_HEIGHT }}
+      /*
+        במחשב בלי טרנספורם בכלל: framer כותב `transform` מוטמע, והוא היה
+        דורס את `-translate-x-1/2` שממרכז את הסרגל.
+      */
+      style={desktop ? { bottom, height: TAB_BAR_HEIGHT } : { bottom, height: TAB_BAR_HEIGHT, scale, originY: 1 }}
+      // נגיעה בסרגל המקופל פותחת אותו, לפני שהעדשה מחשבת מאיפה התחילה הגרירה
+      onPointerDownCapture={collapsed ? expand : undefined}
     >
       <div
         {...lens.rowProps}
@@ -97,11 +144,12 @@ export function TabBar({
             selected={i === index}
             slot={lens.slots[i]}
             lensCenter={lens.center}
+            fold={fold}
             onClick={lens.click(i)}
           />
         ))}
       </div>
-    </nav>
+    </motion.nav>
   );
 }
 
@@ -111,14 +159,19 @@ type TabButtonProps = {
   selected: boolean;
   slot: LensSlot | undefined;
   lensCenter: MotionValue<number>;
+  /** 0 פתוח, 1 מקופל */
+  fold: MotionValue<number>;
   onClick: () => void;
 };
 
 const TabButton = forwardRef<HTMLButtonElement, TabButtonProps>(function TabButton(
-  { label, Icon, selected, slot, lensCenter, onClick },
+  { label, Icon, selected, slot, lensCenter, fold, onClick },
   ref,
 ) {
   const { lit, dim } = useLensLight(lensCenter, slot, selected);
+  // התווית נעלמת בתחילת הקיפול, לפני שהגלולה קטנה מספיק כדי לדחוס אותה
+  const labelOpacity = useTransform(fold, [0, 0.6], [1, 0]);
+  const drop = useTransform(fold, [0, 1], [0, ICON_DROP]);
 
   /*
     שתי שכבות זו על זו: עמומה בקו, ודיו במילוי. העדשה מעבירה ביניהן
@@ -127,9 +180,12 @@ const TabButton = forwardRef<HTMLButtonElement, TabButtonProps>(function TabButt
   const layer = (on: boolean) => (
     <>
       <Icon size={ICON.xl} weight={on ? 'fill' : 'regular'} />
-      <span className={`text-tiny leading-none lg:text-label ${on ? 'font-semibold' : 'font-medium'}`}>
+      <motion.span
+        className={`text-tiny leading-none lg:text-label ${on ? 'font-semibold' : 'font-medium'}`}
+        style={{ opacity: labelOpacity }}
+      >
         {label}
-      </span>
+      </motion.span>
     </>
   );
 
@@ -145,14 +201,14 @@ const TabButton = forwardRef<HTMLButtonElement, TabButtonProps>(function TabButt
     >
       <motion.span
         className="flex flex-col items-center gap-1 text-muted lg:flex-row lg:gap-2.5"
-        style={{ opacity: dim }}
+        style={{ opacity: dim, y: drop }}
       >
         {layer(false)}
       </motion.span>
       <motion.span
         aria-hidden
         className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink lg:flex-row lg:gap-2.5"
-        style={{ opacity: lit }}
+        style={{ opacity: lit, y: drop }}
       >
         {layer(true)}
       </motion.span>
