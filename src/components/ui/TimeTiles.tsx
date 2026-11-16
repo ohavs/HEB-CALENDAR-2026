@@ -1,18 +1,24 @@
 /**
- * התחלה וסיום כשני אריחים גדולים, והגלגל נפרש מתחתם.
+ * התחלה וסיום כשני אריחים גדולים, והגלגל קופץ בחלון באמצע המסך.
  *
  * השעה היא מה שמשתנה הכי הרבה בין אירוע לאירוע, ולכן היא הדבר הגדול
- * בטופס - בספרות ענק ב-Heebo, כי ספרות Karantina נקראות כאותיות. הגלגל
- * נפרש בתוך הטופס ולא בגיליון נוסף: גיליון מעל גיליון הסתיר בדיוק את מה
- * שהשעה משנה, את הסיום ואת שורת הסיכום.
+ * בטופס - בספרות ענק ב-Heebo, כי ספרות Karantina נקראות כאותיות.
  *
- * גרירת ספרות (כמו ב-noted) נשקלה ונדחתה: היא מתנגשת בגרירה לסגירה.
+ * הגלגל נפרש קודם בתוך הטופס, ודחף את כל מה שמתחתיו מחוץ למסך - ובמסך
+ * קטן גם את הגלגל עצמו, שנחתך בתחתית. חלון במרכז מראה את כל הגלגל בבת
+ * אחת, ומה שהגיליון התחתון הסתיר (הסיום והמשך) כתוב בתוכו: השורה מתחת
+ * לגלגל אומרת את הטווח שייצא, לפני שמאשרים.
+ *
+ * הבחירה נשמרת רק ב"בחירה": גלגל שהוזז בטעות ונסגר ברקע אינו משנה דבר.
  */
 import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { durationLabel } from '@/lib/dates';
-import { ENTER, EXIT, GLIDE, TAP } from '@/lib/motion';
+import { shiftEndWithStart } from '@/lib/reminderCompose';
+import { TAP } from '@/lib/motion';
 import { TimeWheel } from './Picker';
+import { Sheet } from './Sheet';
+import { PrimaryButton } from './controls';
 
 type Which = 'start' | 'end';
 
@@ -28,61 +34,81 @@ export function TimeTiles({
   onEnd: (next: string) => void;
 }) {
   const [open, setOpen] = useState<Which | null>(null);
+  /** מה שהגלגל מראה, עד שמאשרים */
+  const [temp, setTemp] = useState(start);
   const duration = durationLabel(start, end);
 
-  const tile = (which: Which, label: string, value: string) => {
-    const active = open === which;
-    return (
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.98 }}
-        transition={TAP}
-        onClick={() => setOpen(active ? null : which)}
-        aria-expanded={active}
-        aria-label={`${label} ${value}`}
-        className={`focus-ring flex min-w-0 flex-col items-start gap-1 rounded-field px-4 pb-3 pt-2.5 text-right transition-colors ${
-          active ? 'bg-inverse text-on-inverse shadow-raised' : 'bg-surface text-ink'
-        }`}
-      >
-        <span className={`truncate text-caption font-medium ${active ? 'opacity-75' : 'text-muted'}`}>
-          {label}
-        </span>
-        {/* שעה נקראת משמאל לימין גם בממשק עברי */}
-        <span dir="ltr" className="tnum text-hero font-bold leading-none">
-          {value}
-        </span>
-      </motion.button>
-    );
+  const openFor = (which: Which) => {
+    setTemp(which === 'start' ? start : end);
+    setOpen(which);
+  };
+  const close = () => setOpen(null);
+  const confirm = () => {
+    if (open === 'start') onStart(temp);
+    else if (open === 'end') onEnd(temp);
+    close();
   };
 
+  // הטווח שייצא מהבחירה - שינוי ההתחלה מזיז גם את הסיום, כמו בטופס
+  const range =
+    open === 'start'
+      ? { from: temp, to: shiftEndWithStart(start, end, temp) }
+      : { from: start, to: temp };
+  const rangeDuration = durationLabel(range.from, range.to);
+
+  const tile = (which: Which, label: string, value: string) => (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.98 }}
+      transition={TAP}
+      onClick={() => openFor(which)}
+      aria-haspopup="dialog"
+      aria-label={`${label} ${value}`}
+      className="focus-ring flex min-w-0 flex-col items-start gap-1 rounded-field bg-surface px-4 pb-3 pt-2.5 text-right text-ink"
+    >
+      <span className="truncate text-caption font-medium text-muted">{label}</span>
+      {/* שעה נקראת משמאל לימין גם בממשק עברי */}
+      <span dir="ltr" className="tnum text-hero font-bold leading-none">
+        {value}
+      </span>
+    </motion.button>
+  );
+
   return (
-    <div>
+    <>
       <div className="grid grid-cols-2 gap-2">
         {tile('start', 'התחלה', start)}
         {tile('end', duration ? `סיום · ${duration}` : 'סיום', end)}
       </div>
-      <AnimatePresence initial={false}>
+
+      <Sheet
+        open={open !== null}
+        onClose={close}
+        placement="center"
+        title={open === 'end' ? 'שעת סיום' : 'שעת התחלה'}
+        footer={
+          /* הראשי ראשון - בימין, מאיפה שהעין מתחילה לקרוא */
+          <div className="grid grid-cols-2 gap-2">
+            <PrimaryButton onClick={confirm}>בחירה</PrimaryButton>
+            <PrimaryButton tone="quiet" onClick={close}>
+              ביטול
+            </PrimaryButton>
+          </div>
+        }
+      >
         {open && (
-          <motion.div
-            key="wheel"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0, transition: { height: GLIDE, opacity: EXIT } }}
-            transition={{ height: GLIDE, opacity: ENTER }}
-            className="overflow-hidden"
-          >
-            <div className="pt-2">
-              {/* מפתח לפי האריח: גלגל חדש מתיישר על הערך שלו מההתחלה */}
-              <TimeWheel
-                key={open}
-                onWell
-                value={open === 'start' ? start : end}
-                onChange={open === 'start' ? onStart : onEnd}
-              />
-            </div>
-          </motion.div>
+          <>
+            {/* מפתח לפי האריח: גלגל חדש מתיישר על הערך שלו מההתחלה */}
+            <TimeWheel key={open} value={temp} onChange={setTemp} />
+            <p className="mt-3 text-center text-label text-muted" aria-live="polite">
+              <span dir="ltr" className="tnum font-semibold text-ink">
+                {range.from}–{range.to}
+              </span>
+              {rangeDuration && ` · ${rangeDuration}`}
+            </p>
+          </>
         )}
-      </AnimatePresence>
-    </div>
+      </Sheet>
+    </>
   );
 }

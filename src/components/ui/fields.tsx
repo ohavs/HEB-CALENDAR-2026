@@ -6,7 +6,7 @@
  * מספר) אינם משתמשים בפקד המובנה של הדפדפן אלא פותחים בורר משלנו, כדי
  * שהמראה וההתנהגות יהיו זהים בכל מערכת - וגם באפליקציית האנדרואיד בהמשך.
  */
-import { useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from './icons';
 import {
@@ -84,21 +84,6 @@ export function FieldGroup({ children }: { children: ReactNode }) {
 }
 
 /**
- * קבוצה בטופס עם כותרת קטנה מעליה: "מתי", "חזרה ותזכורת", "איפה ומה".
- *
- * הכותרת היא מה שמאפשר לשורות עצמן להיות גדולות: כשברור לאיזו שאלה
- * הקופסה עונה, כל שורה בה אינה צריכה להסביר את עצמה.
- */
-export function FormSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="space-y-2" aria-label={title}>
-      <h3 className="px-4 text-caption font-semibold text-muted">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-/**
  * כותרת של טופס - שדה גדול בלי מסגרת.
  *
  * זה השדה היחיד שחובה למלא, ולכן הוא הטקסט הגדול בטופס ולא עוד קופסה
@@ -141,6 +126,9 @@ export function TitleField({
 /**
  * הערות כשורה בתוך `FieldGroup`, עם אייקון כמו שאר השורות.
  *
+ * שורה אחת שגדלה עם הטקסט: רוב האירועים בלי הערות, ושתי שורות ריקות
+ * קבועות עלו כמו שורה נוספת בטופס בשביל שדה שלא ממלאים.
+ *
  * טבעת המיקוד פנימית (`inset`): הקבוצה חותכת את מה שחורג ממנה, וטבעת
  * חיצונית הייתה נקטעת בפינה המעוגלת של השורה האחרונה.
  */
@@ -150,27 +138,35 @@ export function TextAreaRow({
   value,
   onChange,
   placeholder,
-  rows = 2,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
-  rows?: number;
 }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // הגובה לפי התוכן. קודם מאפסים, אחרת שדה שהתקצר נשאר בגובה הקודם.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
   return (
     <label className="field-shell flex min-h-[56px] items-start gap-3.5 px-4 py-3.5 text-body leading-relaxed focus-within:!shadow-[inset_0_0_0_2px_rgb(var(--c-ink)/0.3)]">
       <span className="pt-0.5">
         <RowIcon>{icon}</RowIcon>
       </span>
       <textarea
+        ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        rows={rows}
+        rows={1}
         aria-label={label}
-        className="field-reset min-w-0 flex-1 resize-none bg-transparent p-0 text-ink placeholder:text-faint"
+        className="field-reset block min-w-0 flex-1 resize-none overflow-hidden bg-transparent p-0 text-ink placeholder:text-faint"
       />
     </label>
   );

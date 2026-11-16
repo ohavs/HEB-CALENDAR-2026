@@ -41,7 +41,7 @@ import { Segmented } from './ui/controls';
 import { DayStrip } from './ui/DayStrip';
 import { TimeTiles } from './ui/TimeTiles';
 import { TileStrip } from './ui/tiles';
-import { FieldGroup, FormSection, PickerField, SelectField, TextAreaRow } from './ui/fields';
+import { FieldGroup, PickerField, SelectField, TextAreaRow } from './ui/fields';
 
 /** ברירת המחדל, כשאיש לא אמר שעה */
 export const DEFAULT_START = '09:00';
@@ -125,7 +125,8 @@ function ChipToggle({
  */
 const QUICK_REMINDERS: (number | null)[] = [null, 0, 15, 60, 1440];
 const SHORT_REMINDER_LABEL: Record<string, string> = {
-  null: 'בלי',
+  // "בלי" לבד, ליד פעמון בלי תווית, לא אמר בלי מה
+  null: 'בלי תזכורת',
   0: 'בזמן',
   15: '15 דק׳',
   60: 'שעה לפני',
@@ -157,6 +158,7 @@ export function EventFields({
   whenToggle,
   category,
   reminder = false,
+  color,
 }: {
   draft: TimingDraft;
   patch: (values: Partial<TimingDraft>) => void;
@@ -194,6 +196,12 @@ export function EventFields({
    * חודשיים", נספר מהסימון כבוצעה - `returnsAt`), והתראת מקום בלי יום.
    */
   reminder?: boolean;
+  /**
+   * שורת הצבע, כשורה אחרונה בקבוצת הפרטים. היא נבחרת אחרונה, אם בכלל -
+   * רוב האירועים נשארים בצבע ברירת המחדל - ובקופסה משלה עם כותרת היא
+   * עלתה כמו שאלה שלמה.
+   */
+  color?: ReactNode;
 }) {
   const settings = useSettings();
   const places = settings.places;
@@ -252,15 +260,15 @@ export function EventFields({
   const showRepeatGroup = scheduled || reminder;
 
   /*
-    שלוש קבוצות, לפי השאלה שכל אחת עונה עליה: מתי, חזרה ותזכורת, ואיפה
-    ומה. כל קבוצה היא קופסה אחת עם כותרת קטנה מעליה, כך שהשורות גדולות
-    בלי שהטופס יתארך - ובלי לדחוס הכול לקופסה אחת שבה כבר לא רואים מה
-    שייך למה.
+    שתי קופסאות: "מתי", ו"פרטים" - כל השאר. בלי כותרות מעליהן: רצועת
+    הימים ואריחי השעות אומרים בעצמם שזה "מתי", וכל שורה בפרטים נושאת
+    אייקון ומילה. הכותרות עלו כמו שורה שלמה כל אחת, ולא אמרו דבר שלא
+    נאמר כבר.
   */
   return (
     <>
       {(scheduled || whenToggle) && (
-        <FormSection title="מתי">
+        <section aria-label="מתי">
           <div className="space-y-3 overflow-hidden rounded-group bg-well p-3">
             {whenToggle}
             {scheduled && (
@@ -346,31 +354,40 @@ export function EventFields({
               </>
             )}
           </div>
-        </FormSection>
+        </section>
       )}
 
-      {showRepeatGroup && (
-        <FormSection title={personal && scheduled ? 'חזרה ותזכורת' : 'חזרה'}>
-          <FieldGroup>
+      {/*
+        קבוצה אחת לכל מה שאחרי "מתי": חזרה, תזכורת, מקום, הערות וצבע.
+        כשהיו שלוש קופסאות עם כותרת לכל אחת, הכותרות והרווחים לבדם עלו
+        כמו שתי שורות, ושורת התזכורת לבדה הייתה שתיים - תווית ומתחתיה
+        האריחים. עכשיו כל שורה היא שורה אחת, והאייקון אומר מה היא.
+      */}
+      <section aria-label="פרטים">
+        <FieldGroup>
+          {showRepeatGroup && (
             <RepeatField
               repeat={draft.repeat}
               repeatEvery={draft.repeatEvery}
               onChange={(next) => patch(next)}
             />
-            {reminder && !scheduled && draft.repeat !== 'none' && (
-              <p className="px-4 py-3 text-caption leading-relaxed text-muted">
-                {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
-              </p>
-            )}
-            {/* בלי יום אין רגע להקדים אליו */}
-            {personal && scheduled && (
-              <div className="space-y-2.5 px-4 pb-3.5 pt-3">
-                <span className="flex items-center gap-3.5 text-body font-medium text-ink">
-                  <span className="flex w-6 justify-center text-muted [&_svg]:h-5 [&_svg]:w-5">
-                    <Bell size={ICON.lg} />
-                  </span>
-                  תזכורת
-                </span>
+          )}
+          {showRepeatGroup && reminder && !scheduled && draft.repeat !== 'none' && (
+            <p className="px-4 py-3 text-caption leading-relaxed text-muted">
+              {undatedRepeatHint(draft.repeat, draft.repeatEvery)}
+            </p>
+          )}
+          {/* בלי יום אין רגע להקדים אליו */}
+          {personal && scheduled && (
+            <div className="flex min-h-[56px] items-center gap-3.5 py-1.5 ps-4">
+              <span
+                aria-hidden="true"
+                className="flex w-6 shrink-0 justify-center text-muted [&_svg]:h-5 [&_svg]:w-5"
+              >
+                <Bell size={ICON.lg} />
+              </span>
+              {/* החיתוך כאן ולא בקצה הקבוצה: האריחים נגללים עד הקצה ונעלמים בו */}
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <TileStrip<string>
                   label="תזכורת"
                   value={reminderValue}
@@ -389,13 +406,9 @@ export function EventFields({
                   }}
                 />
               </div>
-            )}
-          </FieldGroup>
-        </FormSection>
-      )}
+            </div>
+          )}
 
-      <FormSection title="איפה ומה">
-        <FieldGroup>
           <PickerField
             label="מקום"
             display={draft.location || 'לא הוגדר'}
@@ -458,8 +471,10 @@ export function EventFields({
             onChange={(notes) => patch({ notes })}
             placeholder="הערות"
           />
+
+          {color && <div className="px-2 py-1">{color}</div>}
         </FieldGroup>
-      </FormSection>
+      </section>
 
       <LocationPicker
         open={locationOpen}

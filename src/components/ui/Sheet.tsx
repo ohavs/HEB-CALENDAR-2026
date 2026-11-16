@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { X } from './icons';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { GLIDE, ICON } from '@/lib/motion';
+import { GLIDE, ICON, SNAP } from '@/lib/motion';
 
 const CLOSE_OFFSET = 110;
 const CLOSE_VELOCITY = 520;
@@ -40,6 +40,13 @@ export type SheetProps = {
    * מהם בלבד פשוט מעביר את אובדן המידע למוצא הבא.
    */
   beforeClose?: () => boolean;
+  /**
+   * 'bottom' - חלונית שעולה מהתחתית. 'center' - חלון שקופץ באמצע המסך,
+   * לבחירה קצרה מעל טופס (שעה): הוא מכסה רק את מה שצריך, והטופס נשאר
+   * מסביבו. במרכז אין גרירה לסגירה - אין קצה למשוך אליו - אבל Esc, הקשה
+   * על הרקע וכפתור החזרה עוברים באותו מסלול.
+   */
+  placement?: 'bottom' | 'center';
   className?: string;
 };
 
@@ -57,8 +64,10 @@ export function Sheet({
   size = 'auto',
   headerAction,
   beforeClose,
+  placement = 'bottom',
   className = '',
 }: SheetProps) {
+  const center = placement === 'center';
   /** כל מוצא עובר כאן. מחזיר אם באמת נסגר, בשביל כפתור החזרה. */
   const requestClose = useCallback((): boolean => {
     if (beforeClose && !beforeClose()) return false;
@@ -131,7 +140,11 @@ export function Sheet({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
+        <div
+          className={`fixed inset-0 z-50 flex flex-col ${center ? 'items-center justify-center p-4' : 'justify-end'}`}
+          role="dialog"
+          aria-modal="true"
+        >
           <motion.div
             className="absolute inset-0"
             style={{
@@ -144,6 +157,35 @@ export function Sheet({
             onClick={requestClose}
           />
 
+          {center ? (
+            <motion.div
+              className={`relative flex max-h-[92svh] w-full max-w-[380px] flex-col rounded-sheet bg-surface pt-5 shadow-floating ${className}`}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 12 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+              exit={
+                reduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.96, y: 8, transition: { duration: 0.14 } }
+              }
+              transition={SNAP}
+            >
+              {(title || subtitle) && (
+                <div className="shrink-0 px-6 pb-3">
+                  {title && (
+                    <h2 className="truncate font-display text-k-heading font-bold leading-[1.05] text-ink">
+                      {title}
+                    </h2>
+                  )}
+                  {subtitle && (
+                    <p className="mt-0.5 truncate text-caption text-muted">{subtitle}</p>
+                  )}
+                </div>
+              )}
+              <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5">{children}</div>
+              {footer && <div className="shrink-0 px-5 pb-5 pt-4">{footer}</div>}
+              {!footer && <div className="shrink-0 pb-5" />}
+            </motion.div>
+          ) : (
           <motion.div
             ref={panelRef}
             {...panelProps}
@@ -236,6 +278,7 @@ export function Sheet({
             )}
             {!footer && <div className="safe-b shrink-0 pb-2" />}
           </motion.div>
+          )}
         </div>
       )}
     </AnimatePresence>,

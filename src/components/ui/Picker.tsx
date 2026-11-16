@@ -11,7 +11,7 @@
  * המפעיל תמיד אותו רכיב (ValueButton), כך שכל מקום באפליקציה שבו בוחרים
  * ערך נראה ומתנהג אותו דבר.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus } from './icons';
 import { Sheet } from './Sheet';
@@ -81,60 +81,161 @@ function buzz() {
   }
 }
 
+/**
+ * עמודה אחת בגלגלת. הערך הוא מה שיושב ברצועה באמצע; גלילה שנחה שם
+ * בוחרת אותו, והקשה על שורה מגלגלת אותה לשם ובוחרת מיד.
+ *
+ * `loop` - הגלגל מסתובב: הרשימה מצוירת כמה פעמים ברצף, וכשהוא נח מחוץ
+ * לעותק האמצעי הוא מוזז חזרה אליו, לאותו מספר, כך ששום דבר על המסך אינו
+ * זז. גלילה למעלה מ-00 מגיעה ל-59. בלי זה דקה 55 הייתה במרחק 55 שורות
+ * מדקה 00, והדרך היחידה "אחורה" הייתה כל הדרך קדימה.
+ *
+ * השורה שברצועה מסומנת ישירות על האלמנט (`data-on`) ולא דרך state: כך
+ * ההדגשה עוקבת אחרי האצבע בכל פריים, בלי לצייר מחדש מאות שורות.
+ */
 function WheelColumn({
   items,
   value,
   onChange,
   suffix,
+  loop = false,
+  label,
 }: {
   items: string[];
   value: string;
   onChange: (next: string) => void;
   suffix?: string;
+  loop?: boolean;
+  /** שם לקורא מסך */
+  label?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const programmatic = useRef(false);
-  const index = Math.max(0, items.indexOf(value));
+  const n = items.length;
+  // מספר אי־זוגי של עותקים, כדי שיהיה אמצעי
+  const copies = loop ? Math.max(5, Math.ceil(200 / n)) | 1 : 1;
+  /** השורה הראשונה של העותק האמצעי */
+  const home = loop ? Math.floor(copies / 2) * n : 0;
+  const at = useRef(-1);
+  /** הערך האחרון שהגלגל הזה דיווח - כדי להבחין בשינוי שבא מבחוץ */
+  const sent = useRef(value);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const report = useRef(onChange);
+  report.current = onChange;
 
-  // מיישרים את הגלגלת על הערך הנוכחי כשהוא משתנה מבחוץ
-  useEffect(() => {
+  const rowAt = () => Math.round((ref.current?.scrollTop ?? 0) / ITEM_H);
+  const mark = (row: number) => {
+    const el = ref.current;
+    if (!el || row === at.current) return;
+    // הילדים: ריפוד, השורות, ריפוד
+    el.children[at.current + 1]?.removeAttribute('data-on');
+    el.children[row + 1]?.setAttribute('data-on', '');
+    at.current = row;
+  };
+  const jump = (row: number) => {
     const el = ref.current;
     if (!el) return;
-    const target = index * ITEM_H;
-    if (Math.abs(el.scrollTop - target) < 2) return;
-    programmatic.current = true;
-    el.scrollTo({ top: target, behavior: 'auto' });
-    requestAnimationFrame(() => {
-      programmatic.current = false;
-    });
-  }, [index]);
+    el.scrollTop = row * ITEM_H;
+    mark(row);
+  };
+  const send = (next: string) => {
+    if (next === sent.current) return;
+    sent.current = next;
+    buzz();
+    report.current(next);
+  };
 
-  const onScroll = useCallback(() => {
-    const el = ref.current;
-    if (!el || programmatic.current) return;
-    if (settleTimer.current) clearTimeout(settleTimer.current);
+  // נפתח על הערך, בעותק האמצעי - לפני הציור, כדי שלא יקפוץ מ-00
+  useLayoutEffect(() => {
+    jump(home + Math.max(0, items.indexOf(value)));
+    return () => {
+      if (settle.current) clearTimeout(settle.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ערך שנקבע מבחוץ, ולא על ידי הגלגל הזה, מזיז אליו את הגלגל
+  useEffect(() => {
+    if (value === sent.current) return;
+    sent.current = value;
+    jump(home + Math.max(0, items.indexOf(value)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, items]);
+
+  const rest = () => {
+    if (!ref.current) return;
+    const row = rowAt();
+    const i = ((row % n) + n) % n;
+    if (row < home || row >= home + n) jump(home + i);
+    send(items[i]);
+  };
+
+  const onScroll = () => {
+    mark(rowAt());
+    if (settle.current) clearTimeout(settle.current);
     // scroll-snap עושה את היישור; אנחנו רק קוראים את הערך אחרי שנח
-    settleTimer.current = setTimeout(() => {
-      const next = items[Math.round(el.scrollTop / ITEM_H)];
-      if (next !== undefined && next !== value) {
-        buzz();
-        onChange(next);
-      }
-    }, 90);
-  }, [items, onChange, value]);
+    settle.current = setTimeout(rest, 110);
+  };
+
+  const onClick = (e: React.MouseEvent) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-row]');
+    if (!row || !ref.current) return;
+    const r = Number(row.dataset.row);
+    ref.current.scrollTo({ top: r * ITEM_H, behavior: 'smooth' });
+    send(items[r % n]);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    if (!step || !ref.current) return;
+    e.preventDefault();
+    ref.current.scrollBy({ top: step * ITEM_H, behavior: 'smooth' });
+  };
+
+  const rows: React.ReactNode[] = [];
+  for (let c = 0; c < copies; c++) {
+    items.forEach((item, i) => {
+      const row = c * n + i;
+      rows.push(
+        <button
+          key={row}
+          type="button"
+          tabIndex={-1}
+          data-row={row}
+          /*
+            ספרות ב-Heebo ולא ב-Karantina: שם 07 ו-08 נקראו כאותיות, ושעה
+            צריכה להיקרא במבט. Karantina נשארת למילים.
+          */
+          className="group flex w-full snap-center items-center justify-center text-title font-medium text-faint transition-colors duration-150 data-[on]:text-display data-[on]:font-semibold data-[on]:text-ink"
+          style={{ height: ITEM_H }}
+        >
+          <span className="tnum">{item}</span>
+          {suffix && (
+            <span className="ms-1.5 hidden text-caption font-medium text-muted group-data-[on]:inline">
+              {suffix}
+            </span>
+          )}
+        </button>,
+      );
+    });
+  }
 
   return (
     <div
       ref={ref}
       onScroll={onScroll}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      role="spinbutton"
+      aria-label={label}
+      aria-valuetext={value}
+      tabIndex={0}
       /*
         הגלגלת גוללת בעצמה, ואסור שהגרירה שלה תסגור את החלונית. עצירת
         pointerdown לבדה לא הספיקה: ההכרעה נעשית ב-touchmove של הפאנל,
         והיא ראתה משיכה למטה - כלומר גלילה אחורה - וסגרה. ראו `useSheetDrag`.
       */
       data-sheet-no-dismiss
-      className="no-scrollbar relative h-[260px] flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain"
+      className="no-scrollbar focus-ring relative h-[260px] flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain rounded-field"
       style={{
         scrollPaddingBlock: ITEM_H * 2,
         maskImage:
@@ -144,26 +245,7 @@ function WheelColumn({
       }}
     >
       <div style={{ height: ITEM_H * ((VISIBLE - 1) / 2) }} />
-      {items.map((item, i) => (
-        <button
-          key={item}
-          type="button"
-          onClick={() => onChange(item)}
-          /*
-            ספרות ב-Heebo ולא ב-Karantina: שם 07 ו-08 נקראו כאותיות, ושעה
-            צריכה להיקרא במבט. Karantina נשארת למילים.
-          */
-          className={`flex w-full snap-center items-center justify-center transition-colors duration-150 ${
-            i === index ? 'text-display font-semibold text-ink' : 'text-title font-medium text-faint'
-          }`}
-          style={{ height: ITEM_H }}
-        >
-          <span className="tnum">{item}</span>
-          {suffix && i === index && (
-            <span className="ms-1.5 text-caption font-medium text-muted">{suffix}</span>
-          )}
-        </button>
-      ))}
+      {rows}
       <div style={{ height: ITEM_H * ((VISIBLE - 1) / 2) }} />
     </div>
   );
@@ -288,7 +370,13 @@ export function TimeWheel({
   return (
     /* שעות משמאל, דקות מימין - 23:15 נקרא כמו בשעון */
     <WheelFrame ltr onWell={onWell}>
-      <WheelColumn items={HOURS} value={h} onChange={(next) => onChange(`${next}:${m}`)} />
+      <WheelColumn
+        loop
+        label="שעה"
+        items={HOURS}
+        value={h}
+        onChange={(next) => onChange(`${next}:${m}`)}
+      />
       <span
         aria-hidden="true"
         /* relative: הרצועה ממוקמת absolute, ובלי זה היא נצבעת מעל הנקודתיים */
@@ -296,7 +384,13 @@ export function TimeWheel({
       >
         :
       </span>
-      <WheelColumn items={minuteItems} value={m} onChange={(next) => onChange(`${h}:${next}`)} />
+      <WheelColumn
+        loop
+        label="דקות"
+        items={minuteItems}
+        value={m}
+        onChange={(next) => onChange(`${h}:${next}`)}
+      />
     </WheelFrame>
   );
 }

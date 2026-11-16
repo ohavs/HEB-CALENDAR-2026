@@ -21,7 +21,7 @@ import { isDraftDirty } from '@/lib/draftDirty';
 import { useSettings, useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
-import { FormSection, TitleField } from './ui/fields';
+import { TitleField } from './ui/fields';
 import { shortWhenLabel } from '@/lib/whenSummary';
 import { ICON } from '@/lib/motion';
 import { haptic } from '@/lib/native';
@@ -417,17 +417,8 @@ export function EventEditor({
                 }
               : undefined
           }
+          color={<ColorRow value={draft.color} onChange={(color) => patch({ color })} />}
         />
-
-        {/*
-          צבע בתחתית: הוא נבחר אחרון, אם בכלל - רוב האירועים נשארים בצבע
-          ברירת המחדל. בראש הטופס הוא דחק את "מתי" מתחת לקו המסך.
-        */}
-        <FormSection title="צבע">
-          <div className="rounded-group bg-well px-2 py-1">
-            <ColorRow value={draft.color} onChange={(color) => patch({ color })} />
-          </div>
-        </FormSection>
       </div>
 
       <ScopeSheet

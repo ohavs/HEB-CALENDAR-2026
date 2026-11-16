@@ -24,7 +24,7 @@ import { dateKey, dayTitleLabel, keyToDate } from '@/lib/dates';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
 import { ColorRow } from './ui/ColorRow';
-import { FormSection, TitleField } from './ui/fields';
+import { TitleField } from './ui/fields';
 import { Avatar } from './ui/Avatar';
 import {
   DEFAULT_START,
@@ -258,14 +258,8 @@ export function SharedItemSheet({
             onCreate: createCategory,
           }}
           whenToggle={<DatedSwitch dated={dated} onChange={setDated} />}
+          color={<ColorRow value={color} onChange={setColor} label="צבע הפריט" />}
         />
-
-        {/* צבע בתחתית, כמו בעורך האירוע */}
-        <FormSection title="צבע">
-          <div className="rounded-group bg-well px-2 py-1">
-            <ColorRow value={color} onChange={setColor} label="צבע הפריט" />
-          </div>
-        </FormSection>
 
         {dated && (
           <>
