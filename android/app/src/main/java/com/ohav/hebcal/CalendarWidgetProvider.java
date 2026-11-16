@@ -51,8 +51,9 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
       בקנה המידה של הגופן. עדיף להעריך ביתר: הרשת היא שמתכווצת כשחסר,
       ותוספת קטנה נבלעת בשורות שלה.
     */
-    private static final float PAD = 24;
-    private static final float HEADER = 30;
+    private static final float PAD = 26;
+    /** שם החודש ב-Karantina של 30sp, והריפוד מתחתיו */
+    private static final float HEADER = 42;
     private static final float WEEKDAYS = 16;
     /** שורה עם התאריך העברי */
     private static final float ROW_FULL = 44;
@@ -60,7 +61,8 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
     private static final float ROW_PLAIN = 32;
     /** תא מצומצם - ראו widget_calendar_cell_compact */
     private static final float ROW_COMPACT = 24;
-    private static final float UPCOMING_ROW = 24;
+    /** אריח של שורה אחת, והרווח שמעליו - ראו widget_calendar_upcoming */
+    private static final float UPCOMING_ROW = 36;
     private static final float UPCOMING_PAD = 6;
     /** ברשימה קצרה יותר מזה כדאי קודם לתת לרשת את התאריך העברי */
     private static final int UPCOMING_BEFORE_HEBREW = 2;
@@ -182,7 +184,7 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             upcoming.size()
         );
 
-        views.setTextViewText(R.id.cal_month, month.optString("month"));
+        setMonth(views, month.optString("month"));
         views.setTextViewText(R.id.cal_hebrew, month.optString("hebrewMonth"));
         views.setViewVisibility(R.id.cal_hebrew, plan.hebrew ? View.VISIBLE : View.GONE);
 
@@ -194,6 +196,26 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
         if (plan.upcoming > 0) buildUpcoming(context, views, data, upcoming, plan.upcoming);
 
         return views;
+    }
+
+    /**
+     * "נובמבר 2026" כשתי מילים: השם ב-Karantina והשנה ב-Heebo.
+     *
+     * זה פיצול של מחרוזת ולא ניסוח: המילה האחרונה עוברת לשדה של השנה רק
+     * כשהיא כולה ספרות. כל צורה אחרת - חבילה שתנסח אחרת, או חודש בלי
+     * שנה - נשארת שלמה בשדה הראשון.
+     */
+    private static void setMonth(RemoteViews views, String label) {
+        int space = label.lastIndexOf(' ');
+        String tail = space < 0 ? "" : label.substring(space + 1);
+        if (!tail.isEmpty() && tail.matches("\\d+")) {
+            views.setTextViewText(R.id.cal_month, label.substring(0, space));
+            views.setTextViewText(R.id.cal_year, tail);
+            views.setViewVisibility(R.id.cal_year, View.VISIBLE);
+        } else {
+            views.setTextViewText(R.id.cal_month, label);
+            views.setViewVisibility(R.id.cal_year, View.GONE);
+        }
     }
 
     /* ------------------------------ התכנון ------------------------------ */
@@ -385,13 +407,19 @@ public class CalendarWidgetProvider extends AppWidgetProvider {
             style == Style.FULL && !outside ? View.VISIBLE : View.GONE
         );
 
+        /*
+          השבת אינה צבע של מספר אלא עמודה בגוון well, כמו בלוח באפליקציה.
+          התאריך העברי נשאר faint גם ביום הנוכחי: הוא יושב מתחת לעיגול
+          ולא בתוכו, ובצבע של העיגול הוא נעלם על הרקע.
+        */
         int color;
-        if (today) color = R.color.widget_on_accent;
+        if (today) color = R.color.widget_on_inverse;
         else if (outside) color = R.color.widget_faint;
-        else if (cell.optBoolean("shabbat", false)) color = R.color.widget_accent;
         else color = R.color.widget_ink;
-        views.setTextColor(R.id.cell_num, context.getColor(color));
-        if (today) views.setTextColor(R.id.cell_heb, context.getColor(R.color.widget_on_accent));
+        WidgetColors.text(context, views, R.id.cell_num, color);
+        if (cell.optBoolean("shabbat", false) && !outside) {
+            views.setInt(R.id.cell_root, "setBackgroundResource", R.drawable.widget_cell_shabbat);
+        }
 
         views.setViewVisibility(R.id.cell_today, today ? View.VISIBLE : View.GONE);
 

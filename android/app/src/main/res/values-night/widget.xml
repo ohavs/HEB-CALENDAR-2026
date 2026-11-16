@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  הוידג׳טים במצב לילה. אותם שמות של values/widget.xml, בגווני הלילה של
+  האפליקציה.
+
+  סטייה אחת: `widget_well` הוא `elevated` של הלילה ולא `well`. בדף ה-well
+  כהה מהרקע ויושב עליו canvas כהה עוד יותר; בוידג׳ט הרקע הוא surface,
+  ו-well כהה ממנו בחמש דרגות בלבד - האריחים נבלעו בו.
+-->
+<resources>
+    <color name="widget_bg">#FF1F1D1A</color>
+    <color name="widget_well">#FF2A2824</color>
+    <color name="widget_hairline">#FF34312C</color>
+    <color name="widget_ink">#FFF3EEE6</color>
+    <color name="widget_muted">#FFA59E93</color>
+    <color name="widget_faint">#FF6A645B</color>
+    <color name="widget_inverse">#FFF3EEE6</color>
+    <color name="widget_on_inverse">#FF1B1915</color>
+    <color name="widget_shabbat">#FFF0B45A</color>
+    <color name="widget_dot_yomtov">#FFDC7896</color>
+    <color name="widget_dot_holiday">#FF927CDE</color>
+    <color name="widget_dot_fast">#FFAA967A</color>
+    <color name="widget_dot_roshchodesh">#FF8CA254</color>
+    <color name="widget_check_ring">#73F3EEE6</color>
+    <color name="widget_ev_butter_bg">#FF4A4024</color>
+    <color name="widget_ev_butter_ink">#FFF5DC8C</color>
+    <color name="widget_ev_peach_bg">#FF4C3326</color>
+    <color name="widget_ev_peach_ink">#FFF7C0A2</color>
+    <color name="widget_ev_rose_bg">#FF482C35</color>
+    <color name="widget_ev_rose_ink">#FFF5B6C8</color>
+    <color name="widget_ev_violet_bg">#FF383150</color>
+    <color name="widget_ev_violet_ink">#FFCEC0F8</color>
+    <color name="widget_ev_sky_bg">#FF27384A</color>
+    <color name="widget_ev_sky_ink">#FFACCEF0</color>
+    <color name="widget_ev_mint_bg">#FF243D31</color>
+    <color name="widget_ev_mint_ink">#FFAAE2C4</color>
+    <color name="widget_ev_sage_bg">#FF343D28</color>
+    <color name="widget_ev_sage_ink">#FFCEDCA6</color>
+    <color name="widget_ev_slate_bg">#FF3A342D</color>
+    <color name="widget_ev_slate_ink">#FFDED0BC</color>
+    <color name="widget_ev_graphite_bg">#FF34312C</color>
+    <color name="widget_ev_graphite_ink">#FFF3EEE6</color>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- עמודת השבת בגוון well, כמו בלוח באפליקציה. ההזחה משאירה רווח בין
+     התאים, כי הרקע יושב על התא עצמו ולא נעצר בריפוד שלו. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="1dp"
+    android:insetRight="1dp"
+    android:insetTop="1dp"
+    android:insetBottom="1dp">
+    <shape android:shape="rectangle">
+        <solid android:color="@color/widget_well" />
+        <corners android:radius="10dp" />
+    </shape>
+</inset>

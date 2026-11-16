@@ -57,3 +57,42 @@ describe('פריסות וידג׳ט', () => {
     expect(bad).toEqual([]);
   });
 });
+
+/**
+ * צבעי האירוע בוידג׳ט.
+ *
+ * שורת תזכורת בוידג׳ט היא כרטיס בפסטל של צבע האירוע, והמיפוי משם לרקע
+ * הוא switch ב-WidgetColors.java. צבע שנוסף לאפליקציה ונשכח שם אינו
+ * נכשל - הוא פשוט מצויר כגרפיט, וכך גם צבע שחסר לו גוון לילה, שנופל
+ * לגוון היום. שתי השכחות שקטות, ולכן הן נבדקות כאן.
+ */
+describe('צבעי אירוע בוידג׳ט', () => {
+  const RES = 'android/app/src/main/res';
+  const colors = [
+    ...readFileSync('src/types.ts', 'utf8')
+      .match(/export type EventColor =([^;]+);/)![1]
+      .matchAll(/'(\w+)'/g),
+  ].map((m) => m[1]);
+  const java = readFileSync('android/app/src/main/java/com/ohav/hebcal/WidgetColors.java', 'utf8');
+  const day = readFileSync(join(RES, 'values/widget.xml'), 'utf8');
+  const night = readFileSync(join(RES, 'values-night/widget.xml'), 'utf8');
+
+  it('יש צבעים לבדוק', () => {
+    expect(colors.length).toBeGreaterThan(5);
+  });
+
+  it.each(colors)('%s - כרטיס, דיו, ושני הגוונים', (color) => {
+    expect(readdirSync(join(RES, 'drawable'))).toContain(`widget_row_${color}.xml`);
+    expect(java).toContain(`R.drawable.widget_row_${color}`);
+    expect(java).toContain(`R.color.widget_ev_${color}_ink`);
+    for (const values of [day, night]) {
+      expect(values).toContain(`name="widget_ev_${color}_bg"`);
+      expect(values).toContain(`name="widget_ev_${color}_ink"`);
+    }
+  });
+
+  it('כל צבע של היום מוגדר גם ללילה', () => {
+    const names = (xml: string) => [...xml.matchAll(/<color name="(\w+)"/g)].map((m) => m[1]);
+    expect(names(night).sort()).toEqual(names(day).sort());
+  });
+});

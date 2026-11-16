@@ -20,29 +20,44 @@
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
             android:background="@drawable/widget_field_bg"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="10dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/widget_candles"
-                android:textColor="@color/widget_muted"
-                android:textSize="10sp"
-                android:maxLines="1" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/widget_ic_sunset" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_candles"
+                    android:fontFamily="@font/heebo_medium"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
 
             <TextView
                 android:text="@string/widget_preview_candles"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingTop="1dp"
+                android:fontFamily="@font/heebo_bold"
+                android:includeFontPadding="false"
                 android:textColor="@color/widget_ink"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textSize="26sp"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -52,29 +67,44 @@
             android:layout_weight="1"
             android:layout_marginStart="4dp"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
             android:background="@drawable/widget_field_bg"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="10dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/widget_havdalah"
-                android:textColor="@color/widget_muted"
-                android:textSize="10sp"
-                android:maxLines="1" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/widget_ic_moon" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_havdalah"
+                    android:fontFamily="@font/heebo_medium"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
 
             <TextView
                 android:text="@string/widget_preview_havdalah"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingTop="1dp"
+                android:fontFamily="@font/heebo_bold"
+                android:includeFontPadding="false"
                 android:textColor="@color/widget_ink"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textSize="26sp"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
@@ -83,10 +113,12 @@
         android:text="@string/widget_preview_shabbat_day"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="7dp"
+        android:paddingTop="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/heebo_bold"
         android:textColor="@color/widget_ink"
         android:textSize="12sp"
-        android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -94,9 +126,13 @@
         android:text="@string/widget_preview_shabbat_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="1dp"
-        android:textColor="@color/widget_muted"
-        android:textSize="12sp"
+        android:paddingTop="2dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/karantina_bold"
+        android:includeFontPadding="false"
+        android:textColor="@color/widget_ink"
+        android:textSize="22sp"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -104,9 +140,12 @@
         android:text="@string/widget_preview_city"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="3dp"
+        android:paddingTop="2dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/heebo_medium"
         android:textColor="@color/widget_faint"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:maxLines="1" />
 
 </LinearLayout>

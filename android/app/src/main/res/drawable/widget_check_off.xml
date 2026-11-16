@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- תיבה פתוחה: טבעת בדיו שקוף למחצה, שנקראת על כל פסטל -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <stroke android:width="2dp" android:color="@color/widget_faint" />
+    <stroke android:width="2dp" android:color="@color/widget_check_ring" />
     <solid android:color="@android:color/transparent" />
 </shape>

@@ -19,9 +19,9 @@ function sources(dir: string): string[] {
 describe('design system', () => {
   it('takes icons only from ui/icons', () => {
     /*
-      lucide-react עדיין ב-package.json, כי הסרה שלו משנה את טביעת הקוד
-      הנייטיבי (CLAUDE.md, "עדכונים") - ולכן ייבוא ממנו יעבוד, ויחזיר
-      אייקון בקו עבה אחר באמצע מסך של Phosphor.
+      lucide-react הוסר מ-package.json יחד עם השחרור הנייטיבי (הסרה משנה
+      את טביעת הנייטיב), אבל ייבוא ממנו אחרי התקנה חוזרת היה מחזיר אייקון
+      בקו עבה אחר באמצע מסך של Phosphor.
     */
     const offenders = sources(SRC).filter((file) =>
       /from\s+['"]lucide-react['"]/.test(readFileSync(file, 'utf8')),

@@ -41,13 +41,16 @@ public class RemindersWidgetService extends RemoteViewsService {
         final String secondary;
         final String id;
         final boolean done;
+        /** שם צבע האירוע, כפי שהגיע מ-widgetData.ts. ריק בכותרת */
+        final String color;
 
-        Row(int type, String primary, String secondary, String id, boolean done) {
+        Row(int type, String primary, String secondary, String id, boolean done, String color) {
             this.type = type;
             this.primary = primary;
             this.secondary = secondary;
             this.id = id;
             this.done = done;
+            this.color = color;
         }
     }
 
@@ -116,7 +119,8 @@ public class RemindersWidgetService extends RemoteViewsService {
                     WidgetDays.groupLabel(data, group),
                     WidgetDays.groupLine(data, group),
                     null,
-                    false
+                    false,
+                    ""
                 ));
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject item = items.optJSONObject(i);
@@ -126,7 +130,8 @@ public class RemindersWidgetService extends RemoteViewsService {
                         item.optString("title"),
                         item.optString("time"),
                         item.optString("id"),
-                        item.optBoolean("done", false)
+                        item.optBoolean("done", false),
+                        item.optString("color")
                     ));
                 }
             }
@@ -180,6 +185,11 @@ public class RemindersWidgetService extends RemoteViewsService {
                 roomForTime ? android.view.View.VISIBLE : android.view.View.GONE
             );
             views.setInt(
+                R.id.item_card,
+                "setBackgroundResource",
+                WidgetColors.rowBackground(row.color, row.done)
+            );
+            views.setInt(
                 R.id.item_check,
                 "setBackgroundResource",
                 row.done ? R.drawable.widget_check_on : R.drawable.widget_check_off
@@ -193,10 +203,10 @@ public class RemindersWidgetService extends RemoteViewsService {
               ו-setPaintFlags אינו אחת מהן - קריאה לה הייתה זורקת בזמן
               ריצה. הסימון נישא על ידי התיבה והצבע.
             */
-            views.setTextColor(
-                R.id.item_title,
-                context.getColor(row.done ? R.color.widget_faint : R.color.widget_ink)
-            );
+            // הטקסט בדיו של אותו צבע, כמו `.ev` במסך - ושעה, מי הוסיף וכותרת יחד
+            int ink = WidgetColors.rowInk(row.color, row.done);
+            WidgetColors.text(context, views, R.id.item_title, ink);
+            WidgetColors.text(context, views, R.id.item_time, ink);
 
             // כוונת המילוי היא מה שהופך תבנית אחת לפעולה על שורה מסוימת
             Intent fill = new Intent();

@@ -13,19 +13,19 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   android: {
     // הרקע שמאחורי ה-WebView, כדי שלא יבליח לבן לפני הצביעה הראשונה
-    backgroundColor: '#F6F6FA',
+    backgroundColor: '#F5F1EA',
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 600,
       launchAutoHide: true,
-      backgroundColor: '#F6F6FA',
+      backgroundColor: '#F5F1EA',
       androidSplashResourceName: 'splash',
       showSpinner: false,
     },
     LocalNotifications: {
       smallIcon: 'ic_stat_notify',
-      iconColor: '#6366F1',
+      iconColor: '#1C1A17',
     },
     /*
       עדכון חי, במצב ידני בלבד: האפליקציה בודקת בעצמה מול השחרור ב-GitHub

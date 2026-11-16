@@ -1,27 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- כותרת יום ברשימה. ב-Heebo מודגש ולא ב-Karantina כמו במסך: הכיתוב
+     הרחוק ("יום שני, 21 בספטמבר") נושא ספרות, ובוידג׳ט אין DisplayText
+     שיעביר אותן לגופן אחר. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingTop="8dp"
-    android:paddingBottom="2dp">
+    android:gravity="bottom"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="4dp">
 
     <TextView
         android:id="@+id/header_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/widget_accent"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:fontFamily="@font/heebo_bold"
+        android:textColor="@color/widget_ink"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/header_hebrew"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="6dp"
-        android:textColor="@color/widget_faint"
+        android:layout_marginStart="8dp"
+        android:fontFamily="@font/heebo_medium"
+        android:textColor="@color/widget_muted"
         android:textSize="11sp"
         android:maxLines="1"
         android:ellipsize="end" />

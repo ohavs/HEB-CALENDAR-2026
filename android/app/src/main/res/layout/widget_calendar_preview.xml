@@ -10,29 +10,38 @@
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
     android:layoutDirection="rtl"
-    android:padding="12dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_preview_month"
+            android:fontFamily="@font/karantina_bold"
+            android:includeFontPadding="false"
+            android:textColor="@color/widget_ink"
+            android:textSize="30sp"
+            android:maxLines="1" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/widget_preview_month"
-            android:textColor="@color/widget_ink"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:maxLines="1" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:gravity="end"
             android:text="@string/widget_preview_hebrew_month"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_muted"
             android:textSize="12sp"
             android:maxLines="1" />
@@ -50,63 +59,63 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="א"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ב"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ג"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ד"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ה"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ו"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
             android:text="ש"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:textSize="10sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -141,8 +150,8 @@
                 <TextView style="@style/WidgetPreviewNum" android:text="4" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="כ״ב" />
             </LinearLayout>
-            <LinearLayout style="@style/WidgetPreviewCell">
-                <TextView style="@style/WidgetPreviewNum" android:text="5" android:textColor="@color/widget_accent" />
+            <LinearLayout style="@style/WidgetPreviewCell" android:background="@drawable/widget_cell_shabbat">
+                <TextView style="@style/WidgetPreviewNum" android:text="5" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="כ״ג" />
             </LinearLayout>
         </LinearLayout>
@@ -177,8 +186,8 @@
                     <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout style="@style/WidgetPreviewCell">
-                <TextView style="@style/WidgetPreviewNum" android:text="12" android:textColor="@color/widget_accent" />
+            <LinearLayout style="@style/WidgetPreviewCell" android:background="@drawable/widget_cell_shabbat">
+                <TextView style="@style/WidgetPreviewNum" android:text="12" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="א׳" />
                 <LinearLayout style="@style/WidgetPreviewDots">
                     <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
@@ -201,7 +210,7 @@
                 </LinearLayout>
             </LinearLayout>
             <LinearLayout style="@style/WidgetPreviewCell">
-                <TextView style="@style/WidgetPreviewNum" android:text="15" android:layout_width="22dp" android:background="@drawable/widget_cell_today" android:textColor="@color/widget_on_accent" />
+                <TextView style="@style/WidgetPreviewNum" android:text="15" android:layout_width="22dp" android:background="@drawable/widget_cell_today" android:textColor="@color/widget_on_inverse" android:fontFamily="@font/heebo_bold" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="ד׳" />
                 <LinearLayout style="@style/WidgetPreviewDots">
                     <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_event" />
@@ -222,8 +231,8 @@
                 <TextView style="@style/WidgetPreviewNum" android:text="18" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="ז׳" />
             </LinearLayout>
-            <LinearLayout style="@style/WidgetPreviewCell">
-                <TextView style="@style/WidgetPreviewNum" android:text="19" android:textColor="@color/widget_accent" />
+            <LinearLayout style="@style/WidgetPreviewCell" android:background="@drawable/widget_cell_shabbat">
+                <TextView style="@style/WidgetPreviewNum" android:text="19" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="ח׳" />
             </LinearLayout>
         </LinearLayout>
@@ -264,8 +273,8 @@
                     <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_holiday" />
                 </LinearLayout>
             </LinearLayout>
-            <LinearLayout style="@style/WidgetPreviewCell">
-                <TextView style="@style/WidgetPreviewNum" android:text="26" android:textColor="@color/widget_accent" />
+            <LinearLayout style="@style/WidgetPreviewCell" android:background="@drawable/widget_cell_shabbat">
+                <TextView style="@style/WidgetPreviewNum" android:text="26" />
                 <TextView style="@style/WidgetPreviewHeb" android:text="ט״ו" />
                 <LinearLayout style="@style/WidgetPreviewDots">
                     <ImageView style="@style/WidgetPreviewDot" android:background="@drawable/widget_dot_yomtov" />
@@ -323,21 +332,26 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:background="@drawable/widget_field_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
 
             <ImageView
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:layout_marginEnd="7dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/widget_dot_event" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="7dp"
+                android:layout_marginEnd="8dp"
+                android:fontFamily="@font/heebo_medium"
                 android:text="@string/widget_preview_up1_day"
                 android:textColor="@color/widget_muted"
                 android:textSize="11sp"
@@ -347,6 +361,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:fontFamily="@font/heebo_medium"
                 android:text="@string/widget_preview_up1_title"
                 android:textColor="@color/widget_ink"
                 android:textSize="12sp"
@@ -355,30 +370,36 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/heebo_bold"
                 android:text="@string/widget_preview_up1_time"
-                android:textColor="@color/widget_muted"
+                android:textColor="@color/widget_ink"
                 android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp">
+            android:background="@drawable/widget_field_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp">
 
             <ImageView
                 android:layout_width="6dp"
                 android:layout_height="6dp"
-                android:layout_marginEnd="7dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/widget_dot_holiday" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="7dp"
+                android:layout_marginEnd="8dp"
+                android:fontFamily="@font/heebo_medium"
                 android:text="@string/widget_preview_up2_day"
                 android:textColor="@color/widget_muted"
                 android:textSize="11sp"
@@ -388,6 +409,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:fontFamily="@font/heebo_medium"
                 android:text="@string/widget_preview_up2_title"
                 android:textColor="@color/widget_ink"
                 android:textSize="12sp"

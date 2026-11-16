@@ -1,44 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  שורה ברשימת הקרוב: אריח well ולא קו מפריד. הגובה כולל את הרווח מעליה
+  רשום ב-UPCOMING_ROW ב-CalendarWidgetProvider.
+
+  הרווח הוא ריפוד של מעטפת ולא margin: הלחיצה יושבת על המעטפת, והאריח
+  שבתוכה הוא רק הרקע.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/up_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingTop="3dp"
-    android:paddingBottom="3dp">
+    android:paddingTop="4dp">
 
-    <ImageView
-        android:id="@+id/up_dot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginEnd="7dp"
-        android:background="@drawable/widget_dot_event" />
-
-    <TextView
-        android:id="@+id/up_day"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="7dp"
-        android:textColor="@color/widget_muted"
-        android:textSize="11sp"
-        android:maxLines="1" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_field_bg"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
 
-    <TextView
-        android:id="@+id/up_title"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textColor="@color/widget_ink"
-        android:textSize="12sp"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        <ImageView
+            android:id="@+id/up_dot"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/widget_dot_event" />
 
-    <TextView
-        android:id="@+id/up_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:textColor="@color/widget_muted"
-        android:textSize="11sp" />
-</LinearLayout>
+        <TextView
+            android:id="@+id/up_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:fontFamily="@font/heebo_medium"
+            android:textColor="@color/widget_muted"
+            android:textSize="11sp"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/up_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/heebo_medium"
+            android:textColor="@color/widget_ink"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/up_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="@font/heebo_bold"
+            android:textColor="@color/widget_ink"
+            android:textSize="11sp" />
+    </LinearLayout>
+</FrameLayout>

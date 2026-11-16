@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   וידג׳ט הלוח. אותה פריסה משרתת את כל הגדלים, ומה שמשתנה הוא מה מוצג:
-  ראו CalendarWidgetProvider.
+  ראו CalendarWidgetProvider. הריפוד והכותרת רשומים שם (PAD, HEADER) -
+  שינוי כאן מחייב שינוי שם.
+
+  שם החודש ב-Karantina, והשנה לידו ב-Heebo: ספרות Karantina נקראות
+  כאותיות. המחרוזת מגיעה שלמה ("נובמבר 2026"), והספק מפצל אותה.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/cal_root"
@@ -10,7 +14,10 @@
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
     android:layoutDirection="rtl"
-    android:padding="12dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="12dp">
 
     <LinearLayout
         android:id="@+id/cal_header"
@@ -18,23 +25,41 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="8dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp">
 
         <TextView
             android:id="@+id/cal_month"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:fontFamily="@font/karantina_bold"
+            android:includeFontPadding="false"
             android:textColor="@color/widget_ink"
-            android:textSize="16sp"
-            android:textStyle="bold"
+            android:textSize="30sp"
             android:maxLines="1"
             android:ellipsize="end" />
 
         <TextView
-            android:id="@+id/cal_hebrew"
+            android:id="@+id/cal_year"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:fontFamily="@font/heebo_bold"
+            android:includeFontPadding="false"
+            android:textColor="@color/widget_ink"
+            android:textSize="18sp"
+            android:maxLines="1"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/cal_hebrew"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:gravity="end"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_muted"
             android:textSize="12sp"
             android:maxLines="1"

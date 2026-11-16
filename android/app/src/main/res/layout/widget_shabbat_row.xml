@@ -1,59 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  מועד נוסף ברשימה שמתחת לכרטיס: אריח well, ושני הזמנים עם אותם שני
+  אייקונים של הכרטיס - בלעדיהם הקורא צריך לנחש מי מהם כניסה. הגובה,
+  כולל הרווח שמעליו, הוא ROW_HEIGHT ב-ShabbatWidgetProvider.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/row_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingTop="4dp">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_field_bg"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/row_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/heebo_bold"
+                android:textColor="@color/widget_ink"
+                android:textSize="13sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/row_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/heebo_medium"
+                android:textColor="@color/widget_muted"
+                android:textSize="10sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="13dp"
+            android:layout_height="13dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/widget_ic_sunset" />
 
         <TextView
-            android:id="@+id/row_title"
-            android:layout_width="match_parent"
+            android:id="@+id/row_candles"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/heebo_bold"
             android:textColor="@color/widget_ink"
-            android:textSize="13sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:textSize="13sp" />
+
+        <ImageView
+            android:layout_width="13dp"
+            android:layout_height="13dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/widget_ic_moon" />
 
         <TextView
-            android:id="@+id/row_day"
-            android:layout_width="match_parent"
+            android:id="@+id/row_havdalah"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/widget_faint"
-            android:textSize="10sp"
-            android:maxLines="1" />
+            android:fontFamily="@font/heebo_medium"
+            android:textColor="@color/widget_muted"
+            android:textSize="13sp" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/row_candles"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:textColor="@color/widget_accent"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:layout_marginEnd="3dp"
-        android:text="–"
-        android:textColor="@color/widget_faint"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/row_havdalah"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/widget_muted"
-        android:textSize="13sp" />
-</LinearLayout>
+</FrameLayout>

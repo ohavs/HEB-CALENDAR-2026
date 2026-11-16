@@ -77,3 +77,33 @@ ${faces
   const total = faces.reduce((sum, f) => sum + f.size, 0);
   console.log(`✓ ${slug}.css · ${faces.length} גופנים · ${Math.round(total / 1024)}KB`);
 }
+
+/*
+ * הגופנים של הוידג׳טים (docs/REDESIGN.md, 5.1).
+ *
+ * וידג׳ט אינו טוען woff2: הפריסה שלו מנופחת אצל המשגר, ו-`res/font` של
+ * אנדרואיד קורא TTF בלבד. גוגל מגישה TTF למי שאינו מצהיר על דפדפן, ולכן
+ * כאן בלי User-Agent. הקובץ שלם, בלי חלוקה לתת-קבוצות - בגופן אחד
+ * אנדרואיד אינו מחבר כמה קבצים לפי טווח תווים.
+ *
+ * Karantina לכותרות, Heebo לספרות: אותו כלל של האפליקציה, ספרות
+ * Karantina נקראות כאותיות.
+ */
+const androidFonts = resolve(root, 'android/app/src/main/res/font');
+const ANDROID = [
+  { family: 'Karantina', weight: 700, name: 'karantina_bold' },
+  { family: 'Heebo', weight: 500, name: 'heebo_medium' },
+  { family: 'Heebo', weight: 700, name: 'heebo_bold' },
+];
+
+await mkdir(androidFonts, { recursive: true });
+for (const { family, weight, name } of ANDROID) {
+  const css = await (
+    await fetch(`https://fonts.googleapis.com/css2?family=${family}:wght@${weight}`)
+  ).text();
+  const src = /url\((https:[^)]+\.ttf)\)/.exec(css)?.[1];
+  if (!src) throw new Error(`${family} ${weight}: לא נמצא TTF - האם המבנה של גוגל השתנה?`);
+  const bytes = new Uint8Array(await (await fetch(src)).arrayBuffer());
+  await writeFile(resolve(androidFonts, `${name}.ttf`), bytes);
+  console.log('✓', `res/font/${name}.ttf`, `${Math.round(bytes.length / 1024)}KB`);
+}

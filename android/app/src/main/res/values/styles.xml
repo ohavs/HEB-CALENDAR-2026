@@ -24,6 +24,6 @@
          בתוך האפליקציה, ולכן הוא לא לוקח את ערכת הפתיחה עם ה-splash -
          רקע מסך הפתיחה היה מהבהב לרגע על שאלה של שתי שורות. -->
     <style name="AppTheme.WidgetConfig" parent="@android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@color/widget_well</item>
+        <item name="android:windowBackground">@color/widget_bg</item>
     </style>
 </resources>

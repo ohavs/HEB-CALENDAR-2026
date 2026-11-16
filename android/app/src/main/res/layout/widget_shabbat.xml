@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  וידג׳ט זמני השבת.
+  וידג׳ט זמני השבת - הכרטיס של ShabbatScreen: שתי השעות זו לצד זו כאריחים
+  עם ספרות גדולות ב-Heebo, ושם הפרשה ב-Karantina. הענבר רק על הנר.
 
   סדר האלמנטים הוא סדר החשיבות, וזו לא החלטה אסתטית: RemoteViews נחתך
   מלמטה כשאין גובה, ולכן מה שחייב לשרוד חייב להיות ראשון. קודם שם
   הפרשה והתאריך ישבו מעל השעות, ובוידג׳ט נמוך נחתכו דווקא שתי השעות -
-  הדבר היחיד שבשבילו פותחים את הוידג׳ט הזה.
+  הדבר היחיד שבשבילו פותחים את הוידג׳ט הזה. לכן הפרשה כאן מתחת לשעות,
+  ולא מעליהן כמו במסך.
+
+  הגבהים רשומים ב-ShabbatWidgetProvider (TIMES_HEIGHT ו-MIN_HEIGHT_FOR_*).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sh_root"
@@ -27,30 +31,45 @@
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
             android:background="@drawable/widget_field_bg"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="10dp">
 
-            <TextView
-                android:id="@+id/sh_candles_label"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/widget_candles"
-                android:textColor="@color/widget_muted"
-                android:textSize="10sp"
-                android:maxLines="1" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/widget_ic_sunset" />
+
+                <TextView
+                    android:id="@+id/sh_candles_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_candles"
+                    android:fontFamily="@font/heebo_medium"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/sh_candles"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingTop="1dp"
+                android:fontFamily="@font/heebo_bold"
+                android:includeFontPadding="false"
                 android:textColor="@color/widget_ink"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textSize="26sp"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -60,30 +79,45 @@
             android:layout_weight="1"
             android:layout_marginStart="4dp"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
             android:background="@drawable/widget_field_bg"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="10dp">
 
-            <TextView
-                android:id="@+id/sh_havdalah_label"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/widget_havdalah"
-                android:textColor="@color/widget_muted"
-                android:textSize="10sp"
-                android:maxLines="1" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/widget_ic_moon" />
+
+                <TextView
+                    android:id="@+id/sh_havdalah_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_havdalah"
+                    android:fontFamily="@font/heebo_medium"
+                    android:textColor="@color/widget_muted"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/sh_havdalah"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingTop="1dp"
+                android:fontFamily="@font/heebo_bold"
+                android:includeFontPadding="false"
                 android:textColor="@color/widget_ink"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textSize="26sp"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
@@ -92,10 +126,12 @@
         android:id="@+id/sh_day"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="7dp"
+        android:paddingTop="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/heebo_bold"
         android:textColor="@color/widget_ink"
         android:textSize="12sp"
-        android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -103,9 +139,13 @@
         android:id="@+id/sh_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="1dp"
-        android:textColor="@color/widget_muted"
-        android:textSize="12sp"
+        android:paddingTop="2dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/karantina_bold"
+        android:includeFontPadding="false"
+        android:textColor="@color/widget_ink"
+        android:textSize="22sp"
         android:maxLines="1"
         android:ellipsize="end" />
 
@@ -113,9 +153,12 @@
         android:id="@+id/sh_city"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="3dp"
+        android:paddingTop="2dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:fontFamily="@font/heebo_medium"
         android:textColor="@color/widget_faint"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:maxLines="1" />
 
     <LinearLayout
@@ -123,5 +166,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="6dp" />
+        android:paddingTop="4dp" />
 </LinearLayout>

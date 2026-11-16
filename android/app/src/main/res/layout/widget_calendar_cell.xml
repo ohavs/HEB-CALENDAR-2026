@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- תא יום. עיגול "היום" יושב מאחורי המספר, ולכן הוא FrameLayout.
+     עמודת השבת מקבלת רקע well מהספק (widget_cell_shabbat).
      הגובה שהוא צריך - עם התאריך העברי ובלעדיו - רשום ב-ROW_FULL
      וב-ROW_PLAIN ב-CalendarWidgetProvider. שינוי כאן מחייב שינוי שם. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -29,6 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="24dp"
             android:gravity="center"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_ink"
             android:textSize="13sp" />
 
@@ -36,6 +38,7 @@
             android:id="@+id/cell_heb"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_faint"
             android:textSize="9sp"
             android:includeFontPadding="false"

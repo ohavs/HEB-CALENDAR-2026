@@ -22,10 +22,10 @@ import java.util.List;
  */
 public class ShabbatWidgetProvider extends AppWidgetProvider {
 
-    /** גובה שורה ברשימת המועדים הבאים */
-    private static final int ROW_HEIGHT = 44;
-    /** הגובה שתופסות שתי השעות לבדן, כולל הריפוד של הוידג׳ט */
-    private static final int TIMES_HEIGHT = 78;
+    /** גובה שורה ברשימת המועדים הבאים, כולל הרווח שמעליה */
+    private static final int ROW_HEIGHT = 50;
+    /** הגובה שתופסים שני אריחי השעות לבדם, כולל הריפוד של הוידג׳ט */
+    private static final int TIMES_HEIGHT = 86;
 
     /*
       סדר הוויתור, מלמטה למעלה: קודם העיר, אחר כך שם הפרשה, ואחרון
@@ -33,9 +33,10 @@ public class ShabbatWidgetProvider extends AppWidgetProvider {
       קיום. הסדר הזה מגובה גם בפריסה עצמה: השעות ראשונות, וכך אפילו אם
       המדידה מחטיאה, מה שנחתך מלמטה הוא מה שפחות חשוב.
     */
-    private static final int MIN_HEIGHT_FOR_DAY = 102;
-    private static final int MIN_HEIGHT_FOR_TITLE = 122;
-    private static final int MIN_HEIGHT_FOR_CITY = 142;
+    private static final int MIN_HEIGHT_FOR_DAY = 108;
+    /** שם הפרשה ב-Karantina של 22sp - שורה גבוהה מזו של התאריך */
+    private static final int MIN_HEIGHT_FOR_TITLE = 134;
+    private static final int MIN_HEIGHT_FOR_CITY = 152;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {

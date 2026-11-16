@@ -32,6 +32,7 @@
             android:layout_height="20dp"
             android:gravity="center"
             android:includeFontPadding="false"
+            android:fontFamily="@font/heebo_medium"
             android:textColor="@color/widget_ink"
             android:textSize="12sp" />
 

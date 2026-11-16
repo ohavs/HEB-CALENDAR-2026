@@ -46,13 +46,16 @@ public class SharedWidgetService extends RemoteViewsService {
         final String secondary;
         final String id;
         final boolean done;
+        /** שם צבע האירוע, כפי שהגיע מ-widgetData.ts. ריק בכותרת */
+        final String color;
 
-        Row(int type, String primary, String secondary, String id, boolean done) {
+        Row(int type, String primary, String secondary, String id, boolean done, String color) {
             this.type = type;
             this.primary = primary;
             this.secondary = secondary;
             this.id = id;
             this.done = done;
+            this.color = color;
         }
     }
 
@@ -111,7 +114,8 @@ public class SharedWidgetService extends RemoteViewsService {
                             WidgetDays.groupLabel(data, group),
                             WidgetDays.groupLine(data, group),
                             null,
-                            false
+                            false,
+                            ""
                         ));
                         headerAdded = true;
                     }
@@ -122,7 +126,8 @@ public class SharedWidgetService extends RemoteViewsService {
                         item.optString("title"),
                         who.isEmpty() ? time : who,
                         item.optString("id"),
-                        item.optBoolean("done", false)
+                        item.optBoolean("done", false),
+                        item.optString("color")
                     ));
                 }
             }
@@ -174,6 +179,11 @@ public class SharedWidgetService extends RemoteViewsService {
                 row.secondary == null || row.secondary.isEmpty() ? View.GONE : View.VISIBLE
             );
             views.setInt(
+                R.id.item_card,
+                "setBackgroundResource",
+                WidgetColors.rowBackground(row.color, row.done)
+            );
+            views.setInt(
                 R.id.item_check,
                 "setBackgroundResource",
                 row.done ? R.drawable.widget_check_on : R.drawable.widget_check_off
@@ -183,10 +193,10 @@ public class SharedWidgetService extends RemoteViewsService {
                 row.done ? View.VISIBLE : View.GONE
             );
             // אין קו חוצה: setPaintFlags אינה מסומנת ל-RemoteViews
-            views.setTextColor(
-                R.id.item_title,
-                context.getColor(row.done ? R.color.widget_faint : R.color.widget_ink)
-            );
+            // הטקסט בדיו של אותו צבע, כמו `.ev` במסך - ושעה, מי הוסיף וכותרת יחד
+            int ink = WidgetColors.rowInk(row.color, row.done);
+            WidgetColors.text(context, views, R.id.item_title, ink);
+            WidgetColors.text(context, views, R.id.item_time, ink);
 
             Intent fill = new Intent();
             fill.putExtra(WidgetActionReceiver.EXTRA_REF, row.id);

@@ -7,33 +7,21 @@
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
     android:layoutDirection="rtl"
-    android:padding="10dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="6dp">
+        android:paddingStart="4dp"
+        android:paddingBottom="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/widget_preview_shared_title"
-            android:textColor="@color/widget_ink"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:maxLines="1" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="@string/widget_preview_shared_sub"
-            android:textColor="@color/widget_muted"
-            android:textSize="12sp"
-            android:maxLines="1" />
+        <TextView style="@style/WidgetPreviewWidgetTitle" android:text="@string/widget_preview_shared_title" />
+        <TextView style="@style/WidgetPreviewWidgetSub" android:text="@string/widget_preview_shared_sub" />
     </LinearLayout>
 
     <LinearLayout
@@ -45,24 +33,22 @@
         <LinearLayout style="@style/WidgetPreviewHeader">
             <TextView style="@style/WidgetPreviewHeaderLabel" android:text="@string/widget_preview_undated" />
         </LinearLayout>
-        <LinearLayout style="@style/WidgetPreviewItem">
-            <TextView style="@style/WidgetPreviewCheck" />
-            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared1" />
-            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared1_who" />
+        <LinearLayout style="@style/WidgetPreviewItem" android:background="@drawable/widget_row_graphite">
+            <ImageView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared1" android:textColor="@color/widget_ev_graphite_ink" />
+            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared1_who" android:textColor="@color/widget_ev_graphite_ink" />
         </LinearLayout>
-        <LinearLayout style="@style/WidgetPreviewItem">
-            <TextView style="@style/WidgetPreviewCheck" />
-            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared2" />
+        <LinearLayout style="@style/WidgetPreviewItem" android:background="@drawable/widget_row_peach">
+            <ImageView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared2" android:textColor="@color/widget_ev_peach_ink" />
         </LinearLayout>
-        <LinearLayout style="@style/WidgetPreviewItem">
-            <TextView style="@style/WidgetPreviewCheck" />
-            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared3" />
-            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared3_who" />
+        <LinearLayout style="@style/WidgetPreviewItem" android:background="@drawable/widget_row_graphite">
+            <ImageView style="@style/WidgetPreviewCheck" />
+            <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared3" android:textColor="@color/widget_ev_graphite_ink" />
+            <TextView style="@style/WidgetPreviewTime" android:text="@string/widget_preview_shared3_who" android:textColor="@color/widget_ev_graphite_ink" />
         </LinearLayout>
-        <LinearLayout style="@style/WidgetPreviewItem">
-            <TextView style="@style/WidgetPreviewCheck"
-                android:background="@drawable/widget_check_on"
-                android:text="✓" />
+        <LinearLayout style="@style/WidgetPreviewItem" android:background="@drawable/widget_row_done">
+            <ImageView style="@style/WidgetPreviewCheck" android:background="@drawable/widget_check_on" android:src="@drawable/widget_ic_check" />
             <TextView style="@style/WidgetPreviewTitle" android:text="@string/widget_preview_shared4" android:textColor="@color/widget_faint" />
         </LinearLayout>
     </LinearLayout>

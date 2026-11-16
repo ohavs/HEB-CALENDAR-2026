@@ -10,10 +10,10 @@
  * - מסך פתיחה: תמונה אחת לכל צפיפות ולכל כיוון, בגודל שקפסיטור ציפה לו.
  */
 import sharp from 'sharp';
-import { readdir } from 'node:fs/promises';
+import { readdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { logo } from './logo.mjs';
+import { LOGO_INK, logo } from './logo.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const res = resolve(root, 'android/app/src/main/res');
@@ -26,7 +26,8 @@ const DENSITIES = [
   { dir: 'xxxhdpi', launcher: 192, foreground: 432, notify: 96 },
 ];
 
-const SPLASH_BG = '#F6F6FA';
+/** `canvas` של האפליקציה, כדי שהמעבר ממסך הפתיחה לדף לא יבליח גוון אחר */
+const SPLASH_BG = '#F5F1EA';
 
 async function png(svg, file) {
   await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(file);
@@ -45,10 +46,25 @@ for (const d of DENSITIES) {
   );
 
   // אייקון ההתראה - לבן על שקוף
-  await png(logo({ size: d.notify, bg: false }), resolve(res, `drawable-${d.dir}`, 'ic_stat_notify.png'));
+  await png(logo({ size: d.notify, bg: false, mono: true }), resolve(res, `drawable-${d.dir}`, 'ic_stat_notify.png'));
 
   console.log('✓', d.dir);
 }
+
+/*
+  הרקע של האייקון המסתגל נכתב מכאן, מאותו צבע של הלוגו. כשהוא ישב ביד
+  ב-values, החלפת הלוגו לדיו השאירה מאחורי החזית ריבוע סגול.
+*/
+await writeFile(
+  resolve(res, 'values/ic_launcher_background.xml'),
+  `<?xml version="1.0" encoding="utf-8"?>
+<!-- נוצר על ידי scripts/android-assets.mjs. אין לערוך ידנית. -->
+<resources>
+    <color name="ic_launcher_background">${LOGO_INK}</color>
+</resources>
+`,
+  'utf8',
+);
 
 /** מסך פתיחה בגודל שכבר קיים בתיקייה, עם הלוגו במרכז. */
 async function splash(file) {
@@ -61,8 +77,10 @@ async function splash(file) {
   })
     .composite([{ input: mark, gravity: 'centre' }])
     .png({ compressionLevel: 9 })
-    .toFile(`${file}.tmp`);
-  await sharp(`${file}.tmp`).toFile(file);
+    .toBuffer()
+    // דרך זיכרון ולא קובץ זמני: `splash.png.tmp` בתיקיית drawable הוא
+    // משאב בשם לא חוקי, והבנייה של אנדרואיד נופלת עליו
+    .then((bytes) => writeFile(file, bytes));
 }
 
 for (const dir of await readdir(res)) {

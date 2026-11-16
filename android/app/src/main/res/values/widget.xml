@@ -1,17 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- צבעי הוידג׳ט. אותה פלטה של האפליקציה, בערכים מוחלטים: לוידג׳ט
-         אין גישה למשתני ה-CSS שלנו. -->
-    <color name="widget_bg">#FFFFFFFF</color>
-    <color name="widget_ink">#FF15151F</color>
-    <color name="widget_muted">#FF6B6B7B</color>
-    <color name="widget_faint">#FFA3A3B2</color>
-    <color name="widget_accent">#FF6366F1</color>
-    <color name="widget_on_accent">#FFFFFFFF</color>
-    <color name="widget_well">#FFF2F2F7</color>
-    <color name="widget_holiday">#FFF59E0B</color>
-    <color name="widget_fast">#FF8B8B9E</color>
-    <color name="widget_roshchodesh">#FF34B38A</color>
+    <!-- צבעי הוידג׳ט. אותה פלטה של האפליקציה (src/index.css), בערכים
+         מוחלטים: לוידג׳ט אין גישה למשתני ה-CSS שלנו. הלילה ב-values-night.
+
+         "נבחר" ו"היום" הם דיו מלא (inverse) והטקסט עליהם on_inverse - לא
+         לבן: בלילה הדיו בהיר. הענבר (shabbat) לנר בלבד. הנקודות של המועדים
+         הן גווני ה-bar של צבעי האירוע, ולא צבעים משלהן.
+
+         הצבעים ב-widget_ev_* הם הפסטל והדיו של כל צבע אירוע (.ev-* ב-CSS),
+         לשורות התזכורות. שם צבע שאינו מוכר נקרא כגרפיט - ראו WidgetColors. -->
+    <color name="widget_bg">#FFFFFDF9</color>
+    <color name="widget_well">#FFEDE7DD</color>
+    <color name="widget_hairline">#FFE1DCD4</color>
+    <color name="widget_ink">#FF1B1915</color>
+    <color name="widget_muted">#FF6B655C</color>
+    <color name="widget_faint">#FFA69F94</color>
+    <color name="widget_inverse">#FF1C1A17</color>
+    <color name="widget_on_inverse">#FFF6F2EA</color>
+    <color name="widget_shabbat">#FFC4781E</color>
+    <color name="widget_dot_yomtov">#FFDE6C8C</color>
+    <color name="widget_dot_holiday">#FF8C72DC</color>
+    <color name="widget_dot_fast">#FFA48E70</color>
+    <color name="widget_dot_roshchodesh">#FF849C48</color>
+    <color name="widget_check_ring">#731B1915</color>
+    <color name="widget_ev_butter_bg">#FFFAE5A0</color>
+    <color name="widget_ev_butter_ink">#FF785A0C</color>
+    <color name="widget_ev_peach_bg">#FFF9CFB6</color>
+    <color name="widget_ev_peach_ink">#FF96461E</color>
+    <color name="widget_ev_rose_bg">#FFF5C6D2</color>
+    <color name="widget_ev_rose_ink">#FFA03050</color>
+    <color name="widget_ev_violet_bg">#FFDACDF6</color>
+    <color name="widget_ev_violet_ink">#FF5840A8</color>
+    <color name="widget_ev_sky_bg">#FFC4DDF5</color>
+    <color name="widget_ev_sky_ink">#FF225E9E</color>
+    <color name="widget_ev_mint_bg">#FFC6EAD5</color>
+    <color name="widget_ev_mint_ink">#FF1C6E48</color>
+    <color name="widget_ev_sage_bg">#FFDBE4C0</color>
+    <color name="widget_ev_sage_ink">#FF4E6024</color>
+    <color name="widget_ev_slate_bg">#FFECE1D2</color>
+    <color name="widget_ev_slate_ink">#FF6A5842</color>
+    <color name="widget_ev_graphite_bg">#FFE2DCD2</color>
+    <color name="widget_ev_graphite_ink">#FF1B1915</color>
 
     <string name="widget_calendar_label">לוח שנה עברי</string>
     <string name="widget_reminders_label">תזכורות</string>
