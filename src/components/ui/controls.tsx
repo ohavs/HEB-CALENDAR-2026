@@ -66,10 +66,11 @@ export function SettingRow({
   onClick?: () => void;
   icon?: ReactNode;
 }) {
-  const Wrapper = onClick ? motion.button : motion.div;
+  // לא רכיב של framer: שורה חוזרת עשרות פעמים בהגדרות (ראו lib/press.ts)
+  const Wrapper = onClick ? 'button' : 'div';
   return (
     <Wrapper
-      {...(onClick ? { type: 'button' as const, onClick, whileTap: { scale: 0.99 } } : {})}
+      {...(onClick ? { type: 'button' as const, onClick, 'data-press': 0.99 } : {})}
       className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-right lg:px-5"
     >
       {/*
@@ -139,13 +140,12 @@ export function SettingsGroup({
       <div className="overflow-hidden rounded-group bg-surface shadow-raised">
         {title &&
           (collapsible ? (
-            <motion.button
+            <button
               type="button"
               onClick={toggle}
               aria-expanded={open}
               aria-controls={panelId}
-              whileTap={{ scale: 0.995 }}
-              transition={TAP}
+              data-press={0.995}
               className="focus-ring-inset flex min-h-[60px] w-full items-center gap-3 px-5 py-3 text-right transition-colors active:bg-well lg:px-6"
             >
               <span className="flex-1 text-body font-semibold text-ink">{title}</span>
@@ -157,7 +157,7 @@ export function SettingsGroup({
               >
                 <ChevronDown size={ICON.lg} />
               </motion.span>
-            </motion.button>
+            </button>
           ) : (
             <div className="flex min-h-[60px] items-center px-5 py-3 lg:px-6">
               <span className="text-body font-semibold text-ink">{title}</span>

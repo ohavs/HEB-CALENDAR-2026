@@ -9,9 +9,10 @@
  * כדי לא לדרוש רסטור מחדש בכל פריים, ושקיפות התוכן נגזרת ישירות ממיקום
  * הגרירה כ-motion value - בלי רינדור מחדש של React תוך כדי התנועה.
  */
-import { motion, useDragControls, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { animate, motion, useMotionValue, useTransform, type ValueAnimationTransition } from 'framer-motion';
 import { useCallback, useRef, type MutableRefObject } from 'react';
 import { useSheetDrag } from '@/hooks/useSheetDrag';
+import { useAxisDrag, type AxisDragInfo } from '@/hooks/useAxisDrag';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { ChevronLeft, ChevronUp, Plus, Sun } from '@/components/ui/icons';
@@ -304,11 +305,46 @@ export function EventsPanel({
   bottomInset: number;
 }) {
   const { ref, height } = useElementSize<HTMLDivElement>();
-  const controls = useDragControls();
   const open = detent !== 'peek';
   // חלונית פתוחה היא מצב שאפשר לחזור ממנו, בדיוק כמו גיליון
   useOverlayHistory(open, () => onDetentChange('peek'));
-  const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(controls);
+
+  const y = useMotionValue(0);
+  const collapsedY = Math.max(0, height - (PEEK_HEIGHT + bottomInset));
+  const halfY = Math.max(0, height - Math.min(HALF_HEIGHT + bottomInset, height));
+  const targetY = detent === 'full' ? 0 : detent === 'half' ? halfY : collapsedY;
+
+  /*
+    בסוף הגרירה נבחרת העצירה הקרובה ביותר למקום שאליו התנועה מכוונת,
+    ולא למקום שבו האצבע עזבה: זריקה מהירה כלפי מעלה מתכוונת לפתוח את
+    החלונית גם אם היא הספיקה לזוז 20px בלבד.
+  */
+  const onDragEnd = ({ velocity }: AxisDragInfo) => {
+    const projected = y.get() + velocity * FLING_PROJECTION;
+    const stops: [PanelDetent, number][] = [
+      ['full', 0],
+      ['half', halfY],
+      ['peek', collapsedY],
+    ];
+    let best = stops[0];
+    for (const stop of stops) {
+      if (Math.abs(stop[1] - projected) < Math.abs(best[1] - projected)) best = stop;
+    }
+    // אותה עצירה אינה משנה את `animate`, ולכן החזרה אליה נעשית כאן
+    if (best[0] === detent) {
+      animate(y, targetY, { ...(GLIDE as ValueAnimationTransition<number>), velocity });
+    } else onDetentChange(best[0]);
+  };
+  // לא `drag` של framer: ראו useAxisDrag - הוא מודד את המסך בכל הקשה על יום
+  const drag = useAxisDrag({
+    axis: 'y',
+    value: y,
+    min: 0,
+    max: collapsedY,
+    elastic: { min: 0.02, max: 0.06 },
+    onEnd: onDragEnd,
+  });
+  const { scrollRef, panelRef, handleProps, panelProps } = useSheetDrag(drag);
 
   // שני ref-ים על אותו אלמנט: מדידת הגובה, ומאזיני המגע של המשיכה
   const attachPanel = useCallback(
@@ -318,10 +354,6 @@ export function EventsPanel({
     },
     [ref, panelRef],
   );
-  const y = useMotionValue(0);
-  const collapsedY = Math.max(0, height - (PEEK_HEIGHT + bottomInset));
-  const halfY = Math.max(0, height - Math.min(HALF_HEIGHT + bottomInset, height));
-  const targetY = detent === 'full' ? 0 : detent === 'half' ? halfY : collapsedY;
 
   // שומרים את נקודת הקיפול ב-ref כדי שהטרנספורם יקרא ערך עדכני
   // בלי ליצור את עצמו מחדש בכל מדידה.
@@ -337,25 +369,6 @@ export function EventsPanel({
     return Math.min(1, Math.max(0, progress));
   });
 
-  /*
-    בסוף הגרירה נבחרת העצירה הקרובה ביותר למקום שאליו התנועה מכוונת,
-    ולא למקום שבו האצבע עזבה: זריקה מהירה כלפי מעלה מתכוונת לפתוח את
-    החלונית גם אם היא הספיקה לזוז 20px בלבד.
-  */
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    const projected = y.get() + info.velocity.y * FLING_PROJECTION;
-    const stops: [PanelDetent, number][] = [
-      ['full', 0],
-      ['half', halfY],
-      ['peek', collapsedY],
-    ];
-    let best = stops[0];
-    for (const stop of stops) {
-      if (Math.abs(stop[1] - projected) < Math.abs(best[1] - projected)) best = stop;
-    }
-    onDetentChange(best[0]);
-  };
-
   return (
     <motion.div
       ref={attachPanel}
@@ -363,12 +376,6 @@ export function EventsPanel({
       style={{ y, height: `calc(64svh + ${bottomInset}px)`, willChange: 'transform' }}
       animate={{ y: targetY }}
       transition={GLIDE}
-      drag="y"
-      dragListener={false}
-      dragControls={controls}
-      dragConstraints={{ top: 0, bottom: collapsedY }}
-      dragElastic={{ top: 0.02, bottom: 0.06 }}
-      onDragEnd={onDragEnd}
       {...panelProps}
     >
       {/*

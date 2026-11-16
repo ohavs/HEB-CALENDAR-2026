@@ -14,14 +14,13 @@
  * `TEMPLATE_DRAG_PREFIX`. `onDrop` ב-App מזהה אותה ויוצר אירוע חדש
  * במקום להזיז קיים - וכך מנוע הגרירה לא צריך לדעת שתבניות קיימות.
  */
-import { motion } from 'framer-motion';
 import { LayoutTemplate } from '@/components/ui/icons';
 import type { DateKey, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { beginLongPress, useDragStore } from '@/lib/dragEngine';
 import { templateHint } from '@/lib/templates';
 import { haptic } from '@/lib/native';
-import { ICON, TAP } from '@/lib/motion';
+import { ICON } from '@/lib/motion';
 
 /** מה שמסמן ל-onDrop שזו תבנית ולא אירוע קיים. */
 export const TEMPLATE_DRAG_PREFIX = 'tpl:';
@@ -76,7 +75,7 @@ export function TemplateStrip({
       </h3>
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
         {templates.map((template) => (
-          <motion.button
+          <button
             key={template.id}
             type="button"
             // touch-none כדי שהדפדפן לא יפרש את הלחיצה הארוכה כגלילה
@@ -84,8 +83,7 @@ export function TemplateStrip({
             className={`ev ev-${template.color} focus-ring flex min-w-[7.5rem] max-w-[13rem] shrink-0 touch-none select-none items-center gap-2 rounded-field px-4 py-3 text-right ${
               pressing === TEMPLATE_DRAG_PREFIX + template.id ? 'opacity-50' : ''
             }`}
-            whileTap={{ scale: 0.95 }}
-            transition={TAP}
+            data-press={0.95}
             onPointerDown={(e) => beginLongPress(e, dragOccurrence(template, date))}
             onClick={() => {
               void haptic('medium');
@@ -98,7 +96,7 @@ export function TemplateStrip({
               </span>
               <span className="mt-1 block truncate text-caption opacity-75">{templateHint(template)}</span>
             </span>
-          </motion.button>
+          </button>
         ))}
       </div>
     </section>

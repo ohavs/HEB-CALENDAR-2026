@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, ChevronDown, MapPin, Repeat, Trash2 } from './icons';
 import type { ReminderItem } from '@/lib/reminders';
 import { isGroupCollapsed, setGroupCollapsed } from '@/lib/settingsCollapse';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP } from '@/lib/motion';
 import { haptic } from '@/lib/native';
 import { announce } from '@/lib/announce';
 import { MarqueeText } from './MarqueeText';
@@ -81,7 +81,7 @@ export function ReminderRow({
         item.done ? 'text-faint ring-1 ring-inset ring-hairline' : `ev ev-${item.color}`
       } ${dragging ? 'opacity-25' : ''}`}
     >
-      <motion.button
+      <button
         type="button"
         role="checkbox"
         aria-checked={item.done}
@@ -90,8 +90,7 @@ export function ReminderRow({
           void haptic('light');
           onToggle(!item.done);
         }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
+        data-press={0.88}
         /*
           התיבה מתמלאת בדיו ולא בצבע האירוע: "בוצע" הוא מצב של הממשק, לא
           מידע על האירוע, ולבן על צבע בהיר כמו חמאה כמעט לא נקרא.
@@ -101,14 +100,13 @@ export function ReminderRow({
         }`}
       >
         {item.done && <CheckMark size={ICON.sm} />}
-      </motion.button>
+      </button>
 
-      <motion.button
+      <button
         type="button"
         onClick={onOpen}
         onPointerDown={onPointerDown}
-        whileTap={{ scale: 0.99 }}
-        transition={TAP}
+        data-press={0.99}
         className="focus-ring min-w-0 flex-1 rounded-xl text-right"
       >
         <MarqueeText
@@ -128,25 +126,24 @@ export function ReminderRow({
             {item.repeating && <Repeat size={ICON.xs} className="shrink-0" />}
           </span>
         )}
-      </motion.button>
+      </button>
 
       {/*
         מחיקה מהשורה עצמה. סימון ומחיקה אינם אותו דבר - פריט שבוצע הוא
         רשומה, פריט שנמחק הוא טעות - ולכן שניהם גלויים.
       */}
-      <motion.button
+      <button
         type="button"
         onClick={() => {
           void haptic('medium');
           onDelete();
         }}
-        whileTap={{ scale: 0.88 }}
-        transition={TAP}
+        data-press={0.88}
         aria-label={`מחיקת ${item.title}`}
         className="focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full opacity-45 transition-opacity active:opacity-90"
       >
         <Trash2 size={ICON.sm} />
-      </motion.button>
+      </button>
     </div>
   );
 }

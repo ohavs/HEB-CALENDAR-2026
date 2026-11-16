@@ -30,7 +30,7 @@ import { ColorRow } from './ui/ColorRow';
 import { TextField } from './ui/fields';
 import { announce } from '@/lib/announce';
 import { haptic } from '@/lib/native';
-import { ENTER, EXIT, GLIDE, ICON, SNAP, TAP } from '@/lib/motion';
+import { ENTER, EXIT, GLIDE, ICON, SNAP } from '@/lib/motion';
 
 export function TemplatesView({
   bottomInset,
@@ -151,10 +151,9 @@ export function TemplatesView({
               className={`ev ev-${template.color} flex items-center gap-3 rounded-card py-3 pe-3 ps-4`}
             >
 
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.99 }}
-                transition={TAP}
+                data-press={0.99}
                 onClick={() => setEditing(template)}
                 aria-label={`עריכת ${template.title}`}
                 className="focus-ring min-w-0 flex-1 rounded-field py-1 text-right"
@@ -163,12 +162,11 @@ export function TemplatesView({
                   {template.title}
                 </span>
                 <TemplateMeta template={template} />
-              </motion.button>
+              </button>
 
-              <motion.button
+              <button
                 type="button"
-                whileTap={{ scale: 0.94 }}
-                transition={TAP}
+                data-press={0.94}
                 onClick={() => {
                   void haptic('light');
                   setPlacing(template);
@@ -178,7 +176,7 @@ export function TemplatesView({
               >
                 <CalendarPlus size={ICON.md} />
                 שיבוץ
-              </motion.button>
+              </button>
             </motion.div>
           ))}
         </div>

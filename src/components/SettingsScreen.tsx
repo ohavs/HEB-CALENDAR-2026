@@ -1,5 +1,5 @@
 /** טאב ההגדרות - תצוגה, תוכן הלוח, זמנים, תזכורות וחשבון. */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlarmClock,
@@ -26,6 +26,8 @@ import { useSettings, useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
 import { useEvents, useEventsStore } from '@/store/events';
 import { formatTime, relativeDayLabel } from '@/lib/dates';
+import type { StoredReminder } from '@/lib/idb';
+import { whenIdle } from '@/lib/idle';
 import { findCity } from '@/lib/locations';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import {
@@ -248,10 +250,20 @@ export function SettingsScreen({
    * באמת תצלצל - בלי לחכות לה.
    */
   const events = useEvents();
-  const nextAlert = useMemo(() => {
-    const now = Date.now();
-    return buildReminders(settings, events).find((r) => r.at > now) ?? null;
-  }, [settings, events]);
+  /*
+    מחושב ברגע שקט ולא בבנייה: חודש של זמני שבת ומועדים מ-hebcal, וכל
+    האירועים - בתוך מעבר הלשונית זה היה החלק הגדול של המסך. `undefined`
+    הוא "עוד לא חושב", כדי לא לכתוב לרגע "אין התראות".
+  */
+  const [nextAlert, setNextAlert] = useState<StoredReminder | null | undefined>(undefined);
+  useEffect(
+    () =>
+      whenIdle(() => {
+        const now = Date.now();
+        setNextAlert(buildReminders(settings, events).find((r) => r.at > now) ?? null);
+      }),
+    [settings, events],
+  );
   const [geo, setGeo] = useState<GeoPermission | null>(null);
   /** מה קרה ברקע - הרישום האחרון והחציה האחרונה. ראו `GeofenceStatus`. */
   const [fenceStatus, setFenceStatus] = useState<GeofenceStatus | null>(null);
@@ -772,9 +784,11 @@ export function SettingsScreen({
           <SettingRow
             title="ההתראה הבאה"
             hint={
-              nextAlert
-                ? `${relativeDayLabel(new Date(nextAlert.at), new Date(), true)} ${formatTime(nextAlert.at)} · ${nextAlert.title}`
-                : 'אין התראות בחודש הקרוב'
+              nextAlert === undefined
+                ? undefined
+                : nextAlert
+                  ? `${relativeDayLabel(new Date(nextAlert.at), new Date(), true)} ${formatTime(nextAlert.at)} · ${nextAlert.title}`
+                  : 'אין התראות בחודש הקרוב'
             }
           />
         )}

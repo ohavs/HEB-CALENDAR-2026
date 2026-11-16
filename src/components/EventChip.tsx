@@ -6,13 +6,12 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { CheckMark } from './ui/controls';
-import { motion } from 'framer-motion';
 import { MapPin, Repeat, Users } from '@/components/ui/icons';
 import { isSpanEnd, type Occurrence } from '@/lib/recurrence';
 import { durationLabel } from '@/lib/dates';
 import { beginLongPress, useIsDraggingOccurrence } from '@/lib/dragEngine';
 import { haptic } from '@/lib/native';
-import { ICON, TAP, TAP_SCALE_LG } from '@/lib/motion';
+import { ICON, TAP_SCALE_LG } from '@/lib/motion';
 import { MarqueeText } from './ui/MarqueeText';
 
 /**
@@ -175,7 +174,7 @@ export function EventCard({
       }`}
     >
       {onToggleDone && (
-        <motion.button
+        <button
           type="button"
           role="checkbox"
           aria-checked={occurrence.done}
@@ -184,21 +183,19 @@ export function EventCard({
             void haptic('light');
             onToggleDone(!occurrence.done);
           }}
-          whileTap={{ scale: 0.88 }}
-          transition={TAP}
+          data-press={0.88}
           className={`focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
             occurrence.done ? 'ev-solid border-transparent text-white' : 'border-current opacity-45'
           }`}
         >
           {occurrence.done && <CheckMark size={ICON.sm} />}
-        </motion.button>
+        </button>
       )}
-      <motion.button
+      <button
         type="button"
         onClick={onClick}
         onKeyDown={onKeyDown}
-        whileTap={TAP_SCALE_LG}
-        transition={TAP}
+        data-press={TAP_SCALE_LG.scale}
         onPointerDown={draggable ? (e) => beginLongPress(e, occurrence) : undefined}
         aria-label={cardLabel(occurrence)}
         aria-keyshortcuts={
@@ -261,7 +258,7 @@ export function EventCard({
           )}
         </span>
         </span>
-      </motion.button>
+      </button>
     </div>
   );
 }

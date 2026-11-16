@@ -15,7 +15,7 @@
  * האישית היה מטשטש את השאלה "מי עוד רואה את זה". `SharedReminders` שם,
  * ומשתמש באותו מנוע.
  */
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, startTransition, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ListChecks, Plus, Tag } from '@/components/ui/icons';
 import { EmptyState } from './ui/EmptyState';
@@ -27,7 +27,13 @@ import {
   type ReminderGroup,
   type ReminderItem,
 } from '@/lib/reminders';
-import { NO_CATEGORY, sectionByCategory } from '@/lib/reminderSections';
+import {
+  firstRows,
+  firstSectionRows,
+  NO_CATEGORY,
+  sectionByCategory,
+} from '@/lib/reminderSections';
+import { whenIdle } from '@/lib/idle';
 import { countByCategory, type CategoryFilter } from '@/lib/sharedLists';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { useEvents, useEventsStore, type EventDraft } from '@/store/events';
@@ -51,6 +57,9 @@ import { TemplatesView } from './TemplatesView';
 import { ReminderCategoriesSheet } from './ReminderCategoriesSheet';
 import { CategoryChip, CategorySection, DayGroupHeader, ReminderRow } from './ui/ReminderParts';
 import { readRemindersView, writeRemindersView, type RemindersView } from '@/lib/remindersView';
+
+/** כמה שורות נבנות עם המסך עצמו - יותר ממה שנכנס בגובה של טלפון */
+const FIRST_ROWS = 20;
 
 export function RemindersScreen({
   onEditEvent,
@@ -131,6 +140,16 @@ export function RemindersScreen({
     () => (activeCategory === null && categories.length ? sectionByCategory(groups, categories) : null),
     [activeCategory, categories, groups],
   );
+
+  /*
+    השורות הראשונות עם המסך, והשאר ברגע השקט שאחרי הכניסה (`firstRows`).
+    הספירות, המצב הריק והכותרות נגזרים מהרשימה המלאה, ולכן דבר מהם אינו
+    משתנה כשהשאר מגיע - רק מה שמתחת לקצה.
+  */
+  const [complete, setComplete] = useState(false);
+  useEffect(() => whenIdle(() => startTransition(() => setComplete(true))), []);
+  const shownGroups = complete ? visibleGroups : firstRows(visibleGroups, FIRST_ROWS);
+  const shownSections = sections && !complete ? firstSectionRows(sections, FIRST_ROWS) : sections;
 
   const [view, setView] = useState<RemindersView>(readRemindersView);
   const [title, setTitle] = useState('');
@@ -368,7 +387,7 @@ export function RemindersScreen({
       */}
       <div className="mt-6 space-y-7">
         {sections ? (
-          sections.map((section) => (
+          shownSections?.map((section) => (
             <CategorySection
               key={section.id}
               collapseId={`reminders:mine:${section.id}`}
@@ -394,7 +413,7 @@ export function RemindersScreen({
         ) : (
           // כשאין כלום, מצב ריק אחד - לא כותרת יום עם "אין תזכורות" ומתחתיה עוד אחד
           visibleGroups.some((g) => g.items.length) &&
-          visibleGroups.map((group) => (
+          shownGroups.map((group) => (
             <Group
               key={group.key}
               groupKey={group.key}
@@ -603,3 +622,4 @@ function pseudoOccurrence(item: ReminderItem): Occurrence | null {
     spanStart: item.event.date,
   };
 }
+

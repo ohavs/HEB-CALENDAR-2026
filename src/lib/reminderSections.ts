@@ -57,3 +57,36 @@ export function sectionByCategory(
     })
     .filter((section) => section.groups.length > 0);
 }
+
+/*
+  ההתחלה של רשימה ארוכה, כדי לצייר אותה עם המסך ואת השאר רגע אחר כך.
+
+  במעבר לשונית מסך התזכורות בנה את כל השורות של ארבעה חודשים בבת אחת,
+  והחלק היקר לא היה החישוב אלא יצירת האלמנטים ב-commit - עשרות
+  מילישניות בטלפון, בדיוק בפריים שבו המסך אמור להופיע. רוב השורות ממילא
+  מתחת לקצה. קבוצה נכנסת שלמה או לא נכנסת, כדי שיום לא ייחתך באמצע;
+  קבוצה ריקה ("אין תזכורות") היא שורה.
+*/
+export function firstRows(groups: ReminderGroup[], rows: number): ReminderGroup[] {
+  let count = 0;
+  const out: ReminderGroup[] = [];
+  for (const group of groups) {
+    if (count >= rows) break;
+    out.push(group);
+    count += Math.max(1, group.items.length);
+  }
+  return out;
+}
+
+/** אותו דבר כשהרשימה מחולקת לקטגוריות: התקציב עובר מקטגוריה לקטגוריה */
+export function firstSectionRows(sections: ReminderSection[], rows: number): ReminderSection[] {
+  let left = rows;
+  const out: ReminderSection[] = [];
+  for (const section of sections) {
+    if (left <= 0) break;
+    const groups = firstRows(section.groups, left);
+    out.push(groups.length === section.groups.length ? section : { ...section, groups });
+    left -= groups.reduce((n, g) => n + Math.max(1, g.items.length), 0);
+  }
+  return out;
+}

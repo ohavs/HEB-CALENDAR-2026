@@ -11,7 +11,7 @@
  * ממילא פרוש ברשימה, וחלונית נוספת רק תסתיר אותו.
  */
 import { useCallback, useMemo } from 'react';
-import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import type { CalendarView, DateKey, DayInfo, EventTemplate } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import {
@@ -36,30 +36,7 @@ import { WeekView } from './WeekView';
 import { AgendaView } from './AgendaView';
 import { DockedDayPanel, EventsPanel, type PanelDetent } from './EventsPanel';
 import { OfflineBar } from './OfflineBar';
-import { GLIDE } from '@/lib/motion';
-
-/** מרחק/מהירות החלקה שמעבירים חודש */
-const SWIPE_DISTANCE = 58;
-const SWIPE_VELOCITY = 320;
-
-/*
-  קדימה בזמן הוא שמאלה, כמו דפדוף בספר עברי.
-
-  ב-RTL "הבא" יושב בשמאל, ולכן החודש הבא נכנס משמאל והנוכחי יוצא ימינה -
-  והאצבע מביאה אותו בהחלקה ימינה, באותו כיוון שבו הרצועה זזה. קודם זה היה
-  הפוך, כמו קרוסלה של שפה שנכתבת משמאל לימין: ההחלקה ימינה החזירה אחורה,
-  והחודש הבא נכנס מהצד של "הקודם". התנועה הייתה נכונה, ובכל זאת נראתה
-  כמו נסיגה.
-
-  התוכן תמיד זז לכיוון האצבע, והחודש החדש תמיד נכנס מהצד שממנו היא באה.
-  `x` של framer הוא פיזי ולא לוגי, ולכן הסימנים מפורשים ואינם מתהפכים
-  לבד לפי `dir`.
-*/
-const pageVariants = {
-  enter: (direction: number) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0.4 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0.4 }),
-};
+import { SwipePage } from './ui/SwipePage';
 
 /** תחילת השבוע שבו נמצא התאריך. השבוע מתחיל ביום ראשון. */
 function weekStartOf(date: Date): Date {
@@ -156,15 +133,6 @@ export function CalendarScreen({
     [month, onMonthChange, onSelectDate, view, weekStart],
   );
 
-  /*
-    החלקה ימינה מקדימה, החלקה שמאלה מחזירה. זה מודל "גוררים את הדף": האצבע
-    מושכת את החודש הנוכחי החוצה ימינה, והבא נכנס משמאל - מאותו צד שבו
-    יושב "הבא". ראו pageVariants.
-  */
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY) page(1);
-    else if (info.offset.x < -SWIPE_DISTANCE || info.velocity.x < -SWIPE_VELOCITY) page(-1);
-  };
 
   /**
    * לחיצה על יום פותחת את מה שיש בו.
@@ -251,19 +219,11 @@ export function CalendarScreen({
         <WeekdayHeader />
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
-            <motion.div
+            <SwipePage
               key={monthKey(month)}
-              custom={direction}
-              variants={pageVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ x: GLIDE, opacity: { duration: 0.18 } }}
-              drag={dragActive ? false : 'x'}
-              dragDirectionLock
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.14}
-              onDragEnd={onDragEnd}
+              direction={direction}
+              onPage={page}
+              enabled={!dragActive}
               className="absolute inset-0 flex flex-col"
               style={{ paddingBottom: isDesktop ? 0 : bottomInset + 62 }}
             >
@@ -274,7 +234,7 @@ export function CalendarScreen({
                 onSelectDay={onSelectDay}
                 onNavigate={goToDate}
               />
-            </motion.div>
+            </SwipePage>
           </AnimatePresence>
         </div>
       </>

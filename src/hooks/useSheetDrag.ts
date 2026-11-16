@@ -18,7 +18,6 @@
  * כגלילה לא הופכת לסגירה כשמגיעים לראש הרשימה.
  */
 import { useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import type { DragControls } from 'framer-motion';
 
 /** כמה צריך למשוך כדי שזו תיחשב מחווה ולא נגיעה */
 const START_THRESHOLD = 6;
@@ -26,7 +25,13 @@ const START_THRESHOLD = 6;
 type Decision = 'dismiss' | 'scroll';
 type Gesture = { y: number; decision: Decision | null; dragging: boolean };
 
-export function useSheetDrag(controls: DragControls) {
+/**
+ * מה שמתחיל את הגרירה בפועל: `DragControls` של framer בגיליון, ו-`useAxisDrag`
+ * בחלונית הלוח - שניהם מקבלים את ה-pointerdown שממנו היא מתחילה.
+ */
+type DragStarter = { start: (e: ReactPointerEvent) => void };
+
+export function useSheetDrag(controls: DragStarter) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const detach = useRef<(() => void) | null>(null);

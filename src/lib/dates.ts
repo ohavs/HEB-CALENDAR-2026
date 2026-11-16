@@ -167,13 +167,17 @@ export function formatTimeInZone(at: Date | number, tzid: string): string {
   return formatter.format(at);
 }
 
+let localFormatter: Intl.DateTimeFormat | null = null;
+
 /** HH:mm בשעון המקומי של המכשיר. */
 export function formatTime(at: Date | number): string {
-  return new Intl.DateTimeFormat('he-IL', {
+  // מאותה סיבה: buildReminders קורא לכאן לכל אירוע בחודש הקרוב
+  localFormatter ??= new Intl.DateTimeFormat('he-IL', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  }).format(at);
+  });
+  return localFormatter.format(at);
 }
 
 /** ממיר "HH:mm" לדקות מתחילת היום. */

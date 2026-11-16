@@ -6,7 +6,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { debounceIdle, whenIdle } from './idle';
-import { formatTimeInZone } from './dates';
+import { formatTime, formatTimeInZone } from './dates';
+import { installCheapAbort } from './cheapAbort';
 
 const SRC = join(__dirname, '..');
 
@@ -51,6 +52,41 @@ describe('performance guards', () => {
     expect(app).toMatch(/startTransition\(\(\) => setTabState\(next\)\)/);
     const bar = readFileSync(join(SRC, 'components/TabBar.tsx'), 'utf8');
     expect(bar).toMatch(/setPicked\(tab\.id\)/);
+  });
+
+  it('keeps framer drag off the screens', () => {
+    /*
+      `drag` ו-`dragControls` מצרפים את מערכת ההטלה כמו `layout`: כל ציור
+      של הרכיב מודד את הפריסה של העץ כולו. בלוח זה היה בכל הקשה על יום
+      ובכל מעבר לשונית. גרירה במסך עוברת ב-`useAxisDrag`; בגיליון, שקיים
+      רק כשהוא פתוח, framer נשאר.
+    */
+    expect(
+      offenders(/\sdrag(?:=["{]|\s*$)|dragControls=/m).filter((f) => f !== 'components/ui/Sheet.tsx'),
+    ).toEqual([]);
+  });
+
+  it('keeps repeated rows out of framer', () => {
+    /*
+      `whileTap` הופך כל כפתור לרכיב של framer. בשורה שחוזרת ברשימה זה היה
+      כמעט חצי מבניית מסך התזכורות; שורות כאלה נושאות `data-press`
+      (lib/press.ts), עם אותו קפיץ.
+    */
+    const rows = ['components/ui/ReminderParts.tsx', 'components/EventChip.tsx', 'components/WeekView.tsx', 'components/TemplateStrip.tsx'];
+    for (const file of rows) {
+      expect(readFileSync(join(SRC, file), 'utf8'), file).not.toMatch(/whileTap/);
+    }
+    const controls = readFileSync(join(SRC, 'components/ui/controls.tsx'), 'utf8');
+    expect(controls).not.toMatch(/onClick \? motion\.button/);
+  });
+
+  it('installs the cheap abort and the shared press before rendering', () => {
+    const main = readFileSync(join(SRC, 'main.tsx'), 'utf8');
+    const render = main.indexOf('createRoot(');
+    expect(main.indexOf('installCheapAbort()')).toBeGreaterThan(-1);
+    expect(main.indexOf('installCheapAbort()')).toBeLessThan(render);
+    expect(main.indexOf('installPress()')).toBeGreaterThan(-1);
+    expect(main.indexOf('installPress()')).toBeLessThan(render);
   });
 
   it('promotes the marquee to a layer only while it moves', () => {
@@ -118,5 +154,32 @@ describe('cached time formatting', () => {
     expect(formatTimeInZone(at, 'Asia/Jerusalem')).toBe('21:00');
     expect(formatTimeInZone(at, 'America/New_York')).toBe('14:00');
     expect(formatTimeInZone(at, 'Asia/Jerusalem')).toBe('21:00');
+  });
+});
+
+describe('cheap abort', () => {
+  it('still aborts with an AbortError, and keeps an explicit reason', () => {
+    installCheapAbort();
+    const a = new AbortController();
+    a.abort();
+    expect(a.signal.aborted).toBe(true);
+    expect((a.signal.reason as DOMException).name).toBe('AbortError');
+
+    const b = new AbortController();
+    b.abort('mine');
+    expect(b.signal.reason).toBe('mine');
+
+    // שני ביטולים בלי סיבה חולקים את אותה שגיאה - זה כל החיסכון
+    const c = new AbortController();
+    c.abort();
+    expect(c.signal.reason).toBe(a.signal.reason);
+  });
+});
+
+describe('local time formatting', () => {
+  it('formats repeatedly from one cached formatter', () => {
+    const at = new Date(2026, 10, 16, 8, 5);
+    expect(formatTime(at)).toBe('08:05');
+    expect(formatTime(new Date(2026, 10, 16, 23, 30))).toBe('23:30');
   });
 });

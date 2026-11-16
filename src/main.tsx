@@ -1,12 +1,18 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
+import { installCheapAbort } from './lib/cheapAbort';
 import { isNative } from './lib/native';
+import { installPress } from './lib/press';
 import { getFirebase } from './lib/firebase';
 import { wasSignedIn } from './store/auth';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+
+// לפני הרכיב הראשון של framer - ראו cheapAbort.ts
+installCheapAbort();
+installPress();
 
 /*
   service worker הוא מנגנון של אתר. באפליקציה המותקנת הוא מיותר - חבילת

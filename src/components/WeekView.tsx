@@ -9,7 +9,7 @@
  * הטור הראשון בקוד הוא הימני ביותר, בדיוק כמו ברשת החודש.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, type PanInfo } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import type { DateKey, DayInfo, Settings } from "@/types";
 import type { Occurrence } from "@/lib/recurrence";
 import type { RangeData } from "@/hooks/useMonthData";
@@ -20,7 +20,8 @@ import {
   useIsDropTarget,
   useIsDraggingOccurrence,
 } from "@/lib/dragEngine";
-import { GLIDE, TAP_SCALE_LG } from "@/lib/motion";
+import { TAP_SCALE_LG } from "@/lib/motion";
+import { SwipePage } from "./ui/SwipePage";
 
 /** גובה שעה בפיקסלים. גדול דיו שאירוע של חצי שעה עדיין קריא. */
 const HOUR_HEIGHT = 52;
@@ -28,25 +29,7 @@ const HOUR_HEIGHT = 52;
 const MIN_BLOCK_MINUTES = 30;
 /** השעה שאליה גוללים בפתיחה, אם אין אירוע מוקדם יותר */
 const DEFAULT_SCROLL_HOUR = 7;
-/** מרחק/מהירות החלקה שמעבירים שבוע. זהים לאלה של רשת החודש. */
-const SWIPE_DISTANCE = 58;
-const SWIPE_VELOCITY = 320;
 
-/*
-  אותו כיוון תנועה כמו ברשת החודש: קדימה הוא שמאלה, והתוכן הולך אחרי
-  האצבע. ראו את ההסבר המלא ב-CalendarScreen - הוא נכון מילה במילה גם כאן.
-*/
-const stripVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? "-100%" : "100%",
-    opacity: 0.4,
-  }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({
-    x: direction > 0 ? "100%" : "-100%",
-    opacity: 0.4,
-  }),
-};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -214,10 +197,10 @@ function WeekBlock({
 }) {
   const isDragging = useIsDraggingOccurrence(occurrence.occurrenceId);
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
-      whileTap={TAP_SCALE_LG}
+      data-press={TAP_SCALE_LG.scale}
       onPointerDown={(e) => beginLongPress(e, occurrence)}
       style={{ ...style, touchAction: "none" }}
       className={`ev ev-${occurrence.color} focus-ring-inset absolute overflow-hidden rounded-lg px-1.5 py-1 text-start transition-opacity ${
@@ -230,7 +213,7 @@ function WeekBlock({
       <span className="tnum block truncate text-micro leading-tight opacity-80">
         {occurrence.startTime}
       </span>
-    </motion.button>
+    </button>
   );
 }
 
@@ -287,15 +270,6 @@ export function WeekView({
   // נגזר מהשבוע שמוצג ולא מההחלקה: שבוע שהתחלף בבחירת יום או מהחלונית
   // נכנס קודם עם הכיוון של ההחלקה הקודמת, וזה מה שנראה כמו נסיגה
   const direction = usePageDirection(weekKey);
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > SWIPE_DISTANCE || info.velocity.x > SWIPE_VELOCITY)
-      onPage(1);
-    else if (
-      info.offset.x < -SWIPE_DISTANCE ||
-      info.velocity.x < -SWIPE_VELOCITY
-    )
-      onPage(-1);
-  };
 
   const today = dateKey(new Date());
   // הקו מתעדכן פעם בדקה; שעון שלא זז הוא גרוע משעון שאין
@@ -320,20 +294,8 @@ export function WeekView({
       */}
       <div className="relative shrink-0 overflow-hidden border-b border-hairline bg-canvas">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
-          <motion.div
-            key={weekKey}
-            custom={direction}
-            variants={stripVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ x: GLIDE, opacity: { duration: 0.18 } }}
-            drag="x"
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.14}
-            onDragEnd={onDragEnd}
-          >
+          {/* אותו דף של החודש, ואותו כיוון: קדימה הוא שמאלה (ראו SwipePage) */}
+          <SwipePage key={weekKey} direction={direction} onPage={onPage}>
             <div className="grid grid-cols-[3.4rem_repeat(7,1fr)]">
               <span aria-hidden="true" />
               {data.dates.map((date) => {
@@ -423,7 +385,7 @@ export function WeekView({
                 );
               })}
             </div>
-          </motion.div>
+          </SwipePage>
         </AnimatePresence>
       </div>
 
