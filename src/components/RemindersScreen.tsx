@@ -17,7 +17,8 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Tag } from '@/components/ui/icons';
+import { ListChecks, Plus, Tag } from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import type { DateKey, EventColor, EventTemplate, UserEvent } from '@/types';
 import { sortOccurrences, type Occurrence } from '@/lib/recurrence';
 import {
@@ -408,11 +409,11 @@ export function RemindersScreen({
         )}
 
         {(sections ? !sections.length : visibleGroups.every((g) => !g.items.length)) && (
-          <p className="rounded-2xl border border-dashed border-hairline px-4 py-10 text-center text-body text-muted">
-            {activeCategory === null
-              ? 'אין תזכורות. מה שתוסיפו כאן יופיע גם בוידג׳ט.'
-              : 'אין תזכורות בקטגוריה הזו.'}
-          </p>
+          <EmptyState
+            icon={activeCategory === null ? <ListChecks /> : <Tag />}
+            title={activeCategory === null ? 'אין תזכורות' : 'אין תזכורות בקטגוריה הזו'}
+            hint={activeCategory === null ? 'מה שתוסיפו כאן יופיע גם בוידג׳ט' : undefined}
+          />
         )}
       </div>
 

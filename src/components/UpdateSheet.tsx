@@ -95,7 +95,7 @@ export function UpdateSheet({
               <button
                 type="button"
                 onClick={() => void retryAfterPermission()}
-                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised"
+                className="focus-ring flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-inverse text-body font-semibold text-on-inverse shadow-raised"
               >
                 <ShieldCheck size={ICON.md} />
                 פתיחת ההגדרה
@@ -105,7 +105,7 @@ export function UpdateSheet({
                 type="button"
                 onClick={() => void run()}
                 disabled={busy}
-                className="focus-ring flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised disabled:opacity-70"
+                className="focus-ring flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-inverse text-body font-semibold text-on-inverse shadow-raised disabled:opacity-70"
               >
                 {stage === 'installing' ? (
                   <Check size={ICON.md} />
@@ -125,7 +125,7 @@ export function UpdateSheet({
               type="button"
               onClick={onClose}
               disabled={stage === 'working'}
-              className="focus-ring w-full rounded-2xl py-3 text-label font-medium text-muted disabled:opacity-50"
+              className="focus-ring h-12 w-full rounded-field text-label font-medium text-muted disabled:opacity-50"
             >
               {stage === 'installing' ? 'סגירה' : 'לא עכשיו'}
             </button>
@@ -135,18 +135,15 @@ export function UpdateSheet({
     >
       <div className="pb-2">
         {stage === 'permission' ? (
-          <p className="rounded-2xl bg-well px-4 py-4 text-body leading-relaxed text-ink">
+          <p className="rounded-group bg-well px-4 py-4 text-body leading-relaxed text-ink">
             אנדרואיד מבקש אישור חד-פעמי לפני שאפליקציה מתקינה עדכון של עצמה.
             הכפתור למטה פותח את המסך הזה - מפעילים שם את המתג, חוזרים, והעדכון
             ימשיך מעצמו. בפעמים הבאות לא תישאלו.
           </p>
         ) : (
           <>
-            <div className="flex items-start gap-3 rounded-2xl bg-well px-4 py-4">
-              <Sparkles
-                size={ICON.md}
-                className="mt-0.5 shrink-0 text-brand-ink"
-              />
+            <div className="flex items-start gap-3 rounded-group bg-well px-4 py-4">
+              <Sparkles size={ICON.md} className="mt-0.5 shrink-0 text-muted" />
               <p className="text-body leading-relaxed text-ink">
                 {update?.notes?.trim() || 'שיפורים ותיקונים.'}
               </p>
@@ -155,7 +152,7 @@ export function UpdateSheet({
             {stage === 'working' && !live && (
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-well">
                 <div
-                  className="h-full rounded-full bg-brand transition-all duration-200"
+                  className="h-full rounded-full bg-inverse transition-all duration-200"
                   style={{ width: `${Math.max(4, percent)}%` }}
                 />
               </div>
@@ -172,7 +169,7 @@ export function UpdateSheet({
         )}
 
         {error && (
-          <p className="mt-3 break-words rounded-xl bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
+          <p className="mt-3 break-words rounded-tile bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
             {error}
           </p>
         )}

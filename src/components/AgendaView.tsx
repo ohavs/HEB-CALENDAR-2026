@@ -9,7 +9,16 @@
  */
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarPlus, ChevronDown, Plus, RotateCcw, Search } from '@/components/ui/icons';
+import {
+  CalendarDays,
+  CalendarPlus,
+  ChevronDown,
+  Plus,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+} from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import type { DayInfo } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { useToggleDone } from '@/hooks/useOccurrenceActions';
@@ -280,35 +289,40 @@ export function AgendaView({
         />
 
         {entries.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-hairline px-5 py-14 text-center">
-            {hidden.length > 0 ? (
-              <>
-                <p className="text-body text-muted">הכול מסונן</p>
+          hidden.length > 0 ? (
+            <EmptyState
+              icon={<SlidersHorizontal />}
+              title="הכול מסונן"
+              hint="המסננים שבחרתם מסתירים את כל מה שבטווח"
+              action={
                 <motion.button
                   type="button"
                   whileTap={TAP_SCALE}
                   onClick={() => setValue('agendaHidden', [])}
-                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-well px-5 py-3 text-label font-semibold text-ink"
+                  className="focus-ring inline-flex h-12 items-center gap-2 rounded-field bg-well px-5 text-label font-semibold text-ink"
                 >
                   <RotateCcw size={ICON.md} />
                   הצגת הכול
                 </motion.button>
-              </>
-            ) : (
-              <>
-                <p className="text-body text-muted">אין כלום בטווח הקרוב</p>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={<CalendarDays />}
+              title="אין כלום בטווח הקרוב"
+              action={
                 <motion.button
                   type="button"
                   whileTap={TAP_SCALE}
                   onClick={onAddEvent}
-                  className="focus-ring mt-4 inline-flex items-center gap-2 rounded-2xl bg-well px-5 py-3 text-label font-semibold text-ink"
+                  className="focus-ring inline-flex h-12 items-center gap-2 rounded-field bg-inverse px-5 text-label font-semibold text-on-inverse"
                 >
                   <CalendarPlus size={ICON.md} />
                   הוספת אירוע
                 </motion.button>
-              </>
-            )}
-          </div>
+              }
+            />
+          )
         ) : (
           entries.map((entry, i) => (
             <Fragment key={entry.day.key}>

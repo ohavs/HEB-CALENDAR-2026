@@ -38,8 +38,8 @@ export function ConfirmDeleteSheet({
   return (
     <Sheet open={open} onClose={onClose} title="למחוק?" subtitle={hint}>
       <div className="flex flex-col gap-3 pb-3">
-        <div className="flex items-center gap-4 rounded-2xl bg-well px-4 py-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger-soft text-danger">
+        <div className="flex items-center gap-4 rounded-group bg-well px-4 py-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger">
             <Trash2 size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1">
@@ -55,7 +55,7 @@ export function ConfirmDeleteSheet({
           type="button"
           whileTap={TAP_SCALE}
           onClick={onClose}
-          className="focus-ring w-full rounded-2xl py-4 text-label font-semibold text-muted"
+          className="focus-ring h-14 w-full rounded-field text-body font-semibold text-muted"
         >
           ביטול
         </motion.button>

@@ -4,6 +4,7 @@ import { Check, Crosshair, Search } from '@/components/ui/icons';
 import { CITIES, CUSTOM_CITY_ID, citiesByRegion, deviceTimeZone, nearestCity } from '@/lib/locations';
 import { useSettingsStore } from '@/store/settings';
 import { Sheet } from './ui/Sheet';
+import { EmptyState } from './ui/EmptyState';
 import { ICON } from '@/lib/motion';
 
 export function CityPicker({
@@ -96,7 +97,7 @@ export function CityPicker({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="עיר לחישוב הזמנים">
-      <div className="field-shell mb-3.5 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-3.5 flex h-14 items-center gap-3 rounded-field bg-well px-4">
         <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           type="search"
@@ -112,7 +113,7 @@ export function CityPicker({
           type="button"
           onClick={locate}
           disabled={locating}
-          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-4 text-label font-semibold text-brand-ink disabled:opacity-60"
+          className="focus-ring flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-inverse text-body font-semibold text-on-inverse disabled:opacity-60"
         >
           <Crosshair size={ICON.lg} />
           {locating ? 'מאתר…' : 'העיר הקרובה אליי'}
@@ -121,7 +122,7 @@ export function CityPicker({
           type="button"
           onClick={useExactLocation}
           disabled={locating}
-          className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-well py-4 text-label font-semibold text-ink disabled:opacity-60"
+          className="focus-ring flex h-14 w-full items-center justify-center gap-2.5 rounded-field bg-well text-body font-semibold text-ink disabled:opacity-60"
         >
           <Crosshair size={ICON.lg} className="text-muted" />
           המיקום המדויק שלי
@@ -129,25 +130,27 @@ export function CityPicker({
       </div>
 
       {locateError && (
-        <p className="mb-4 rounded-2xl bg-well px-4 py-3.5 text-caption text-muted">{locateError}</p>
+        <p className="mb-4 rounded-field bg-well px-4 py-3.5 text-caption text-muted">{locateError}</p>
       )}
 
       {groups.map((group) => (
         <section key={group.region} className="mb-4">
-          <h3 className="mb-2 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
+          <h3 className="mb-2 px-2 text-caption font-semibold text-muted">
             {group.region}
           </h3>
-          <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+          <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">
             {group.cities.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => select(c.id)}
-                className="flex w-full items-center gap-3 px-4 py-4 text-right"
+                className="focus-ring-inset flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-right"
               >
-                <span className="flex-1 text-body text-ink">{c.name}</span>
+                <span className={`flex-1 text-body text-ink ${c.id === cityId ? 'font-semibold' : ''}`}>
+                  {c.name}
+                </span>
                 {c.id === cityId && (
-                  <Check size={ICON.lg} weight="bold" className="shrink-0 text-brand" />
+                  <Check size={ICON.lg} weight="bold" className="shrink-0 text-ink" />
                 )}
               </button>
             ))}
@@ -155,9 +158,7 @@ export function CityPicker({
         </section>
       ))}
 
-      {groups.length === 0 && (
-        <p className="py-6 text-center text-label text-muted">לא נמצאה עיר בשם הזה</p>
-      )}
+      {groups.length === 0 && <EmptyState icon={<Search />} title="לא נמצאה עיר בשם הזה" />}
     </Sheet>
   );
 }

@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Clock, Search, X } from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import { dateKey, dayTitleLabel, keyToDate, startOfDay } from '@/lib/dates';
 import { yearHolidays, type YearHoliday } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
@@ -190,12 +191,11 @@ export function SearchSheet({
       )}
 
       {empty && (
-        <div className="py-10 text-center">
-          <p className="text-label text-muted">לא נמצאו תוצאות עבור "{q}"</p>
-          <p className="mt-1.5 text-caption text-faint">
-            החיפוש סורק {YEARS_BACK + YEARS_FORWARD + 1} שנים סביב {year}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Search />}
+          title="לא נמצא"
+          hint={`אין תוצאות עבור "${q}". החיפוש סורק ${YEARS_BACK + YEARS_FORWARD + 1} שנים סביב ${year}`}
+        />
       )}
 
       {matchedEvents.length > 0 && (

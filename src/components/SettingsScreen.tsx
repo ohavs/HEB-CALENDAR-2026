@@ -389,11 +389,15 @@ export function SettingsScreen({
                 קרה בניסיון האחרון.
               */}
               {sync.status === 'error' ? (
-                <span className="shrink-0 rounded-xl bg-danger/12 px-3 py-1.5 text-caption font-semibold text-danger">
+                <span className="shrink-0 rounded-full bg-danger-soft px-3 py-1.5 text-caption font-semibold text-danger">
                   לא מסונכרן
                 </span>
               ) : (
-                <span className="shrink-0 rounded-xl bg-[rgb(52_179_138)]/15 px-3 py-1.5 text-caption font-semibold text-[rgb(25_125_95)]">
+                /*
+                  בלי ירוק: "תקין" אינו מידע שצריך צבע, וירוק היה הצבע היחיד
+                  במסך שלא נבחר בידי המשתמש. האדום נשאר, כי כשל כן צריך לבלוט.
+                */
+                <span className="shrink-0 rounded-full bg-well px-3 py-1.5 text-caption font-semibold text-muted">
                   {sync.status === 'ok' ? 'מסונכרן' : 'מחובר'}
                 </span>
               )}
@@ -435,7 +439,7 @@ export function SettingsScreen({
               onClick={() => void signInWithGoogle()}
               disabled={busy || !isFirebaseConfigured}
               whileTap={{ scale: 0.98 }}
-              className="mt-4 flex w-full items-center justify-center gap-3 rounded-2xl border border-hairline bg-surface py-4 text-label font-semibold text-ink disabled:opacity-50"
+              className="focus-ring mt-4 flex h-14 w-full items-center justify-center gap-3 rounded-field bg-inverse text-body font-semibold text-on-inverse disabled:opacity-50"
             >
               <GoogleMark />
               {busy ? 'מתחבר…' : 'התחברות עם גוגל'}
@@ -449,7 +453,7 @@ export function SettingsScreen({
               <button
                 type="button"
                 onClick={clearError}
-                className="mt-2 block w-full break-words rounded-xl bg-danger-soft px-3 py-2 text-start text-caption leading-relaxed text-danger"
+                className="mt-2 block w-full break-words rounded-tile bg-danger-soft px-3 py-2 text-start text-caption leading-relaxed text-danger"
               >
                 {error}
               </button>
@@ -659,19 +663,12 @@ export function SettingsScreen({
         footer="בדפדפן התזכורות מוצגות כשהאפליקציה פתוחה או פועלת ברקע. באפליקציית האנדרואיד הן יעבדו גם כשהיא סגורה לגמרי."
       >
         {!notificationsReady && (
-          <button
-            type="button"
+          <SettingRow
+            title="אישור התראות"
+            hint={permissionLabel(permission)}
+            icon={<BellRing size={ICON.md} />}
             onClick={() => void askPermission()}
-            className="flex w-full items-center gap-3.5 px-5 py-4 text-right lg:px-6"
-          >
-            <BellRing size={ICON.md} className="shrink-0 text-brand" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-body font-medium text-ink">אישור התראות</span>
-              <span className="mt-0.5 block text-caption text-muted">
-                {permissionLabel(permission)}
-              </span>
-            </span>
-          </button>
+          />
         )}
 
         <SettingRow title="לפני כניסת שבת וחג">
@@ -764,7 +761,7 @@ export function SettingsScreen({
           <SettingRow
             title="התראות עלולות לאחר"
             hint="אנדרואיד אינו מרשה לאפליקציה שעון מדויק, ולכן תזכורת יכולה להגיע גם שעה אחרי הזמן. הקשה פותחת את ״שעונים ותזכורות״."
-            icon={<AlarmClock size={ICON.lg} className="text-brand" />}
+            icon={<AlarmClock size={ICON.lg} />}
             onClick={() => void openExactAlarmSettings().then(setExactOk)}
           >
             <ChevronLeft size={ICON.lg} className="text-faint" />
@@ -795,7 +792,7 @@ export function SettingsScreen({
           hint={testAt ? 'אפשר לסגור את האפליקציה ולנעול את המסך' : undefined}
           icon={
             testSent || testAt ? (
-              <Check size={ICON.md} weight="bold" className="text-[rgb(52_179_138)]" />
+              <Check size={ICON.md} weight="bold" className="text-ink" />
             ) : (
               <Bell size={ICON.md} />
             )
@@ -835,7 +832,7 @@ export function SettingsScreen({
                 ? 'בהרשאת מיקום רגילה ההתראות יגיעו רק כשהאפליקציה פתוחה. בהגדרות המכשיר, תחת ״הרשאות״ ואז ״מיקום״, יש לבחור ״לאפשר תמיד״.'
                 : 'בלי הרשאת מיקום מדויק אי אפשר לזהות הגעה ויציאה. מיקום משוער אינו מספיק.'
             }
-            icon={<MapPinned size={ICON.lg} className="text-brand" />}
+            icon={<MapPinned size={ICON.lg} />}
             onClick={() => {
               /*
                 מ-API 30 אנדרואיד אינו מרשה לבקש "לאפשר תמיד" בדיאלוג -
@@ -940,7 +937,7 @@ export function SettingsScreen({
           <SettingRow
             title="צריך הרשאת יומן"
             hint="בלי ההרשאה הלוח לא מתעדכן. אם החלון לא נפתח, ההרשאה נמצאת בהגדרות המכשיר תחת ״הרשאות״."
-            icon={<CalendarDays size={ICON.lg} className="text-brand" />}
+            icon={<CalendarDays size={ICON.lg} />}
             onClick={() => {
               void systemCalendarPermission(true).then((granted) => {
                 setCalendarAccess(granted);

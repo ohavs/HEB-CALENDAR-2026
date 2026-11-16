@@ -74,7 +74,7 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
             disabled={busy}
             whileTap={{ scale: 0.98 }}
             transition={TAP}
-            className="focus-ring flex w-full items-center justify-center gap-3 rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse shadow-raised disabled:opacity-60"
+            className="focus-ring flex h-14 w-full items-center justify-center gap-3 rounded-field bg-inverse text-body font-semibold text-on-inverse shadow-raised disabled:opacity-60"
           >
             <GoogleMark />
             {busy ? 'מתחבר…' : 'התחברות עם גוגל'}
@@ -82,17 +82,19 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
           <button
             type="button"
             onClick={onClose}
-            className="focus-ring w-full rounded-2xl py-3 text-label font-medium text-muted"
+            className="focus-ring h-12 w-full rounded-field text-label font-medium text-muted"
           >
             להמשיך בלי חשבון
           </button>
         </div>
       }
     >
-      <div className="space-y-3 pb-2">
+      <CloudCalendar />
+
+      <div className="space-y-5 pb-2">
         {POINTS.map(({ Icon, title, body }) => (
-          <div key={title} className="flex items-start gap-3.5 rounded-2xl bg-well px-4 py-4">
-            <span className="mt-0.5 shrink-0 text-brand-ink">
+          <div key={title} className="flex items-start gap-3.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-well text-ink">
               <Icon size={ICON.lg} />
             </span>
             <span className="min-w-0">
@@ -103,7 +105,7 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
         ))}
 
         {error && (
-          <p className="break-words rounded-xl bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
+          <p className="break-words rounded-tile bg-danger-soft px-3 py-2 text-caption leading-relaxed text-danger">
             {error}
           </p>
         )}
@@ -117,12 +119,62 @@ export function WelcomeSheet({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-/** סמל גוגל - וקטור, כדי לא לטעון תמונה חיצונית. */
+/**
+ * האיור: דף לוח וענן מעליו, בקו דיו ועם היום בעיגול מלא - אותה שפה של
+ * הלוח עצמו. מצויר ב-`currentColor`, ולכן מתהפך בלילה בלי גרסה שנייה.
+ */
+function CloudCalendar() {
+  return (
+    <div aria-hidden className="mb-6 flex justify-center pt-1 text-ink">
+      <svg width="156" height="112" viewBox="0 0 156 112" fill="none">
+        <rect x="18" y="30" width="92" height="76" rx="18" className="fill-well" />
+        <rect
+          x="18"
+          y="30"
+          width="92"
+          height="76"
+          rx="18"
+          stroke="currentColor"
+          strokeWidth="3"
+        />
+        <path d="M18 52h92" stroke="currentColor" strokeWidth="3" />
+        <path d="M40 22v16M88 22v16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        {[0, 1, 2, 3].map((col) =>
+          [0, 1].map((row) => (
+            <circle
+              key={`${col}-${row}`}
+              cx={36 + col * 19}
+              cy={68 + row * 20}
+              r="3"
+              fill="currentColor"
+              opacity={col === 2 && row === 0 ? 0 : 0.35}
+            />
+          )),
+        )}
+        <circle cx="74" cy="68" r="9" fill="currentColor" />
+        <path
+          d="M104 42a14 14 0 0 1 2-27.8A18 18 0 0 1 140 20a11 11 0 0 1-2 22z"
+          className="fill-surface"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * סמל גוגל - וקטור, כדי לא לטעון תמונה חיצונית.
+ *
+ * `currentColor` ולא לבן קבוע: הכפתור בדיו, ובלילה הדיו בהיר - סמל לבן
+ * נעלם עליו בדיוק כמו `text-white`.
+ */
 function GoogleMark() {
   return (
     <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
       <path
-        fill="#FFFFFF"
+        fill="currentColor"
         d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5zM46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65zM10.53 28.59A14.5 14.5 0 0 1 9.77 24c0-1.6.27-3.14.76-4.59l-7.98-6.19A23.94 23.94 0 0 0 0 24c0 3.83.92 7.45 2.56 10.78l7.97-6.19zM24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
       />
     </svg>

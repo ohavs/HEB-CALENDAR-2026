@@ -10,6 +10,7 @@
  */
 import { motion } from 'framer-motion';
 import { Check, CloudOff } from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import type { UserEvent } from '@/types';
 import { useEventsStore, type SyncConflict } from '@/store/events';
 import { repeatLabel } from '@/lib/recurrence';
@@ -52,7 +53,7 @@ function ConflictRow({ conflict }: { conflict: SyncConflict }) {
   );
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-well">
+    <article className="overflow-hidden rounded-group bg-well">
       <header className="px-4 pb-3 pt-4">
         <h3 className="text-body font-semibold text-ink">
           {conflict.remote.title || conflict.local.title}
@@ -90,7 +91,7 @@ function ConflictRow({ conflict }: { conflict: SyncConflict }) {
           type="button"
           whileTap={TAP_SCALE}
           onClick={() => keepLocal(conflict.id)}
-          className="focus-ring flex-1 rounded-xl bg-brand-soft py-3 text-caption font-semibold text-brand-ink"
+          className="focus-ring h-12 flex-1 rounded-tile bg-surface text-label font-semibold text-ink"
         >
           להחזיר את הגרסה שלי
         </motion.button>
@@ -98,7 +99,7 @@ function ConflictRow({ conflict }: { conflict: SyncConflict }) {
           type="button"
           whileTap={TAP_SCALE}
           onClick={() => dismiss(conflict.id)}
-          className="focus-ring flex-1 rounded-xl bg-surface py-3 text-caption font-semibold text-muted"
+          className="focus-ring h-12 flex-1 rounded-tile text-label font-semibold text-muted"
         >
           להשאיר את החדשה
         </motion.button>
@@ -129,7 +130,7 @@ export function ConflictSheet({ open, onClose }: { open: boolean; onClose: () =>
               clear();
               onClose();
             }}
-            className="focus-ring flex h-11 items-center rounded-2xl bg-well px-4 text-caption font-semibold text-muted"
+            className="focus-ring flex h-11 items-center rounded-tile bg-well px-4 text-caption font-semibold text-muted"
           >
             לסגור הכול
           </motion.button>
@@ -138,18 +139,12 @@ export function ConflictSheet({ open, onClose }: { open: boolean; onClose: () =>
     >
       <div className="space-y-3 pb-2">
         {conflicts.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-well px-4 py-12 text-center">
-            <Check size={ICON.xl} className="text-muted" />
-            <p className="text-body text-muted">הכול מסונכרן</p>
-          </div>
+          <EmptyState icon={<Check />} title="הכול מסונכרן" />
         ) : (
           <>
-            <div className="flex items-start gap-3 rounded-2xl bg-brand-soft px-4 py-3.5">
-              <CloudOff
-                size={ICON.md}
-                className="mt-0.5 shrink-0 text-brand-ink"
-              />
-              <p className="text-caption leading-relaxed text-brand-ink">
+            <div className="flex items-start gap-3 rounded-field bg-well px-4 py-3.5">
+              <CloudOff size={ICON.md} className="mt-0.5 shrink-0 text-muted" />
+              <p className="text-caption leading-relaxed text-ink">
                 האירועים האלה שונו גם כאן וגם במכשיר אחר. השארנו את הגרסה
                 החדשה יותר, אבל שלכם עדיין שמורה.
               </p>

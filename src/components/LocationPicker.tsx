@@ -14,7 +14,8 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Crosshair, Globe, History, MapPin, Search, Trash2, X } from '@/components/ui/icons';
+import { Check, Crosshair, Globe, History, MapPin, Search, Trash2, X } from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import type { SavedPlace, UserEvent } from '@/types';
 import { suggestLocations, type LocationSuggestion } from '@/lib/eventLocations';
 import { findCity, nearestCity } from '@/lib/locations';
@@ -158,7 +159,7 @@ export function LocationPicker({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="מקום">
-      <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-4 flex h-14 items-center gap-3 rounded-field bg-well px-4">
         <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           id="location-query"
@@ -190,7 +191,7 @@ export function LocationPicker({
             whileTap={TAP_SCALE}
             onClick={() => void pickCurrentLocation()}
             disabled={locating}
-            className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right disabled:opacity-60"
+            className="focus-ring flex min-h-[56px] w-full items-center gap-3.5 rounded-field bg-well px-4 py-3 text-right disabled:opacity-60"
           >
             <Crosshair size={ICON.md} className="shrink-0 text-muted" />
             <span className="text-body font-medium text-ink">
@@ -200,7 +201,7 @@ export function LocationPicker({
         )}
 
         {error && (
-          <p className="rounded-2xl bg-well px-4 py-3 text-caption text-danger">
+          <p className="rounded-field bg-well px-4 py-3 text-caption text-danger">
             {error}
           </p>
         )}
@@ -211,7 +212,7 @@ export function LocationPicker({
             type="button"
             whileTap={TAP_SCALE}
             onClick={() => choose({})}
-            className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right"
+            className="focus-ring flex min-h-[56px] w-full items-center gap-3.5 rounded-field bg-well px-4 py-3 text-right"
           >
             <Trash2 size={ICON.md} className="shrink-0 text-muted" />
             <span className="text-body font-medium text-ink">בלי מקום</span>
@@ -219,7 +220,7 @@ export function LocationPicker({
         )}
 
         {suggestions.length > 0 ? (
-          <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+          <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">
             {suggestions.map((s) => {
               const Icon = ICON_FOR[s.kind];
               const selected =
@@ -234,12 +235,12 @@ export function LocationPicker({
                 >
                   <Icon
                     size={ICON.md}
-                    className={`shrink-0 ${s.kind === 'place' ? 'text-brand-ink' : 'text-faint'}`}
+                    className={`shrink-0 ${s.kind === 'place' ? 'text-ink' : 'text-faint'}`}
                   />
                   <span className="min-w-0 flex-1">
                     <span
                       className={`block truncate text-body ${
-                        selected ? 'font-semibold text-brand-ink' : 'font-medium text-ink'
+                        selected ? 'font-semibold text-ink' : 'font-medium text-ink'
                       }`}
                     >
                       {s.label}
@@ -250,16 +251,21 @@ export function LocationPicker({
                       </span>
                     )}
                   </span>
+                  {/* הנבחר היה מסומן בסגול; בדיו בלבד הוא צריך סימן משלו */}
+                  {selected && (
+                    <Check size={ICON.lg} weight="bold" className="shrink-0 text-ink" />
+                  )}
                 </button>
               );
             })}
           </div>
         ) : (
           !showFreeText && (
-            <p className="py-8 text-center text-label text-muted">
-              אין עדיין מקומות שלכם. אפשר לחפש מקום לפי שם, או פשוט לכתוב
-              כאן טקסט.
-            </p>
+            <EmptyState
+              icon={<MapPin />}
+              title="אין עדיין מקומות שלכם"
+              hint="אפשר לחפש מקום לפי שם, או פשוט לכתוב כאן טקסט"
+            />
           )
         )}
 
@@ -267,7 +273,7 @@ export function LocationPicker({
         {trimmed.length >= MIN_QUERY && (
           <section aria-label="תוצאות חיפוש" className="space-y-2 pt-1">
             {results.length > 0 && (
-              <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+              <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">
                 {results.map((r) => (
                   <button
                     key={r.key}
@@ -314,7 +320,7 @@ export function LocationPicker({
             type="button"
             whileTap={TAP_SCALE}
             onClick={() => choose({ location: trimmed })}
-            className="focus-ring flex w-full items-center gap-3.5 rounded-2xl bg-well px-4 py-4 text-right"
+            className="focus-ring flex min-h-[56px] w-full items-center gap-3.5 rounded-field bg-well px-4 py-3 text-right"
           >
             <MapPin size={ICON.md} className="shrink-0 text-muted" />
             <span className="min-w-0 flex-1">

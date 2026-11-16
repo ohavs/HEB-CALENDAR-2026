@@ -39,21 +39,34 @@ export function ScopeSheet({
     onClose();
   };
 
+  /*
+    שני אריחים זה לצד זה ולא שתי שורות זו מתחת לזו: זו בחירה בין שתי
+    אפשרויות שוות, ושורות נקראו כרשימה שהראשונה בה היא ברירת המחדל.
+    ההסבר יושב בתוך האריח, כי "המופע" ו"הסדרה" לבדם אינם אומרים מה
+    יקרה לשאר.
+  */
+  const tile =
+    'focus-ring flex min-h-[148px] flex-col items-start gap-3 rounded-group bg-well p-4 text-right active:bg-hairline';
+
   return (
     <Sheet open={open} onClose={onClose} title={title} subtitle="אירוע חוזר">
-      <div className="flex flex-col gap-2.5 pb-3">
+      <div className="grid grid-cols-2 gap-2.5 pb-3">
         <motion.button
           type="button"
           whileTap={TAP_SCALE}
           onClick={() => choose('occurrence')}
-          className="focus-ring flex items-center gap-4 rounded-2xl bg-well px-4 py-4 text-right active:bg-hairline"
+          className={tile}
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-ink">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-ink">
             <CalendarX size={ICON.lg} />
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-body font-semibold text-ink">{occurrenceLabel}</span>
-            <span className="mt-1 block text-caption text-muted">{occurrenceHint}</span>
+          <span>
+            <span className="block text-body font-semibold leading-snug text-ink">
+              {occurrenceLabel}
+            </span>
+            <span className="mt-1 block text-caption leading-snug text-muted">
+              {occurrenceHint}
+            </span>
           </span>
         </motion.button>
 
@@ -61,20 +74,24 @@ export function ScopeSheet({
           type="button"
           whileTap={TAP_SCALE}
           onClick={() => choose('series')}
-          className="focus-ring flex items-center gap-4 rounded-2xl bg-well px-4 py-4 text-right active:bg-hairline"
+          className={tile}
         >
           <span
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-              destructive
-                ? 'bg-danger-soft text-danger'
-                : 'bg-brand-soft text-brand-ink'
+            className={`flex h-11 w-11 items-center justify-center rounded-full ${
+              destructive ? 'bg-danger-soft text-danger' : 'bg-surface text-ink'
             }`}
           >
             <CalendarRange size={ICON.lg} />
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-body font-semibold text-ink">{seriesLabel}</span>
-            <span className="mt-1 block text-caption text-muted">{seriesHint}</span>
+          <span>
+            <span
+              className={`block text-body font-semibold leading-snug ${
+                destructive ? 'text-danger' : 'text-ink'
+              }`}
+            >
+              {seriesLabel}
+            </span>
+            <span className="mt-1 block text-caption leading-snug text-muted">{seriesHint}</span>
           </span>
         </motion.button>
       </div>

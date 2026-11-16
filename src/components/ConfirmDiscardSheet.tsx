@@ -30,8 +30,12 @@ export function ConfirmDiscardSheet({
   return (
     <Sheet open={open} onClose={onKeepEditing} title="לצאת בלי לשמור?" showCloseButton={false}>
       <div className="flex flex-col gap-3 pb-3">
-        <div className="flex items-center gap-4 rounded-2xl bg-well px-4 py-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[rgb(253_243_224)] text-[rgb(170_110_20)] dark:bg-[rgb(60_44_18)] dark:text-[rgb(240_200_130)]">
+        <div className="flex items-center gap-4 rounded-group bg-well px-4 py-4">
+          {/*
+            בלי ענבר: הוא שמור לנרות שבת, וכאן הוא רק אמר "אזהרה" במקום
+            שהמילים כבר אומרות את זה. מה שמבדיל את השאלה הוא הכפתור הבטוח בדיו.
+          */}
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-ink">
             <FilePen size={ICON.lg} />
           </span>
           <span className="min-w-0 flex-1 text-caption text-muted">{hint}</span>
@@ -42,7 +46,7 @@ export function ConfirmDiscardSheet({
           type="button"
           whileTap={TAP_SCALE}
           onClick={onDiscard}
-          className="focus-ring w-full rounded-2xl py-4 text-label font-semibold text-muted"
+          className="focus-ring h-14 w-full rounded-field text-body font-semibold text-muted"
         >
           לצאת בלי לשמור
         </motion.button>

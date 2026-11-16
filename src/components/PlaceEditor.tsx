@@ -20,8 +20,14 @@ import { CITIES } from '@/lib/locations';
 import { bestScore } from '@/lib/search';
 import { Sheet } from './ui/Sheet';
 import { PrimaryButton } from './ui/controls';
-import { NumberField, TextField } from './ui/fields';
+import { TextField } from './ui/fields';
+import { TileStrip } from './ui/tiles';
 import { ICON } from '@/lib/motion';
+
+/** הרדיוסים הנפוצים: בית או משרד, שכונה, עיר */
+const RADIUS_TILES = [100, 150, 300, 500, 1000];
+/** כל השאר, באותו טווח ובאותן קפיצות של שדה המספר שהיה כאן */
+const RADIUS_ALL = Array.from({ length: 40 }, (_, i) => (i + 1) * 50);
 
 /**
  * בחירת עיר כנקודת פתיחה.
@@ -50,7 +56,7 @@ function CityStartSheet({
 
   return (
     <Sheet open={open} onClose={onClose} size="tall" title="בחירת עיר">
-      <div className="field-shell mb-4 flex items-center gap-3 rounded-2xl bg-well px-4 py-3.5">
+      <div className="field-shell mb-4 flex h-14 items-center gap-3 rounded-field bg-well px-4">
         <Search size={ICON.lg} className="shrink-0 text-faint" />
         <input
           id="place-city-query"
@@ -68,7 +74,7 @@ function CityStartSheet({
         ממפות.
       </p>
 
-      <div className="divide-y divide-hairline overflow-hidden rounded-2xl bg-well">
+      <div className="divide-y divide-hairline overflow-hidden rounded-group bg-well">
         {list.map((c) => (
           <button
             key={c.id}
@@ -221,7 +227,7 @@ export function PlaceEditor({
               onDelete(editing.id);
               onClose();
             }}
-            className={`flex h-11 items-center gap-2 rounded-2xl px-4 text-caption font-semibold transition-colors ${
+            className={`flex h-11 items-center gap-2 rounded-tile px-4 text-caption font-semibold transition-colors ${
               confirmDelete ? 'bg-danger text-on-danger' : 'bg-well text-danger'
             }`}
           >
@@ -247,7 +253,7 @@ export function PlaceEditor({
         />
 
         {/* נקודת הציון */}
-        <div className="rounded-2xl bg-well px-4 py-4">
+        <div className="rounded-group bg-well px-4 py-4">
           <span className="flex items-center justify-between gap-3">
             <span className="text-caption font-medium text-muted">נקודת הציון</span>
             {hasCoords && (
@@ -255,7 +261,7 @@ export function PlaceEditor({
                 href={mapsUrl(draft.latitude, draft.longitude, draft.name || undefined)}
                 target="_blank"
                 rel="noreferrer"
-                className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg text-caption font-medium text-brand-ink"
+                className="focus-ring flex shrink-0 items-center gap-1.5 rounded-lg text-caption font-semibold text-ink underline decoration-hairline underline-offset-4"
               >
                 <ExternalLink size={ICON.xs} />
                 פתיחה במפות
@@ -271,7 +277,7 @@ export function PlaceEditor({
             whileTap={{ scale: 0.98 }}
             onClick={() => void readMyLocation()}
             disabled={locating}
-            className="focus-ring mt-3.5 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-soft py-3.5 text-label font-semibold text-brand-ink disabled:opacity-60"
+            className="focus-ring mt-3.5 flex h-12 w-full items-center justify-center gap-2.5 rounded-field bg-surface text-label font-semibold text-ink disabled:opacity-60"
           >
             <Crosshair size={ICON.md} />
             {locating ? 'מאתר…' : hasCoords ? 'עדכון למיקום הנוכחי' : 'קביעה לפי המיקום שלי'}
@@ -281,7 +287,7 @@ export function PlaceEditor({
             המסלול להגדיר מקום בלי לעמוד בו: פותחים מפות, לוחצים לחיצה
             ארוכה על הנקודה, ומעתיקים. כל מה שיוצא משם מתפענח כאן.
           */}
-          <div className="field-shell mt-3.5 flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3">
+          <div className="field-shell mt-2.5 flex h-12 items-center gap-2.5 rounded-field bg-surface px-3.5">
             <ClipboardPaste size={ICON.sm} className="shrink-0 text-faint" />
             <input
               id="place-paste"
@@ -297,26 +303,45 @@ export function PlaceEditor({
           <button
             type="button"
             onClick={() => setCityOpen(true)}
-            className="focus-ring mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-caption font-medium text-muted"
+            className="focus-ring mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-field text-caption font-medium text-muted"
           >
             <Building2 size={ICON.xs} />
             או בחירת עיר כנקודת פתיחה
           </button>
 
           {error && <p className="mt-2.5 text-caption text-danger">{error}</p>}
-          {pasteNote && <p className="mt-2.5 text-caption text-brand-ink">{pasteNote}</p>}
+          {pasteNote && <p className="mt-2.5 text-caption text-ink">{pasteNote}</p>}
         </div>
 
-        <NumberField
-          label="רדיוס הזיהוי"
-          value={draft.radius}
-          onChange={(radius) => patch({ radius })}
-          min={50}
-          max={2000}
-          step={50}
-          suffix="מ׳"
-          hint={`התראה תישלח כשתהיו בטווח ${radiusLabel(draft.radius)} מהנקודה`}
-        />
+        {/*
+          הרדיוס הוא מספר גדול ואריחים, ולא מחוון: מחוון הוא מחווה אופקית
+          בתוך גיליון שנסגר בגרירה, והערכים ממילא קפיצות של 50. מה שנבחר
+          יושב בספרות גדולות, כי זה מה שהאריחים משנים.
+        */}
+        <div className="rounded-group bg-well px-4 py-4">
+          <span className="flex items-baseline justify-between gap-3">
+            <span className="text-caption font-medium text-muted">רדיוס הזיהוי</span>
+            <span className="tnum text-heading font-bold text-ink">
+              {radiusLabel(draft.radius)}
+            </span>
+          </span>
+          <div className="mt-3">
+            <TileStrip<string>
+              label="רדיוס הזיהוי"
+              options={RADIUS_TILES.map((m) => ({ value: String(m), label: radiusLabel(m) }))}
+              value={String(draft.radius)}
+              onChange={(v) => patch({ radius: Number(v) })}
+              more={{
+                label: 'אחר',
+                title: 'רדיוס הזיהוי',
+                options: RADIUS_ALL.map((m) => ({ value: String(m), label: radiusLabel(m) })),
+              }}
+            />
+          </div>
+          <p className="mt-3 text-caption leading-relaxed text-muted">
+            התראה תישלח כשתהיו בטווח {radiusLabel(draft.radius)} מהנקודה
+          </p>
+        </div>
 
         {/*
           מתי להתריע נקבע על האירוע ולא כאן: "תזכיר לי כשאגיע הביתה" היא

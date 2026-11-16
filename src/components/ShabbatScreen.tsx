@@ -1,12 +1,13 @@
 /** טאב זמני כניסת ויציאת שבת וחג. */
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Moon, Sunset } from '@/components/ui/icons';
 import { occasionLabels, upcomingShabbatot, type ShabbatEntry } from '@/lib/hebrew';
 import { GREG_MONTHS_HE, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
-import { ICON } from '@/lib/motion';
+import { ENTER, ICON, TAP, TAP_SCALE } from '@/lib/motion';
+import { DisplayText } from './ui/DisplayText';
 
 /** "מתקיים כעת", "בעוד 4 שעות", "מחר", "בעוד יומיים" */
 function countdownLabel(entry: ShabbatEntry, now = Date.now()): string {
@@ -83,10 +84,11 @@ export function ShabbatScreen({
         <motion.button
           type="button"
           onClick={onPickCity}
-          whileTap={{ scale: 0.96 }}
-          className="flex shrink-0 items-center gap-2 rounded-2xl bg-surface px-4 py-2.5 text-label font-medium text-ink shadow-raised"
+          whileTap={TAP_SCALE}
+          transition={TAP}
+          className="focus-ring flex h-11 shrink-0 items-center gap-2 rounded-full bg-well px-4 text-label font-semibold text-ink"
         >
-          <MapPin size={ICON.sm} className="text-brand" />
+          <MapPin size={ICON.sm} className="text-muted" />
           {city.name}
         </motion.button>
       </header>
@@ -95,44 +97,43 @@ export function ShabbatScreen({
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-5 overflow-hidden rounded-3xl bg-surface shadow-raised"
+          transition={ENTER}
+          className="mb-8 rounded-card bg-surface px-5 pb-6 pt-5 shadow-raised"
         >
           {/*
-            שם הפרשה ירד לשורה אחת בראש הכרטיס. מה שמחפשים כאן הוא שתי
-            שעות, והן מקבלות את הגובה: המסך הזה נפתח ביום שישי אחר הצהריים
-            כדי לענות על שאלה אחת.
+            שם הפרשה או המועד ב-Karantina, בלי פס דיו מעליו: הפס היה הדבר
+            הכהה ביותר במסך, ומשך את העין מהשעות - שבשבילן המסך נפתח ביום
+            שישי אחר הצהריים. הספירה לאחור היא תג שקט לצידו.
           */}
-          <div className="flex items-baseline gap-2 bg-brand px-6 pb-3.5 pt-4 text-on-inverse">
-            <h2 className="min-w-0 flex-1 truncate text-label font-semibold leading-tight">
-              {next.title}
+          <div className="flex items-start gap-3">
+            <h2 className="min-w-0 flex-1 font-display text-k-heading font-bold text-ink">
+              <DisplayText text={next.title} />
             </h2>
-            <span className="shrink-0 text-caption opacity-85">
-              {next.candles ? countdownLabel(next) : ''}
-            </span>
+            {next.candles && (
+              <span className="mt-1 shrink-0 rounded-full bg-well px-3 py-1 text-caption font-semibold text-muted">
+                {countdownLabel(next)}
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 divide-x divide-x-reverse divide-hairline">
-            <div className="px-5 py-6 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
-                <Sunset size={ICON.sm} className="text-[rgb(var(--c-shabbat))]" />
-                {nextLabels.entry}
-              </p>
-              <p className="tnum mt-2 text-hero font-bold tracking-tight text-ink">
-                {next.candles?.time ?? '—'}
-              </p>
-              <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.startDate)}</p>
-            </div>
-            <div className="px-5 py-6 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-caption font-medium text-muted">
-                <Moon size={ICON.sm} className="text-brand" />
-                {nextLabels.exit}
-              </p>
-              <p className="tnum mt-2 text-hero font-bold tracking-tight text-ink">
-                {next.havdalah?.time ?? '—'}
-              </p>
-              <p className="mt-2 text-caption text-faint">{weekdayDateLabel(next.endDate)}</p>
-            </div>
+          {/*
+            שתי השעות זו לצד זו, בספרות ענק של Heebo (ספרות Karantina
+            נקראות כאותיות). הענבר רק על הנר - צבע שמור למשמעות, והנר
+            הוא הדבר היחיד כאן שבאמת יש לו צבע.
+          */}
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <TimeBlock
+              icon={<Sunset size={ICON.sm} className="text-shabbat" />}
+              label={nextLabels.entry}
+              time={next.candles?.time}
+              date={weekdayDateLabel(next.startDate)}
+            />
+            <TimeBlock
+              icon={<Moon size={ICON.sm} className="text-muted" />}
+              label={nextLabels.exit}
+              time={next.havdalah?.time}
+              date={weekdayDateLabel(next.endDate)}
+            />
           </div>
 
           {/*
@@ -141,11 +142,11 @@ export function ShabbatScreen({
             אומרת - שבת שובה, חול המועד וכדומה.
           */}
           {next.holidays.length > 0 && (
-            <div className="flex flex-wrap gap-2 border-t border-hairline px-5 py-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               {next.holidays.map((h) => (
                 <span
                   key={h}
-                  className="rounded-lg bg-well px-3 py-1.5 text-caption font-medium text-muted"
+                  className="rounded-full bg-well px-3 py-1.5 text-caption font-medium text-muted"
                 >
                   {h}
                 </span>
@@ -155,22 +156,24 @@ export function ShabbatScreen({
         </motion.section>
       )}
 
-      <h3 className="mb-2.5 px-2 text-caption font-semibold uppercase tracking-wide text-faint">
-        המועדים הבאים
-      </h3>
+      <h3 className="mb-2.5 px-1 font-display text-k-title font-bold text-ink">המועדים הבאים</h3>
 
-      <div className="mb-4 divide-y divide-hairline overflow-hidden rounded-3xl bg-surface shadow-raised">
+      {/*
+        הרשימה שקטה בכוונה: בלי צל ובלי כרטיס מורם, על `well`. היא עונה
+        על "ובשבוע הבא?", והכרטיס שמעליה הוא התשובה לשאלה שבאמת נשאלת.
+      */}
+      <div className="mb-4 divide-y divide-hairline overflow-hidden rounded-group bg-well">
         {rest.map((entry, i) => (
           <motion.div
             key={entry.startKey}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i * 0.03, 0.25), duration: 0.26 }}
-            className="flex items-center gap-4 px-5 py-4"
+            className="flex min-h-[64px] items-center gap-4 px-4 py-3"
           >
             <div className="min-w-0 flex-1">
               {/* התאריך קודם ומודגש: ברשימה של שמונה שורות הוא מה שמפריד ביניהן */}
-              <p className="truncate text-caption font-semibold text-ink">
+              <p className="truncate text-label font-semibold text-ink">
                 {rangeLabel(entry.startDate, entry.endDate)}
               </p>
               <p className="mt-0.5 truncate text-caption text-muted">{entry.title}</p>
@@ -186,7 +189,7 @@ export function ShabbatScreen({
                 </span>
                 <Sunset
                   size={ICON.sm}
-                  className="text-[rgb(var(--c-shabbat))]"
+                  className="text-shabbat"
                   aria-label={occasionLabels(entry).entry}
                 />
               </p>
@@ -196,7 +199,7 @@ export function ShabbatScreen({
                 </span>
                 <Moon
                   size={ICON.sm}
-                  className="text-brand"
+                  className="text-muted"
                   aria-label={occasionLabels(entry).exit}
                 />
               </p>
@@ -205,13 +208,37 @@ export function ShabbatScreen({
         ))}
       </div>
 
-      <p className="px-2 pb-3 text-caption leading-relaxed text-faint">
+      <p className="px-1 pb-3 text-caption leading-relaxed text-muted">
         הדלקת נרות {settings.candleLightingMins} דקות לפני השקיעה.{' '}
         {settings.havdalahMode === 'degrees'
           ? `הבדלה בצאת הכוכבים (${settings.havdalahDegrees}°).`
           : `הבדלה ${settings.havdalahMins} דקות לאחר השקיעה.`}{' '}
         אפשר לשנות בהגדרות. הזמנים מחושבים לפי אזור הזמן של {city.name}.
       </p>
+    </div>
+  );
+}
+
+/** כניסה או יציאה: תווית קטנה, שעה ענקית, והיום מתחת. */
+function TimeBlock({
+  icon,
+  label,
+  time,
+  date,
+}: {
+  icon: ReactNode;
+  label: string;
+  time: string | undefined;
+  date: string;
+}) {
+  return (
+    <div className="rounded-group bg-well px-4 pb-4 pt-3.5">
+      <p className="flex items-center gap-1.5 text-caption font-medium text-muted">
+        {icon}
+        <span className="truncate">{label}</span>
+      </p>
+      <p className="tnum mt-2 text-hero font-bold tracking-tight text-ink">{time ?? '—'}</p>
+      <p className="mt-2 truncate text-caption text-muted">{date}</p>
     </div>
   );
 }

@@ -23,11 +23,16 @@ export function OfflineBar() {
           className="shrink-0 overflow-hidden gutter-x"
           role="status"
         >
-          <div className="mb-2 flex items-center gap-2.5 rounded-2xl bg-well px-4 py-2.5">
-            <CloudOff size={ICON.sm} className="shrink-0 text-muted" />
-            <span className="text-caption text-muted">
-              אין חיבור. הכול נשמר במכשיר ויסונכרן כשהרשת תחזור.
-            </span>
+          {/*
+            גלולה קטנה במרכז ולא פס לרוחב המסך: פס נקרא כתקלה, וזה מצב
+            רגיל שאין בו מה לעשות. היא נשארת בזרימה ואינה זכוכית מרחפת -
+            מרחפת היא הייתה מסתירה את השבוע הראשון בלוח, שאינו נגלל.
+          */}
+          <div className="flex justify-center pb-2">
+            <div className="flex max-w-full items-center gap-2 rounded-full bg-well px-4 py-2">
+              <CloudOff size={ICON.sm} className="shrink-0 text-muted" />
+              <span className="text-caption text-muted">אין חיבור. הכול נשמר ויסונכרן אחר כך</span>
+            </div>
           </div>
         </motion.div>
       )}

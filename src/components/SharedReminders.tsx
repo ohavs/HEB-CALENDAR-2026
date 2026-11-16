@@ -9,7 +9,8 @@
  */
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Plus, Settings2, UserPlus, Users } from '@/components/ui/icons';
+import { ChevronDown, Plus, Settings2, Tag, UserPlus, Users } from '@/components/ui/icons';
+import { EmptyState } from './ui/EmptyState';
 import { addDays, dateKey, startOfDay } from '@/lib/dates';
 import { expandEvents } from '@/lib/recurrence';
 import { buildReminderGroups, type ReminderGroup, type ReminderItem } from '@/lib/reminders';
@@ -489,11 +490,11 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
             ) : null}
 
             {(sections ? !sections.length : !groups.some((g) => g.items.length)) && (
-              <p className="rounded-2xl border border-dashed border-hairline px-4 py-10 text-center text-body text-muted">
-                {category === null
-                  ? 'הרשימה ריקה. מה שתוסיפו כאן יופיע גם אצל שאר החברים.'
-                  : 'אין פריטים בקטגוריה הזו.'}
-              </p>
+              <EmptyState
+                icon={category === null ? <Users /> : <Tag />}
+                title={category === null ? 'הרשימה ריקה' : 'אין פריטים בקטגוריה הזו'}
+                hint={category === null ? 'מה שתוסיפו כאן יופיע גם אצל שאר החברים' : undefined}
+              />
             )}
           </div>
         </>

@@ -8,6 +8,7 @@
  *    שהתקלה מקומית למסך אחד.
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { RefreshCw } from './ui/icons';
 
 type Props = {
   children: ReactNode;
@@ -47,9 +48,9 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="w-full max-w-[26rem]">
           <span
             aria-hidden="true"
-            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-soft text-display"
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-well text-muted"
           >
-            🕯
+            <RefreshCw size={28} />
           </span>
 
           <h1 className="screen-title">
@@ -64,14 +65,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.reset}
-              className="focus-ring w-full rounded-2xl bg-brand py-4 text-label font-semibold text-on-inverse active:opacity-90"
+              className="focus-ring h-14 w-full rounded-field bg-inverse text-body font-semibold text-on-inverse active:opacity-90"
             >
               חזרה למסך הראשי
             </button>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="focus-ring w-full rounded-2xl bg-well py-4 text-label font-semibold text-ink active:bg-hairline"
+              className="focus-ring h-14 w-full rounded-field bg-well text-body font-semibold text-ink active:bg-hairline"
             >
               טעינה מחדש
             </button>
@@ -83,7 +84,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </summary>
             <pre
               dir="ltr"
-              className="mt-3 max-h-40 overflow-auto rounded-2xl bg-well p-4 text-start text-tiny leading-relaxed text-muted"
+              className="mt-3 max-h-40 overflow-auto rounded-field bg-well p-4 text-start text-tiny leading-relaxed text-muted"
             >
               {error.message || String(error)}
             </pre>
