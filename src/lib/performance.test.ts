@@ -40,6 +40,19 @@ describe('performance guards', () => {
     expect(offenders(/filter:\s*['"`]blur\(/)).toEqual([]);
   });
 
+  it('keeps the tab tap out of App', () => {
+    /*
+      כל עדכון רגיל של App מצייר מחדש את המסך שמוצג. הקשה על לשונית
+      מעדכנת רק את הסרגל, ו-App מקבל אותה ב-transition; ההכרזה שבאה איתה
+      נכתבת ל-LiveRegion ולא ל-state של App.
+    */
+    const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
+    expect(app).not.toMatch(/setAnnouncer/);
+    expect(app).toMatch(/startTransition\(\(\) => setTabState\(next\)\)/);
+    const bar = readFileSync(join(SRC, 'components/TabBar.tsx'), 'utf8');
+    expect(bar).toMatch(/setPicked\(tab\.id\)/);
+  });
+
   it('promotes the marquee to a layer only while it moves', () => {
     // will-change על כל כותרת החזיק עשרות שכבות בכל רשימה
     const marquee = readFileSync(join(SRC, 'components/ui/MarqueeText.tsx'), 'utf8');

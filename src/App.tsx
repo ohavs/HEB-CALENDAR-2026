@@ -76,7 +76,8 @@ import { SearchSheet } from '@/components/SearchSheet';
 import { YearPicker } from '@/components/YearPicker';
 import { DragLayer } from '@/components/DragLayer';
 import { Toaster, toast } from '@/components/Toast';
-import { announce, setAnnouncer } from '@/lib/announce';
+import { announce } from '@/lib/announce';
+import { LiveRegion } from '@/components/LiveRegion';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { consumeLaunch, parseExternalUrl } from '@/lib/launchParams';
 import { ScopeSheet, type EditScope } from '@/components/ScopeSheet';
@@ -88,6 +89,14 @@ import { ConflictSheet } from '@/components/ConflictSheet';
 const REMINDER_DEBOUNCE_MS = 700;
 /** הדלקה חד־פעמית של התראות מקום למי שכבר בחר בהן. ראו למטה. */
 const PLACE_ALERTS_MIGRATED = 'heb-cal:place-alerts-migrated';
+
+/**
+ * סדר החימום: מה שנפתח הכי הרבה, קודם. הלוח אינו כאן - הוא תמיד המסך
+ * הראשון שמצויר, וחלונית היום שבו רושמת את עצמה בהיסטוריה כשהיא פתוחה.
+ */
+const WARM_ORDER: TabId[] = ['reminders', 'shabbat', 'settings'];
+/** התקרה להמתנה לרגע שקט לפני כל לשונית - בעלייה הרגעים השקטים נדירים */
+const WARM_TIMEOUT_MS = 4000;
 
 type EditorState = {
   open: boolean;
@@ -116,20 +125,53 @@ export default function App() {
 
   const today = useMemo(() => startOfDay(new Date()), []);
   /*
-    שני מצבים ללשונית: `tab` הוא מה שנבחר, ו-`shownTab` הוא המסך שמצויר.
+    הלשונית מתחלפת כולה ב-transition, גם בסרגל.
 
-    בניית מסך שלם - תזכורות, שבת - היא מאות מילישניות בטלפון. כשהיא
-    הייתה חלק מההקשה, גם העדשה בסרגל חיכתה לה, והלחיצה נראתה תקועה.
-    עכשיו הסרגל עונה מיד, והמסך נבנה כ-transition שמפנה את השרשור לכל
-    פריים של העדשה בדרך. מי שמחליט על המסך - ההיסטוריה, הוידג׳ט - קורא
-    ל-`setTab` כרגיל, ושניהם זזים יחד.
+    בניית מסך שלם - תזכורות, שבת - היא מאות מילישניות בטלפון, וכל עדכון
+    רגיל של `App` מצייר מחדש גם את המסך שעוד מוצג. לכן הסרגל מחזיק את
+    הבחירה אצלו (`TabBar`) ועונה מיד, ו-App מקבל אותה כ-transition שמפנה
+    את השרשור לכל פריים של העדשה בדרך. קודם הייתה כאן גם לשונית "נבחרת"
+    רגילה, והעדכון שלה לבדו צייר מחדש את המסך היוצא בתוך ההקשה. מי שמחליט
+    על המסך מבחוץ - ההיסטוריה, הוידג׳ט - קורא ל-`setTab`, והסרגל מתיישר.
   */
   const [tab, setTabState] = useState<TabId>('calendar');
-  const [shownTab, setShownTab] = useState<TabId>('calendar');
   const setTab = useCallback((next: TabId) => {
-    setTabState(next);
-    startTransition(() => setShownTab(next));
+    startTransition(() => setTabState(next));
   }, []);
+
+  /*
+    חימום: כל לשונית מצוירת פעם אחת, מוסתרת, ברגע שקט אחרי העלייה - ואז
+    מפורקת.
+
+    המעבר הראשון לכל לשונית היה האיטי ביותר, וההבדל לא היה במסך אלא
+    בפעם: בטלפון קוד שעוד לא רץ מפוענח ומהודר בריצה הראשונה שלו, ו-121
+    ימים של hebcal למסך התזכורות חושבו בתוך ההקשה. החימום משלם את שניהם
+    כשאיש אינו מחכה, והמעבר האמיתי מוצא קוד חם ונתונים במטמון.
+
+    בכוונה לא "להשאיר את המסכים חיים": נמדד, ולא היה מהיר יותר. הלוח
+    נושא `drag` של framer, ומרגע שהוא תמיד קיים כל commit בכל לשונית
+    מפעיל את מערכת ההטלה; ומסך שקפוא ב-Suspense מריץ בחזרה אליו את כל
+    ה-layout effects שלו.
+  */
+  const [warming, setWarming] = useState<TabId | null>(null);
+  // לשונית שכבר הוצגה אינה צריכה חימום - הקוד שלה כבר רץ
+  const visited = useRef(new Set<TabId>());
+  visited.current.add(tab);
+  /*
+    הצעד הבא נקבע רק אחרי שהקודם צויר בפועל - effect על `warming`. כשכל
+    הצעדים נקבעו מראש, הרגעים השקטים הגיעו בין פרוסות של אותו transition,
+    העדכונים התמזגו, ורק האחרון (`null`) נצבע: שום מסך לא חומם.
+  */
+  const warmQueue = useRef(WARM_ORDER.slice());
+  useEffect(
+    () =>
+      whenIdle(() => {
+        let next = warmQueue.current.shift();
+        while (next && visited.current.has(next)) next = warmQueue.current.shift();
+        if (next || warming) startTransition(() => setWarming(next ?? null));
+      }, WARM_TIMEOUT_MS),
+    [warming],
+  );
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [panelDetent, setPanelDetent] = useState<PanelDetent>('peek');
@@ -142,7 +184,6 @@ export default function App() {
   });
   const [cityOpen, setCityOpen] = useState(false);
   const [conflictsOpen, setConflictsOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
   /** גרירה של מופע בסדרה חוזרת, שממתינה לתשובה על היקף ההזזה */
   const [pendingDrop, setPendingDrop] = useState<{ occurrence: Occurrence; to: DateKey } | null>(
     null,
@@ -498,12 +539,6 @@ export default function App() {
    */
   useOverlayHistory(tab !== 'calendar', () => setTab('calendar'));
 
-  /* ----------------------- הכרזות לקורא מסך ----------------------- */
-  useEffect(() => {
-    setAnnouncer(setAnnouncement);
-    return () => setAnnouncer(null);
-  }, []);
-
   /* ------------------------- התנגשויות סנכרון ------------------------- */
   const conflictCount = useEventsStore((s) => s.conflicts.length);
   const lastConflictCount = useRef(conflictCount);
@@ -832,6 +867,66 @@ export default function App() {
   const tabBarBottom = safeBottom + (isDesktop ? 24 : 10);
   const bottomInset = tabBarBottom + TAB_BAR_HEIGHT;
 
+  /*
+    המסך של לשונית. פונקציה ולא JSX במקום, כי אותו מסך מצויר גם בחימום
+    (`warming`) - ושם בלי מה שהוידג׳ט ביקש, שכבר שייך למסך האמיתי.
+  */
+  const screen = (id: TabId, warm = false) => {
+    switch (id) {
+      case 'calendar':
+        return (
+          <CalendarScreen
+            month={month}
+            onMonthChange={goToMonth}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            panelDetent={panelDetent}
+            onPanelDetentChange={setPanelDetent}
+            onOpenDayView={setDayViewDate}
+            onAddEvent={openEditor}
+            onEditEvent={editOccurrence}
+            onMoveEvent={moveEventByKeyboard}
+            onProfile={() => setTab('settings')}
+            onSearch={() => setSearchOpen(true)}
+            onOpenYear={() => {
+              setYearValue(month.getFullYear());
+              setYearOpen(true);
+            }}
+            onPickView={cycleView}
+            photoURL={shownUser?.photoURL ?? null}
+            userName={shownUser?.name ?? shownUser?.email ?? null}
+            onPlaceTemplate={placeTemplate}
+            bottomInset={bottomInset}
+          />
+        );
+      case 'shabbat':
+        return (
+          <ShabbatScreen onPickCity={() => setCityOpen(true)} bottomInset={bottomInset} />
+        );
+      case 'reminders':
+        return (
+          <RemindersScreen
+            onEditEvent={editReminder}
+            onDeleteEvent={setPendingTrash}
+            onComposeMore={composeReminderMore}
+            composeOnMount={!warm && composeReminder}
+            viewOverride={warm ? null : remindersView}
+            onPlaceTemplate={placeTemplateOn}
+            bottomInset={bottomInset}
+          />
+        );
+      case 'settings':
+        return (
+          <SettingsScreen
+            onPickCity={() => setCityOpen(true)}
+            onOpenConflicts={() => setConflictsOpen(true)}
+            onUpdateFound={setUpdate}
+            bottomInset={bottomInset}
+          />
+        );
+    }
+  };
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative flex h-full flex-col overflow-hidden bg-canvas">
@@ -842,7 +937,7 @@ export default function App() {
         <div className="relative min-h-0 flex-1">
           <AnimatePresence initial={false}>
             <motion.main
-              key={shownTab}
+              key={tab}
               /*
                 המסך הנכנס מתקרב ממרחק קטן, והיוצא רק דוהה. בלי החלקה
                 הצידה: הציר האופקי שמור לזמן (חודש, שבוע), ולשוניות אינן
@@ -859,70 +954,24 @@ export default function App() {
               transition={ENTER}
               className="absolute inset-0 flex min-h-0 flex-col"
             >
-            {shownTab === 'calendar' && (
-              <CalendarScreen
-                month={month}
-                onMonthChange={goToMonth}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                panelDetent={panelDetent}
-                onPanelDetentChange={setPanelDetent}
-                onOpenDayView={setDayViewDate}
-                onAddEvent={openEditor}
-                onEditEvent={editOccurrence}
-                onMoveEvent={moveEventByKeyboard}
-                onProfile={() => setTab('settings')}
-                onSearch={() => setSearchOpen(true)}
-                onOpenYear={() => {
-                  setYearValue(month.getFullYear());
-                  setYearOpen(true);
-                }}
-                onPickView={cycleView}
-                photoURL={shownUser?.photoURL ?? null}
-                userName={shownUser?.name ?? shownUser?.email ?? null}
-                onPlaceTemplate={placeTemplate}
-                bottomInset={bottomInset}
-              />
-            )}
-
-            {shownTab === 'shabbat' && (
-              <ShabbatScreen onPickCity={() => setCityOpen(true)} bottomInset={bottomInset} />
-            )}
-
-            {shownTab === 'reminders' && (
-              <RemindersScreen
-                onEditEvent={editReminder}
-                onDeleteEvent={setPendingTrash}
-                onComposeMore={composeReminderMore}
-                composeOnMount={composeReminder}
-                viewOverride={remindersView}
-                onPlaceTemplate={placeTemplateOn}
-                bottomInset={bottomInset}
-              />
-            )}
-
-            {shownTab === 'settings' && (
-              <SettingsScreen
-                onPickCity={() => setCityOpen(true)}
-                onOpenConflicts={() => setConflictsOpen(true)}
-                onUpdateFound={setUpdate}
-                bottomInset={bottomInset}
-              />
-            )}
+            {screen(tab)}
             </motion.main>
           </AnimatePresence>
+          {/*
+            החימום (ראו `warming`): מוסתר לגמרי, ולכן בלי פריסה וציור - רק
+            הקוד והחישובים. `inert` כדי שדבר בו לא יתפוס מיקוד.
+          */}
+          {warming && warming !== tab && (
+            <div hidden aria-hidden="true" ref={(el) => el?.setAttribute('inert', '')}>
+              {screen(warming, true)}
+            </div>
+          )}
         </div>
 
         <TabBar active={tab} onChange={setTab} bottom={tabBarBottom} />
         <Toaster bottomInset={bottomInset} />
 
-        {/*
-          אזור ה-live היחיד באפליקציה. פעולות שמשנות את המסך בלי להזיז את
-          המיקוד (הזזה בחיצים, מעבר חודש) מדווחות דרכו.
-        */}
-        <p aria-live="polite" aria-atomic="true" className="sr-only">
-          {announcement}
-        </p>
+        <LiveRegion />
       </div>
 
       {/* ------------------------------ חלוניות ------------------------------ */}

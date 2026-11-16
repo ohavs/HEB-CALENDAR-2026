@@ -5,7 +5,7 @@
  * `Segmented`. כאן רק המראה: זכוכית, ואייקון שמתמלא כשהעדשה מעליו.
  */
 import { motion, type MotionValue } from 'framer-motion';
-import { forwardRef } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import { CalendarDays, ListChecks, Settings, Sunset, type Icon } from './ui/icons';
 import { announce } from '@/lib/announce';
 import { ICON } from '@/lib/motion';
@@ -33,12 +33,35 @@ export function TabBar({
   /** המרחק מתחתית המסך, כולל סרגל המערכת */
   bottom: number;
 }) {
-  const index = TABS.findIndex((t) => t.id === active);
+  /*
+    הבחירה נשמרת כאן, ולא רק ב-App: App מקבל אותה ב-transition (ראו `setTab`),
+    והעדשה לא מחכה לו. כשהלשונית מתחלפת מבחוץ - כפתור החזרה, וידג׳ט - היא
+    מתיישרת לפיה.
+  */
+  const requested = useRef<TabId | null>(null);
+  const [picked, setPicked] = useState(active);
+  const [seen, setSeen] = useState(active);
+  if (active !== seen) {
+    setSeen(active);
+    /*
+      שתי הקשות מהירות: הראשונה עלולה להגיע ל-App לפני השנייה, והעדשה
+      הייתה קופצת אליה לרגע בדרך. מתיישרים רק כשאין בחירה שעוד בדרך, או
+      כשהיא זו שהגיעה.
+    */
+    if (requested.current === null || requested.current === active) {
+      requested.current = null;
+      setPicked(active);
+    }
+  }
+  const index = TABS.findIndex((t) => t.id === picked);
   const lens = useLens({
     count: TABS.length,
     index,
     onSelect: (i) => {
       const tab = TABS[i];
+      // הקשה על הלשונית שכבר מוצגת אינה מגיעה ל-App כשינוי, ואין לה למה לחכות
+      requested.current = tab.id === active ? null : tab.id;
+      setPicked(tab.id);
       onChange(tab.id);
       // המסך מתחלף כולו והמיקוד נשאר על הלשונית. החלפה היא ניווט, ולכן בלי רטט.
       announce(tab.label);
