@@ -57,7 +57,7 @@ export function ValueButton({
       className={`flex shrink-0 items-center gap-2 rounded-2xl bg-well px-4 transition-colors active:bg-hairline ${
         tone === 'strong'
           ? 'tnum py-3 text-title font-semibold text-ink'
-          : 'py-2.5 text-label font-semibold text-brand-ink'
+          : 'py-2.5 text-label font-semibold text-ink'
       }`}
     >
       {value}

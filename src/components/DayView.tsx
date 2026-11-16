@@ -159,7 +159,7 @@ export function DayView({
                 key={t.id}
                 className={`rounded-2xl px-4 py-3.5 ${
                   t.kind === 'candles'
-                    ? 'bg-[rgb(var(--c-shabbat)/0.1)]'
+                    ? 'bg-shabbat/10'
                     : t.kind === 'havdalah'
                       ? 'bg-well'
                       : 'bg-well'

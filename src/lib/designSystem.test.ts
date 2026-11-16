@@ -29,6 +29,24 @@ describe('design system', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('has no brand, and no hard-coded interface colors', () => {
+    /*
+      `brand` היה שם ישן ל-`inverse`, ונמחק בשלב הניקוי - מחלקה שעוד
+      משתמשת בו פשוט אינה מייצרת CSS, בלי שגיאה. וצבע ממשק שנכתב ביד,
+      `[rgb(240_118_149)]` או `[rgb(var(--c-shabbat))]`, עוקף את הטוקן:
+      הראשון אינו מתהפך במצב לילה, והשני מכפיל שם שכבר יש לו מחלקה.
+    */
+    const brand = /\b[a-z-]+-brand\b|--c-brand|tone=["']brand/;
+    const arbitrary = /\[(?:rgb|rgba|hsl)\(/;
+    const offenders = sources(SRC).filter((file) => {
+      const text = readFileSync(file, 'utf8');
+      return brand.test(text) || arbitrary.test(text);
+    });
+    expect(offenders).toEqual([]);
+    const css = readFileSync(join(SRC, 'index.css'), 'utf8');
+    expect(css).not.toMatch(/--c-brand/);
+  });
+
   it('has no vertical accent bar', () => {
     /*
       פס צבע דק לצד טקסט - בכרטיס, בשורה או בין שעות - הוא קישוט שאינו

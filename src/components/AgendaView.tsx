@@ -149,7 +149,7 @@ function DayGroup({
         {(candles || havdalah) && (
           <div className="flex flex-wrap gap-2">
             {candles && (
-              <span className="tnum rounded-xl bg-[rgb(var(--c-shabbat)/0.12)] px-3 py-1.5 text-caption font-medium text-[rgb(var(--c-shabbat))]">
+              <span className="tnum rounded-xl bg-shabbat/[0.12] px-3 py-1.5 text-caption font-medium text-shabbat">
                 🕯 {candles.time}
               </span>
             )}

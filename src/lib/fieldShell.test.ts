@@ -56,7 +56,7 @@ describe('מעטפת שדה', () => {
     // מי שמעתיק את מחלקות Tailwind במקום להשתמש במעטפת מפספס את כיבוי
     // הטבעת הפנימית, וזה בדיוק המלבן
     const copied = files
-      .filter((f) => f.source.includes('focus-within:ring-brand'))
+      .filter((f) => /focus-within:ring-(?:inverse|ink)\b/.test(f.source))
       .map((f) => f.path);
     expect(copied).toEqual([]);
   });

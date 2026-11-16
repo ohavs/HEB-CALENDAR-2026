@@ -43,7 +43,7 @@ function holidayTone(kind: HolidayKind): string {
     case 'minor':
       return 'text-ink/85';
     case 'modern':
-      return 'text-[rgb(var(--c-shabbat))]';
+      return 'text-shabbat';
     default:
       return 'text-muted';
   }
@@ -250,7 +250,7 @@ function DayCellInner({
         ולכן הוא כבר לא גוזל שורת אירוע בשקט.
       */}
       {time && (
-        <span className="tnum flex shrink-0 items-center justify-center gap-0.5 pt-0.5 text-micro leading-none text-[rgb(var(--c-shabbat))]">
+        <span className="tnum flex shrink-0 items-center justify-center gap-0.5 pt-0.5 text-micro leading-none text-shabbat">
           <span aria-hidden="true">{candles ? '🕯' : '✦'}</span>
           {time.time}
         </span>

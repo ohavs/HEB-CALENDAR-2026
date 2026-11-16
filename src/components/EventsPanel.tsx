@@ -146,8 +146,8 @@ function DayPanelContent({
       {(candles || havdalah) && (
         <div className="flex gap-3">
           {candles && (
-            <div className="flex-1 rounded-2xl bg-[rgb(var(--c-shabbat)/0.1)] px-4 py-3.5">
-              <span className="block text-caption font-medium text-[rgb(var(--c-shabbat))]">
+            <div className="flex-1 rounded-2xl bg-shabbat/10 px-4 py-3.5">
+              <span className="block text-caption font-medium text-shabbat">
                 🕯 {candles.title}
               </span>
               <span className="tnum mt-1 block text-heading font-semibold text-ink">

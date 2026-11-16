@@ -37,11 +37,6 @@ export default {
         ink: 'rgb(var(--c-ink) / <alpha-value>)',
         muted: 'rgb(var(--c-muted) / <alpha-value>)',
         faint: 'rgb(var(--c-faint) / <alpha-value>)',
-        brand: {
-          DEFAULT: 'rgb(var(--c-brand) / <alpha-value>)',
-          soft: 'rgb(var(--c-brand-soft) / <alpha-value>)',
-          ink: 'rgb(var(--c-brand-ink) / <alpha-value>)',
-        },
         inverse: 'rgb(var(--c-inverse) / <alpha-value>)',
         'on-inverse': 'rgb(var(--c-on-inverse) / <alpha-value>)',
         danger: {

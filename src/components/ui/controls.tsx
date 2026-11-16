@@ -308,16 +308,16 @@ export function PrimaryButton({
   onClick,
   disabled,
   type = 'button',
-  tone = 'brand',
+  tone = 'inverse',
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   type?: 'button' | 'submit';
-  tone?: 'brand' | 'danger' | 'quiet';
+  tone?: 'inverse' | 'danger' | 'quiet';
 }) {
   const tones = {
-    brand: 'bg-inverse text-on-inverse shadow-raised',
+    inverse: 'bg-inverse text-on-inverse shadow-raised',
     danger: 'bg-danger text-on-danger',
     quiet: 'bg-well text-ink',
   } as const;

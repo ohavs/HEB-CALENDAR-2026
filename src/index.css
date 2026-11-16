@@ -57,14 +57,6 @@
     --c-danger: 216 64 47;
     --c-on-danger: 255 255 255;
     --c-danger-soft: 251 225 220;
-    /*
-      brand הוא שם ישן ל-inverse, ונשאר עד שלב הניקוי (docs/REDESIGN.md).
-      מי שעדיין כותב text-white ליד bg-brand ייעלם במצב לילה, כי שם
-      הדיו בהיר - לכן text-on-inverse.
-    */
-    --c-brand: var(--c-inverse);
-    --c-brand-soft: var(--c-well);
-    --c-brand-ink: var(--c-ink);
     --c-shabbat: 196 120 30;
 
     --shadow-tint: 27 25 21;
