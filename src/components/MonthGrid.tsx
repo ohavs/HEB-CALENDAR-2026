@@ -286,7 +286,13 @@ function SelectionRing({
     }
     const gridRect = grid.getBoundingClientRect();
     const numRect = num.getBoundingClientRect();
-    const scale = gridRect.width / grid.offsetWidth || 1;
+    /*
+      הרוחב בלי טרנספורם, ובשברים. `offsetWidth` מעוגל לפיקסל שלם, ובטלפון
+      הרשת רחבה 392.73 ולא 393 - קנה מידה של 1.0008 במנוחה, והטבעת ישבה
+      חלקי פיקסל ליד היום, לתמיד. `width` המחושב אינו מעוגל, ואינו מושפע
+      מטרנספורם של הורה (box-sizing הוא border-box בכל האפליקציה).
+    */
+    const scale = gridRect.width / parseFloat(getComputedStyle(grid).width) || 1;
     const diameter = parseFloat(getComputedStyle(num).fontSize) * RING_EM;
     const nextX = (numRect.left - gridRect.left + numRect.width / 2) / scale - diameter / 2;
     const nextY = (numRect.top - gridRect.top + numRect.height / 2) / scale - diameter / 2;
