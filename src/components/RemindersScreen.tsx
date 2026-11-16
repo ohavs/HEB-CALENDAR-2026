@@ -514,7 +514,7 @@ function Group({
       ה-data-day-key נשאר על ה-section כולו, כך ששחרור מעל הכותרת עדיין
       נתפס: שטח הפגיעה רחב מהסימון הוויזואלי, וזה בדיוק מה שרוצים.
     */
-    <section data-day-key={groupKey}>
+    <section data-day-key={groupKey} className="skip-offscreen">
       <DayGroupHeader label={label} hebrew={hebrew} />
 
       {items.length || preview ? (

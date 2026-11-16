@@ -1,5 +1,5 @@
 /** שורש האפליקציה - מחבר את המסכים, החלוניות, הסנכרון והתזכורות. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import type { DateKey, EventTemplate, UserEvent } from '@/types';
 import { eventsOnDay, expandEvents, type Occurrence } from '@/lib/recurrence';
@@ -62,12 +62,13 @@ import { CalendarScreen } from '@/components/CalendarScreen';
 import { VIEW_LABEL } from '@/components/CalendarHeader';
 import type { PanelDetent } from '@/components/EventsPanel';
 import { RemindersScreen } from '@/components/RemindersScreen';
-import { ShabbatScreen } from '@/components/ShabbatScreen';
+import { ShabbatScreen, shabbatEntries } from '@/components/ShabbatScreen';
 import { SettingsScreen } from '@/components/SettingsScreen';
 import { TabBar, TAB_BAR_HEIGHT, type TabId } from '@/components/TabBar';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
 import { useSafeBottom } from '@/hooks/useSafeBottom';
 import { ENTER, EXIT } from '@/lib/motion';
+import { debounceIdle, whenIdle } from '@/lib/idle';
 import { DayView } from '@/components/DayView';
 import { EventEditor } from '@/components/EventEditor';
 import { CityPicker } from '@/components/CityPicker';
@@ -114,7 +115,21 @@ export default function App() {
   const initAuth = useAuthStore((s) => s.init);
 
   const today = useMemo(() => startOfDay(new Date()), []);
-  const [tab, setTab] = useState<TabId>('calendar');
+  /*
+    שני מצבים ללשונית: `tab` הוא מה שנבחר, ו-`shownTab` הוא המסך שמצויר.
+
+    בניית מסך שלם - תזכורות, שבת - היא מאות מילישניות בטלפון. כשהיא
+    הייתה חלק מההקשה, גם העדשה בסרגל חיכתה לה, והלחיצה נראתה תקועה.
+    עכשיו הסרגל עונה מיד, והמסך נבנה כ-transition שמפנה את השרשור לכל
+    פריים של העדשה בדרך. מי שמחליט על המסך - ההיסטוריה, הוידג׳ט - קורא
+    ל-`setTab` כרגיל, ושניהם זזים יחד.
+  */
+  const [tab, setTabState] = useState<TabId>('calendar');
+  const [shownTab, setShownTab] = useState<TabId>('calendar');
+  const setTab = useCallback((next: TabId) => {
+    setTabState(next);
+    startTransition(() => setShownTab(next));
+  }, []);
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [panelDetent, setPanelDetent] = useState<PanelDetent>('peek');
@@ -154,6 +169,12 @@ export default function App() {
   // הוידג׳טים במסך הבית, ומה שנעשה בהם בזמן שהאפליקציה הייתה סגורה
   useWidgets();
   useSystemCalendar();
+
+  /*
+    לשונית השבת מחושבת מראש, ברגע שקט אחרי העלייה ואחרי כל שינוי
+    בהגדרות. ראו `shabbatEntries`.
+  */
+  useEffect(() => whenIdle(() => void shabbatEntries(settings), 5000), [settings]);
 
   /* ------------------------------ ערכת נושא ------------------------------ */
   useEffect(() => {
@@ -249,16 +270,11 @@ export default function App() {
   }, [authUser]);
 
   /* ------------------------------- תזכורות ------------------------------- */
-  const reminderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (reminderTimer.current) clearTimeout(reminderTimer.current);
-    reminderTimer.current = setTimeout(() => {
-      void syncReminders(settings, events);
-    }, REMINDER_DEBOUNCE_MS);
-    return () => {
-      if (reminderTimer.current) clearTimeout(reminderTimer.current);
-    };
-  }, [settings, events]);
+  // אחרי ההשהיה גם מחכים לרגע שקט: בניית התזכורות היא חודש של מופעים (lib/idle)
+  useEffect(
+    () => debounceIdle(() => void syncReminders(settings, events), REMINDER_DEBOUNCE_MS),
+    [settings, events],
+  );
 
   useEffect(() => {
     const onVisible = () => {
@@ -515,7 +531,7 @@ export default function App() {
     setSelectedDate(day);
     setMonth(new Date(day.getFullYear(), day.getMonth(), 1));
     setTab('calendar');
-  }, []);
+  }, [setTab]);
 
   /* ------------------------- גרירת אירועים בלוח ------------------------- */
   const placeTemplateOn = useCallback((template: EventTemplate, dates: DateKey[]) => {
@@ -826,24 +842,24 @@ export default function App() {
         <div className="relative min-h-0 flex-1">
           <AnimatePresence initial={false}>
             <motion.main
-              key={tab}
+              key={shownTab}
               /*
-                המסך הנכנס מתחדד ממרחק, והיוצא רק דוהה. בלי החלקה הצידה:
-                הציר האופקי שמור לזמן (חודש, שבוע), ולשוניות אינן ציר זמן.
-                ה-filter מוסר בסוף, כי גם blur(0) יוצר בלוק מכיל לכל מה
-                שממוקם fixed בתוך המסך.
+                המסך הנכנס מתקרב ממרחק קטן, והיוצא רק דוהה. בלי החלקה
+                הצידה: הציר האופקי שמור לזמן (חודש, שבוע), ולשוניות אינן
+                ציר זמן.
+
+                בלי טשטוש. הוא היה כאן (blur שמתחדד), אבל טשטוש של מסך שלם
+                מחושב מחדש בכל פריים, ובדיוק בפריימים שבהם המסך החדש עוד
+                נבנה - זה היה הגמגום בהחלפת לשונית במכשיר חלש. שקיפות
+                וקנה מידה עוברים במעבד הגרפי בלי לצייר מחדש.
               */
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985, filter: 'blur(6px)' }}
-              animate={
-                reduceMotion
-                  ? { opacity: 1 }
-                  : { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }
-              }
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
               exit={{ opacity: 0, transition: EXIT }}
               transition={ENTER}
               className="absolute inset-0 flex min-h-0 flex-col"
             >
-            {tab === 'calendar' && (
+            {shownTab === 'calendar' && (
               <CalendarScreen
                 month={month}
                 onMonthChange={goToMonth}
@@ -869,11 +885,11 @@ export default function App() {
               />
             )}
 
-            {tab === 'shabbat' && (
+            {shownTab === 'shabbat' && (
               <ShabbatScreen onPickCity={() => setCityOpen(true)} bottomInset={bottomInset} />
             )}
 
-            {tab === 'reminders' && (
+            {shownTab === 'reminders' && (
               <RemindersScreen
                 onEditEvent={editReminder}
                 onDeleteEvent={setPendingTrash}
@@ -885,7 +901,7 @@ export default function App() {
               />
             )}
 
-            {tab === 'settings' && (
+            {shownTab === 'settings' && (
               <SettingsScreen
                 onPickCity={() => setCityOpen(true)}
                 onOpenConflicts={() => setConflictsOpen(true)}

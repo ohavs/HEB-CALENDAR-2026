@@ -194,7 +194,7 @@ export function SharedReminders({ bottomInset }: { bottomInset: number }) {
 
   /** קבוצה של יום, באותה צורה של הרשימה האישית ובאותה שורה */
   const renderGroup = (group: ReminderGroup) => (
-    <section key={group.key}>
+    <section key={group.key} className="skip-offscreen">
       <DayGroupHeader label={group.label} hebrew={group.hebrew} />
       <div className="space-y-2">
         {group.items.map((item) => {

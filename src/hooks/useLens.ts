@@ -104,8 +104,16 @@ export function useLens({
           : next,
       );
     };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
+    /*
+      המדידה הראשונה מגיעה מה-ResizeObserver עצמו, שמדווח מיד על כל
+      אלמנט שהתחילו לצפות בו - אחרי הפריסה, כשהקריאה זולה. קריאה ישירה
+      כאן, באמצע ה-commit, אילצה את הדפדפן לפרוס את המסך החדש כולו פעם
+      נוספת לפני הזמן, וכל מסך עם `Segmented` שילם על זה בכניסה.
+    */
+    if (typeof ResizeObserver === 'undefined') {
+      measure();
+      return;
+    }
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     // כיתוב שמשתנה באפשרות אחת משנה את רוחבה בלי לשנות את השורה

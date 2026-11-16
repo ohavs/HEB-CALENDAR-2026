@@ -1,7 +1,8 @@
 /** חישוב הנתונים של חודש שלם - מועדים, זמנים ואירועי המשתמש. */
-import { useMemo } from 'react';
-import type { DateKey, DayInfo } from '@/types';
-import { addDays, dateKey, monthGridDays, monthKey, monthWeekCount } from '@/lib/dates';
+import { useEffect, useMemo } from 'react';
+import type { DateKey, DayInfo, Settings } from '@/types';
+import { addDays, addMonths, dateKey, monthGridDays, monthKey, monthWeekCount } from '@/lib/dates';
+import { whenIdle } from '@/lib/idle';
 import { buildDays } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
 import { expandEvents, type Occurrence } from '@/lib/recurrence';
@@ -74,6 +75,24 @@ export type MonthData = {
   occurrences: Map<DateKey, Occurrence[]>;
 };
 
+/** ימי הרשת של חודש: חמש שורות, ושש רק כשהחודש חוצה שישה שבועות */
+function gridOf(month: Date): Date[] {
+  return monthGridDays(month).slice(0, monthWeekCount(month) * 7);
+}
+
+/**
+ * המועדים והזמנים של רשת חודש. מקור אחד לחישוב ולחימום מראש, כדי
+ * ששניהם יפגעו באותו מפתח במטמון של buildDays.
+ */
+function monthDays(month: Date, gridDays: Date[], settings: Settings): Map<DateKey, DayInfo> {
+  return buildDays(
+    gridDays[0],
+    gridDays[gridDays.length - 1],
+    { ...toFilters(settings), city: findCity(settings.cityId) },
+    month,
+  );
+}
+
 export function useMonthData(month: Date): MonthData {
   const settings = useSettings();
   const events = useEvents();
@@ -82,21 +101,35 @@ export function useMonthData(month: Date): MonthData {
   const signature = useFiltersSignature(settings);
 
   const gridDays = useMemo(
-    () => monthGridDays(month).slice(0, monthWeekCount(month) * 7),
+    () => gridOf(month),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [mk],
   );
 
   const days = useMemo(
-    () =>
-      buildDays(
-        gridDays[0],
-        gridDays[gridDays.length - 1],
-        { ...toFilters(settings), city: findCity(settings.cityId) },
-        month,
-      ),
+    () => monthDays(month, gridDays, settings),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [gridDays, signature],
+  );
+
+  /*
+    החודש הבא והקודם מחושבים מראש, ברגע שקט.
+
+    מועדים וזמני שבת של רשת שלמה הם עשרות מילישניות של hebcal בטלפון,
+    וכשהם חושבו רק אחרי ההחלקה - הם נפלו בדיוק על הפריים הראשון של
+    החודש הנכנס, וזה הגמגום בתחילת ההחלקה. אחרי החימום ההחלקה מוצאת אותם
+    במטמון.
+  */
+  useEffect(
+    () =>
+      whenIdle(() => {
+        for (const delta of [1, -1]) {
+          const other = addMonths(month, delta);
+          monthDays(other, gridOf(other), settings);
+        }
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mk, signature],
   );
 
   const personal = useMemo(

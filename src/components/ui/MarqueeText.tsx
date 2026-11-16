@@ -22,7 +22,15 @@ export function MarqueeText({ text, className = '' }: { text: string; className?
     const content = inner.current;
     if (!box || !content) return;
     const measure = () => setOverflow(Math.max(0, Math.ceil(content.scrollWidth - box.clientWidth)));
-    measure();
+    /*
+      בלי מדידה ישירה: ה-ResizeObserver מדווח מיד על האלמנט, אחרי הפריסה.
+      רשימה של עשרות כותרות שכל אחת קראה רוחב באמצע ה-commit אילצה פריסה
+      מוקדמת של המסך כולו - זה היה רוב הזמן בכניסה למסך התזכורות.
+    */
+    if (typeof ResizeObserver === 'undefined') {
+      measure();
+      return;
+    }
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     return () => observer.disconnect();
@@ -75,10 +83,17 @@ export function MarqueeText({ text, className = '' }: { text: string; className?
       {/*
         `text-decoration: inherit` במפורש: קישוט אינו עובר לתוך
         `inline-block`, ולכן קו חוצה של "בוצע" על המעטפת פשוט לא צויר.
+
+        `will-change` רק כשהטקסט באמת זז. הוא מקדם את השורה לשכבה משלה
+        במעבד הגרפי, וכשהוא ישב על כל כותרת - גם על כל אלה שנכנסות -
+        רשימת תזכורות או חלונית יום החזיקו עשרות שכבות, וכל פריים של
+        גלילה או של החלונית שילם על הרכבה של כולן.
       */}
       <span
         ref={inner}
-        className={`[text-decoration:inherit] ${reduceMotion ? '' : 'inline-block will-change-transform'}`}
+        className={`[text-decoration:inherit] ${reduceMotion ? '' : 'inline-block'} ${
+          moving ? 'will-change-transform' : ''
+        }`}
         style={moving ? { paddingInline: fade } : undefined}
       >
         {text}

@@ -273,6 +273,7 @@ function cacheKey(start: Date, end: Date, o: BuildOptions, focusMonth?: Date): s
 /** מרוקן את המטמון. לשימוש בדיקות ובאיפוס ידני. */
 export function clearCalendarCache(): void {
   dayCache.clear();
+  shabbatCache.clear();
 }
 
 /**
@@ -464,7 +465,32 @@ function occasionName(verb: string, shabbat: boolean, holiday: boolean): string 
  * מחזיר את רשימת "כניסות ויציאות" הקרובות - שבתות וימים טובים גם יחד,
  * בסדר כרונולוגי, החל מהתאריך הנתון.
  */
+/*
+  אותו רעיון של המטמון של buildDays: לשונית השבת מחושבת מחדש בכל כניסה
+  אליה, והחישוב (כל זמני השקיעה של עשרה שבועות ב-hebcal) הוא רוב הזמן
+  שבו המסך נבנה. המפתח כולל את היום, ולכן מחר מחושב מחדש מעצמו.
+  התוצאה משותפת לכל הקוראים ואסור לשנות אותה במקום.
+*/
+const SHABBAT_CACHE_LIMIT = 4;
+const shabbatCache = new Map<string, ShabbatEntry[]>();
+
 export function upcomingShabbatot(
+  from: Date,
+  weeks: number,
+  options: BuildOptions,
+): ShabbatEntry[] {
+  const key = `${weeks}|${cacheKey(from, from, options)}`;
+  const cached = shabbatCache.get(key);
+  if (cached) return cached;
+  const built = computeShabbatot(from, weeks, options);
+  shabbatCache.set(key, built);
+  if (shabbatCache.size > SHABBAT_CACHE_LIMIT) {
+    shabbatCache.delete(shabbatCache.keys().next().value!);
+  }
+  return built;
+}
+
+function computeShabbatot(
   from: Date,
   weeks: number,
   options: BuildOptions,

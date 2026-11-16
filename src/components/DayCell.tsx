@@ -8,12 +8,10 @@
  * הסקאלה הנוזלית כשעוברים מטלפון למסך גדול.
  */
 import { memo } from 'react';
-import { motion } from 'framer-motion';
 import type { DayInfo, HolidayItem, HolidayKind, Settings } from '@/types';
 import type { Occurrence } from '@/lib/recurrence';
 import { MiniEventChip } from './EventChip';
 import { useIsDropTarget } from '@/lib/dragEngine';
-import { SNAP, TAP } from '@/lib/motion';
 import { planCell, type CellMetrics } from '@/lib/cellLayout';
 
 /**
@@ -59,7 +57,6 @@ type Props = {
   /** המידות של התא והגופן, כפי שנמדדו ברשת */
   metrics: CellMetrics;
   onSelect: (day: DayInfo) => void;
-  layoutGroupId: string;
   /**
    * רק תא אחד ברשת נושא tabIndex=0 בכל רגע (roving tabindex), כדי
    * שהמקלדת לא תצטרך לעבור דרך 42 תאים כדי לצאת מהלוח.
@@ -74,7 +71,6 @@ function DayCellInner({
   settings,
   metrics,
   onSelect,
-  layoutGroupId,
   focusable,
 }: Props) {
   const isDropTarget = useIsDropTarget(day.key);
@@ -136,11 +132,7 @@ function DayCellInner({
       aria-current={day.isToday ? 'date' : undefined}
     >
       {isDropTarget && (
-        <motion.span
-          layoutId="drop-target"
-          className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-ink bg-ink/10"
-          transition={TAP}
-        />
+        <span className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-ink bg-ink/10" />
       )}
 
       {/*
@@ -153,16 +145,12 @@ function DayCellInner({
         עוגן שהעין מחפשת בכל פתיחה, והבחירה זזה בכל הקשה - טבעת שזזה
         שקטה יותר מעיגול מלא שקופץ בין תאים. כשהם אותו יום, העיגול קטן
         ונכנס לתוך הטבעת, כדי ששניהם ייקראו.
+
+        הטבעת עצמה אינה כאן: היא אחת לכל הרשת (`SelectionRing` ב-MonthGrid),
+        ונמדדת אל `data-day-num` של התא הנבחר.
       */}
       <span className="relative flex shrink-0 items-baseline justify-center gap-[3px] text-daynum">
-        <span className="relative flex min-w-[1.75em] items-center justify-center">
-          {selected && (
-            <motion.span
-              layoutId={`day-selection-${layoutGroupId}`}
-              className="absolute h-[1.75em] w-[1.75em] rounded-full border-[1.5px] border-ink"
-              transition={SNAP}
-            />
-          )}
+        <span data-day-num className="relative flex min-w-[1.75em] items-center justify-center">
           {day.isToday && (
             <span
               className={`absolute rounded-full bg-inverse transition-[width,height] ${

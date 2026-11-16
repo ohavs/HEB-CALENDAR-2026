@@ -145,14 +145,26 @@ export function relativeDayLabel(d: Date, now = new Date(), short = false): stri
   return short ? weekdayDateLabel(d) : dayTitleLabel(d);
 }
 
+/*
+  פורמט אחד לכל אזור זמן, ולא אחד לכל קריאה. בניית Intl.DateTimeFormat
+  יקרה פי מאות מהשימוש בו, ו-buildDays קורא לכאן לכל זמן של כל יום ברשת -
+  במכשיר חלש זה היה החלק הגדול של החלפת חודש.
+*/
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
 /** HH:mm בשעון המקום של אזור הזמן הנתון (מטפל אוטומטית בשעון קיץ/חורף). */
 export function formatTimeInZone(at: Date | number, tzid: string): string {
-  return new Intl.DateTimeFormat('he-IL', {
-    timeZone: tzid,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(at);
+  let formatter = zoneFormatters.get(tzid);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('he-IL', {
+      timeZone: tzid,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    zoneFormatters.set(tzid, formatter);
+  }
+  return formatter.format(at);
 }
 
 /** HH:mm בשעון המקומי של המכשיר. */

@@ -273,7 +273,6 @@ export function CalendarScreen({
                 selectedKey={selectedKey}
                 onSelectDay={onSelectDay}
                 onNavigate={goToDate}
-                layoutGroupId={monthKey(month)}
               />
             </motion.div>
           </AnimatePresence>

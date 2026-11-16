@@ -39,8 +39,16 @@ import { EventCard } from './EventChip';
 import { DisplayText } from './ui/DisplayText';
 import { ICON, TAP, TAP_SCALE } from '@/lib/motion';
 
-/** כמה ימים נטענים בכל פעם */
-const WINDOW_DAYS = 92;
+/*
+  כמה ימים נטענים בפתיחה, וכמה בכל הארכה.
+
+  הפתיחה קטנה בכוונה: היא נבנית באותו פריים שבו התצוגה מתחלפת, ושלושה
+  חודשים של כרטיסים - כשיש אירוע יומי, תשעים ושניים ימים מלאים - עצרו
+  את המסך לרבע שנייה במכשיר חלש. חודש ממלא כמה מסכים, והזקיף מאריך
+  הרבה לפני שמגיעים לסוף.
+*/
+const WINDOW_DAYS = 31;
+const MORE_DAYS = 61;
 /** תקרה, כדי שגלילה ארוכה לא תנסה לחשב עשור */
 const MAX_DAYS = 730;
 
@@ -91,7 +99,8 @@ function DayGroup({
   const havdalah = day.times.find((t) => t.kind === 'havdalah');
 
   return (
-    <section className="flex gap-3.5">
+    // pt/-mt: בסדר יום אין space-y, ולטבעת המיקוד של עמודת התאריך צריך מקום גם למעלה
+    <section className="skip-offscreen -mt-1.5 flex gap-3.5 pt-1.5">
       {/* עמודת התאריך */}
       <button
         type="button"
@@ -220,7 +229,7 @@ export function AgendaView({
     if (!node || days >= MAX_DAYS || everythingHidden) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) setDays((d) => Math.min(MAX_DAYS, d + WINDOW_DAYS));
+        if (entry.isIntersecting) setDays((d) => Math.min(MAX_DAYS, d + MORE_DAYS));
       },
       { rootMargin: '400px' },
     );

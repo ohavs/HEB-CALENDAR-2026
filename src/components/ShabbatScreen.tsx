@@ -7,6 +7,7 @@ import { GREG_MONTHS_HE, startOfDay, weekdayDateLabel } from '@/lib/dates';
 import { findCity } from '@/lib/locations';
 import { toFilters, useSettings } from '@/store/settings';
 import { ENTER, ICON, TAP, TAP_SCALE } from '@/lib/motion';
+import type { Settings } from '@/types';
 import { DisplayText } from './ui/DisplayText';
 
 /** "מתקיים כעת", "בעוד 4 שעות", "מחר", "בעוד יומיים" */
@@ -42,6 +43,20 @@ function rangeLabel(start: Date, end: Date): string {
   return `${day(start)} ב${month(start)} – ${day(end)} ב${month(end)}`;
 }
 
+/**
+ * השבתות והחגים שהמסך מציג. מיוצא כדי ש-App יחשב אותם מראש ברגע שקט
+ * (`whenIdle`) - באותם ארגומנטים בדיוק, ולכן לתוך אותו מפתח במטמון של
+ * `upcomingShabbatot`. בלי זה הכניסה הראשונה ללשונית חישבה עשרה שבועות
+ * של זמנים בתוך המעבר עצמו.
+ */
+export function shabbatEntries(settings: Settings) {
+  return upcomingShabbatot(startOfDay(new Date()), 10, {
+    ...toFilters(settings),
+    city: findCity(settings.cityId),
+    showCandleTimes: true,
+  });
+}
+
 export function ShabbatScreen({
   onPickCity,
   bottomInset,
@@ -52,15 +67,7 @@ export function ShabbatScreen({
   const settings = useSettings();
   const city = findCity(settings.cityId);
 
-  const entries = useMemo(
-    () =>
-      upcomingShabbatot(startOfDay(new Date()), 10, {
-        ...toFilters(settings),
-        city,
-        showCandleTimes: true,
-      }),
-    [settings, city],
-  );
+  const entries = useMemo(() => shabbatEntries(settings), [settings]);
 
   const [next, ...rest] = entries;
   /*

@@ -10,7 +10,7 @@
  * לחזית. רק אחרי היישום מפרסמים מחדש, אחרת הפרסום היה דורס את מה שעוד
  * לא הספקנו לקרוא.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { addDays, dateKey, monthGridDays } from '@/lib/dates';
 import { buildDays, upcomingShabbatot } from '@/lib/hebrew';
 import { findCity } from '@/lib/locations';
@@ -22,6 +22,7 @@ import { useSharedStore } from '@/store/shared';
 import { memberLabel } from '@/lib/sharedLists';
 import { setItemDone } from '@/lib/sharedSync';
 import { isNative } from '@/lib/native';
+import { debounceIdle } from '@/lib/idle';
 import {
   REMINDER_HORIZON_DAYS,
   buildCalendarWidget,
@@ -34,7 +35,11 @@ import {
 } from '@/lib/widgetData';
 import { onWidgetInbox, publishWidgets, takeWidgetActions } from '@/lib/widgetBridge';
 
-/** מאחדים פרסומים צפופים: שינוי אחד של המשתמש מרעיד כמה עדכוני חנות. */
+/**
+ * מאחדים פרסומים צפופים: שינוי אחד של המשתמש מרעיד כמה עדכוני חנות.
+ * אחרי ההשהיה הפרסום מחכה גם לרגע שהמסך אינו זז (`debounceIdle`), כי
+ * בטלפון הוא עשרות מילישניות של hebcal על השרשור הראשי.
+ */
 const DEBOUNCE_MS = 400;
 
 export function useWidgets(): void {
@@ -46,13 +51,11 @@ export function useWidgets(): void {
   const sharedItems = useSharedStore((s) => s.items);
   /** משתנה כשהתור יושם, כדי לפרסם מחדש אחריו */
   const [applied, setApplied] = useState(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ------------------------------ פרסום ------------------------------ */
   useEffect(() => {
     if (!isNative()) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
+    return debounceIdle(() => {
       const now = new Date();
       const month = new Date(now.getFullYear(), now.getMonth(), 1);
       const grid = monthGridDays(month);
@@ -112,10 +115,6 @@ export function useWidgets(): void {
         shared,
       );
     }, DEBOUNCE_MS);
-
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
   }, [settings, events, sharedLists, sharedItems, applied]);
 
   /* ---------------------- יישום מה שנעשה בוידג׳ט ---------------------- */
