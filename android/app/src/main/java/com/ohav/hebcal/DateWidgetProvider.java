@@ -24,8 +24,8 @@ import java.util.Calendar;
 import java.util.Locale;
 
 /**
- * וידג׳ט התאריך: "23/11" בספרות גדולות, לצד השעון של המשגר, ומעליו ומתחתיו
- * בקטן היום בשבוע והתאריך העברי.
+ * וידג׳ט התאריך: "23/11" בספרות גדולות, בגובה של השעון של המשגר שלצידו,
+ * ומתחתן שורה קטנה אחת - היום בשבוע, ובקטן יותר התאריך העברי.
  *
  * **הוא מצויר כתמונה, לא כטקסט.** בטקסט הגופן נפתר אצל המשגר, ובמכשיר
  * אמיתי Six Caps לא הגיע - הספרות יצאו בגופן רגיל ורחב, בלי שום שגיאה.
@@ -45,16 +45,32 @@ public class DateWidgetProvider extends AppWidgetProvider {
 
     /** גודל כשהמשגר אינו מוסר אחד - שתיים על שתיים */
     private static final int DEFAULT_DP = 110;
-    /** הריפוד של הפריסה, שהתמונה יושבת בתוכו */
-    private static final int PAD_DP = 12;
     /** הצלע הארוכה של התמונה לכל היותר. מעבר לזה זה זיכרון בלי חדות */
     private static final int MAX_PX = 1200;
-    /** השורות הקטנות, כחלק מהגובה */
-    private static final float SMALL_RATIO = 0.105f;
-    /** מתחת לזה השורות הקטנות לא נקראות, והספרות לבדן */
+    /**
+     * המרווח מעל הספרות, כחלק מהגובה. זה המרווח של השעון שלידו, כדי שראשי
+     * הספרות יעמדו בקו אחד ושני הוידג׳טים ייקראו כזוג.
+     */
+    private static final float TOP_RATIO = 0.105f;
+    /** המרווח מתחת לשורה התחתונה, כחלק מהגובה */
+    private static final float BOTTOM_RATIO = 0.045f;
+    /**
+     * המרווח בצדדים. צר בכוונה: "23/11" הוא חמישה סימנים מול ארבע ספרות
+     * השעון, ובמרווח רגיל הרוחב נגמר לפני שהגובה מגיע לגובה שלו.
+     */
+    private static final int SIDE_DP = 8;
+    /** ריווח הספרות, ב-em. Six Caps מרווח יותר מספרות השעון */
+    private static final float DIGIT_SPACING = -0.02f;
+    /** היום בשבוע, כחלק מהגובה */
+    private static final float SMALL_RATIO = 0.07f;
+    /** התאריך העברי קטן ממנו - הוא המשני מבין השניים */
+    private static final float HEBREW_RATIO = 0.85f;
+    /** מתחת לזה השורה התחתונה לא נקראת, והספרות לבדן */
     private static final float MIN_SMALL_DP = 9f;
-    /** שקיפות השורות המשניות, מתוך 255 */
+    /** שקיפות היום בשבוע, מתוך 255 */
     private static final int SECONDARY_ALPHA = 165;
+    /** והתאריך העברי שקוף ממנו */
+    private static final int HEBREW_ALPHA = 125;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -155,8 +171,12 @@ public class DateWidgetProvider extends AppWidgetProvider {
     /* ------------------------------- ציור ------------------------------- */
 
     /**
-     * הגודל שהמשגר נתן, פחות הריפוד. לאורך: רוחב מינימלי וגובה מרבי,
-     * ולרוחב ההפך - זה מה שהמשגר מתכוון אליו בשני הזוגות.
+     * הגודל שהמשגר נתן. לאורך: רוחב מינימלי וגובה מרבי, ולרוחב ההפך - זה מה
+     * שהמשגר מתכוון אליו בשני הזוגות. המרווחים מצוירים כאן ולא בפריסה, כי
+     * הם יחסיים לגובה - כמו של השעון.
+     *
+     * הספרות ממלאות את הגובה, והשורה הקטנה יושבת מתחתן: היום בשבוע, ולידו
+     * בקטן יותר התאריך העברי. כשאין מקום לשניהם נשאר היום בשבוע.
      */
     private static Bitmap draw(
         Context context,
@@ -175,51 +195,60 @@ public class DateWidgetProvider extends AppWidgetProvider {
             ? AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
             : AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
 
-        float w = Math.max(1, widthDp - 2 * PAD_DP) * density;
-        float h = Math.max(1, heightDp - 2 * PAD_DP) * density;
+        float w = widthDp * density;
+        float h = heightDp * density;
         float shrink = Math.min(1f, MAX_PX / Math.max(w, h));
         int bw = Math.max(1, Math.round(w * shrink));
         int bh = Math.max(1, Math.round(h * shrink));
+        float px = density * shrink;
 
         Bitmap bitmap = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
+        float side = SIDE_DP * px;
+        float avail = Math.max(1, bw - 2 * side);
+        float top = bh * TOP_RATIO;
+        float bottom = bh * (1 - BOTTOM_RATIO);
+
         float small = bh * SMALL_RATIO;
-        boolean lines = small >= MIN_SMALL_DP * density * shrink;
-        float top = 0;
-        float bottom = bh;
+        if (small >= MIN_SMALL_DP * px) {
+            Paint day = smallPaint(context, small, SECONDARY_ALPHA);
+            Paint heb = smallPaint(context, small * HEBREW_RATIO, HEBREW_ALPHA);
+            float baseline = bottom;
+            String dot = "·";
+            float gap = small * 0.35f;
+            float dayW = day.measureText(weekday);
+            float total = dayW + 2 * gap + heb.measureText(dot) + heb.measureText(hebrew);
 
-        if (lines) {
-            Paint text = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-            text.setTypeface(font(context, R.font.heebo_medium));
-            text.setTextSize(small);
-            text.setColor(0xFFFFFFFF);
-            text.setAlpha(SECONDARY_ALPHA);
-            Paint.FontMetrics m = text.getFontMetrics();
-            float line = m.descent - m.ascent;
-            float gap = small * 0.45f;
-
-            drawCentered(canvas, text, fit(text, weekday, bw), bw / 2f, -m.ascent);
-            top = line + gap;
-            if (!hebrew.isEmpty()) {
-                drawCentered(canvas, text, fit(text, hebrew, bw), bw / 2f, bh - m.descent);
-                bottom = bh - line - gap;
+            if (!hebrew.isEmpty() && total <= avail) {
+                // מימין לשמאל: היום בשבוע בימין, נקרא ראשון
+                float x = (bw + total) / 2f - dayW;
+                canvas.drawText(weekday, x, baseline, day);
+                x -= gap + heb.measureText(dot);
+                canvas.drawText(dot, x, baseline, heb);
+                x -= gap + heb.measureText(hebrew);
+                canvas.drawText(hebrew, x, baseline, heb);
             } else {
-                // בלי שורה תחתונה הספרות יורדות, אבל לא עד הקצה - שיישארו באמצע
-                bottom = bh - gap;
+                drawCentered(canvas, day, fit(day, weekday, avail), bw / 2f, baseline);
             }
+
+            // לפי מחרוזת קבועה ולא לפי היום, אחרת הספרות היו משנות גובה
+            // מיום ליום - "שלישי" נושא ל׳ שעולה מעל השורה
+            Rect ink = new Rect();
+            day.getTextBounds("של", 0, 2, ink);
+            bottom = baseline + ink.top - small * 0.4f;
         }
 
         Paint big = new Paint(Paint.ANTI_ALIAS_FLAG);
         big.setTypeface(font(context, R.font.six_caps));
         big.setColor(0xFFFFFFFF);
+        big.setLetterSpacing(DIGIT_SPACING);
         big.setTextSize(100);
         Rect bounds = new Rect();
         big.getTextBounds(digits, 0, digits.length(), bounds);
-        float areaW = bw * 0.96f;
         float areaH = Math.max(1, bottom - top);
         // לפי הדיו עצמו ולא לפי מדדי הגופן - כך הוא ממלא כמו השעון שלידו
-        float scale = Math.min(areaW / Math.max(1, bounds.width()), areaH / Math.max(1, bounds.height()));
+        float scale = Math.min(avail / Math.max(1, bounds.width()), areaH / Math.max(1, bounds.height()));
         big.setTextSize(100 * scale);
         big.getTextBounds(digits, 0, digits.length(), bounds);
         float x = bw / 2f - bounds.exactCenterX();
@@ -227,6 +256,15 @@ public class DateWidgetProvider extends AppWidgetProvider {
         canvas.drawText(digits, x, y, big);
 
         return bitmap;
+    }
+
+    private static Paint smallPaint(Context context, float size, int alpha) {
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        paint.setTypeface(font(context, R.font.heebo_medium));
+        paint.setTextSize(size);
+        paint.setColor(0xFFFFFFFF);
+        paint.setAlpha(alpha);
+        return paint;
     }
 
     private static int dp(Bundle options, String key) {

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   וידג׳ט התאריך: "23/11" בספרות גדולות בגופן צר וגבוה (Six Caps) - זוג
-  לשעון של המשגר - ומעליו ומתחתיו בקטן היום בשבוע והתאריך העברי.
+  לשעון של המשגר, ובגובה שלו - ומתחתן שורה קטנה: היום בשבוע, ובקטן יותר
+  התאריך העברי.
 
   **הכול תמונה אחת שמצוירת ב-DateWidgetProvider**, ולא TextView: גופן
   בפריסה נפתר אצל המשגר, ובמכשיר אמיתי Six Caps לא הגיע והספרות יצאו
   בגופן רגיל. התמונה לבנה, והצבע מגיע מ-`tint` כאן - המשגר פותר אותו,
-  ולכן הוא מתחלף בלילה ועם הטפט.
+  ולכן הוא מתחלף בלילה ועם הטפט. גם המרווחים מצוירים שם ולא כאן, כי הם
+  יחסיים לגובה - כמו של השעון.
 
   - **ספרות בלבד, ולא Heebo.** הכלל "ספרות ב-Heebo" נועד נגד הספרות של
     Karantina, שנקראות כאותיות. כאן אין מילה, וגופן רחב לא היה נכנס.
@@ -17,8 +19,7 @@
     android:id="@+id/date_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_date_bg"
-    android:padding="12dp">
+    android:background="@drawable/widget_date_bg">
 
     <ImageView
         android:id="@+id/date_image"
