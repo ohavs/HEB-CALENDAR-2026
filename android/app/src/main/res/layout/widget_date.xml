@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  וידג׳ט התאריך: היום והחודש בספרות בלבד, בגופן צר וגבוה (Six Caps) -
-  זוג לשעון של המשגר, שנראה כך. ההחלטות שנגזרות מזה:
+  וידג׳ט התאריך: "23/11" בספרות גדולות בגופן צר וגבוה (Six Caps) - זוג
+  לשעון של המשגר - ומעליו ומתחתיו בקטן היום בשבוע והתאריך העברי.
+
+  **הכול תמונה אחת שמצוירת ב-DateWidgetProvider**, ולא TextView: גופן
+  בפריסה נפתר אצל המשגר, ובמכשיר אמיתי Six Caps לא הגיע והספרות יצאו
+  בגופן רגיל. התמונה לבנה, והצבע מגיע מ-`tint` כאן - המשגר פותר אותו,
+  ולכן הוא מתחלף בלילה ועם הטפט.
 
   - **ספרות בלבד, ולא Heebo.** הכלל "ספרות ב-Heebo" נועד נגד הספרות של
-    Karantina, שנקראות כאותיות. כאן אין מילה אחת, וגופן רחב לא היה נכנס
-    בשתי עמודות בגודל שיש לו טעם.
-  - **שמאל לימין, יום ואז חודש** - כמו שכותבים תאריך, ולא לפי כיוון הדף.
-  - **הגודל נמדד, לא נקבע** (autoSize): הטקסט ממלא את מה שהמשתמש נתן לו.
-    מתחת ל-API 26 אין autoSize, ואז textSize הוא הגודל.
+    Karantina, שנקראות כאותיות. כאן אין מילה, וגופן רחב לא היה נכנס.
+  - **יום/חודש עם לוכסן.** "23 11" עם רווח לא נקרא כתאריך.
+  - **שמאל לימין** - כמו שכותבים תאריך, ולא לפי כיוון הדף.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/date_root"
@@ -17,20 +20,10 @@
     android:background="@drawable/widget_date_bg"
     android:padding="12dp">
 
-    <TextView
-        android:id="@+id/date_text"
+    <ImageView
+        android:id="@+id/date_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:layoutDirection="ltr"
-        android:textDirection="ltr"
-        android:fontFamily="@font/six_caps"
-        android:includeFontPadding="false"
-        android:textColor="@color/widget_date_ink"
-        android:textSize="110sp"
-        android:maxLines="1"
-        android:autoSizeTextType="uniform"
-        android:autoSizeMinTextSize="40sp"
-        android:autoSizeMaxTextSize="600sp"
-        android:autoSizeStepGranularity="2sp" />
+        android:scaleType="fitCenter"
+        android:tint="@color/widget_date_ink" />
 </FrameLayout>

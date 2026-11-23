@@ -60,6 +60,12 @@ describe('buildCalendarWidget', () => {
     expect(out.cells.find((c) => c.today)?.k).toBe('2026-09-14');
   });
 
+  it('כל תא נושא את התאריך העברי המלא, לוידג׳ט התאריך', () => {
+    const out = buildCalendarWidget(MONTH, grid, days, new Map(), NOW);
+    // ראש השנה תשפ״ז חל ב-12 בספטמבר, ולכן ה-14 הוא ג׳ בתשרי
+    expect(out.cells.find((c) => c.k === '2026-09-14')?.hd).toBe('ג׳ בתשרי');
+  });
+
   it('ימי שבת מסומנים, שישה או יותר בחודש', () => {
     const out = buildCalendarWidget(MONTH, grid, days, new Map(), NOW);
     expect(out.cells.filter((c) => c.shabbat).length).toBeGreaterThanOrEqual(6);

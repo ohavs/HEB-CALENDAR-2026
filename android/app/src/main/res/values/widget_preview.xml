@@ -9,7 +9,9 @@
 -->
 <resources>
     <string name="widget_preview_month">ספטמבר</string>
-    <string name="widget_preview_date">15 09</string>
+    <string name="widget_preview_date">15/09</string>
+    <string name="widget_preview_date_weekday">יום שלישי</string>
+    <string name="widget_preview_date_hebrew">ד׳ בתשרי</string>
     <string name="widget_preview_hebrew_month">אלול – תשרי</string>
     <string name="widget_preview_up1_day">היום</string>
     <string name="widget_preview_up1_title">ארוחת ערב אצל סבתא</string>

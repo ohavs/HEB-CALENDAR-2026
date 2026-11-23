@@ -60,6 +60,11 @@ export type WidgetCell = {
   n: number;
   /** מספר היום העברי, גימטריה */
   h: string;
+  /**
+   * התאריך העברי המלא, "כ״ג בכסלו" - לוידג׳ט התאריך, שמחפש בו את היום.
+   * חסר כשאין לנו מידע על היום; המעטפת מוותרת אז על השורה.
+   */
+  hd?: string;
   /** מחוץ לחודש המוצג */
   out?: true;
   today?: true;
@@ -271,6 +276,7 @@ function monthData(
     const k = dateKey(date);
     const info = days.get(k);
     const cell: WidgetCell = { k, n: date.getDate(), h: info?.hebrewDay ?? '' };
+    if (info) cell.hd = `${info.hebrewDay} ב${info.hebrewMonth}`;
     if (date.getMonth() !== month.getMonth()) cell.out = true;
     if (k === todayKey) cell.today = true;
     if (date.getDay() === 6) cell.shabbat = true;
