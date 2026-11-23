@@ -158,6 +158,11 @@ final class WidgetStore {
             ShabbatWidgetProvider.renderAll(app, manager, shabbatIds);
         }
 
+        int[] dateIds = manager.getAppWidgetIds(new ComponentName(app, DateWidgetProvider.class));
+        if (dateIds.length > 0) {
+            DateWidgetProvider.renderAll(app, manager, dateIds);
+        }
+
         /*
           הציור קודם להודעה על הרשימה, ולא אחריה: ציור מלא מחבר מחדש את
           המתאם של הרשימה, והודעה שקדמה לו עלולה ללכת לאיבוד - והרשימה

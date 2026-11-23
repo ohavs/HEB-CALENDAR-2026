@@ -41,10 +41,14 @@
     <color name="widget_ev_slate_ink">#FF6A5842</color>
     <color name="widget_ev_graphite_bg">#FFE2DCD2</color>
     <color name="widget_ev_graphite_ink">#FF1B1915</color>
+    <!-- וידג׳ט התאריך. מ-API 31 הוא בצבעי המערכת - ראו values-v31/widget_date.xml -->
+    <color name="widget_date_bg">#FFFFFDF9</color>
+    <color name="widget_date_ink">#FF1B1915</color>
 
     <string name="widget_calendar_label">לוח שנה עברי</string>
     <string name="widget_reminders_label">תזכורות</string>
     <string name="widget_reminders_title">תזכורות</string>
+    <string name="widget_date_label">תאריך</string>
     <string name="widget_shabbat_label">זמני כניסת ויציאת שבת</string>
     <string name="widget_candles">הדלקת נרות</string>
     <string name="widget_havdalah">צאת השבת</string>

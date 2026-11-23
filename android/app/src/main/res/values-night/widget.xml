@@ -40,4 +40,6 @@
     <color name="widget_ev_slate_ink">#FFDED0BC</color>
     <color name="widget_ev_graphite_bg">#FF34312C</color>
     <color name="widget_ev_graphite_ink">#FFF3EEE6</color>
+    <color name="widget_date_bg">#FF1F1D1A</color>
+    <color name="widget_date_ink">#FFF3EEE6</color>
 </resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- התצוגה המקדימה של וידג׳ט התאריך בבורר - עותק של widget_date עם תאריך
+     לדוגמה; מה שמשתנה שם משתנה גם כאן. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_date_bg"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:layoutDirection="ltr"
+        android:textDirection="ltr"
+        android:text="@string/widget_preview_date"
+        android:fontFamily="@font/six_caps"
+        android:includeFontPadding="false"
+        android:textColor="@color/widget_date_ink"
+        android:textSize="110sp"
+        android:maxLines="1"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="40sp"
+        android:autoSizeMaxTextSize="600sp"
+        android:autoSizeStepGranularity="2sp" />
+</FrameLayout>

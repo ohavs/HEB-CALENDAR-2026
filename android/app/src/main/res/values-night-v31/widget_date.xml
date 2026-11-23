@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- הלילה של values-v31/widget_date.xml -->
+<resources>
+    <color name="widget_date_bg">@android:color/system_neutral1_800</color>
+    <color name="widget_date_ink">@android:color/system_neutral1_50</color>
+</resources>

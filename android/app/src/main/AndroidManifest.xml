@@ -113,6 +113,24 @@
                 android:resource="@xml/widget_shabbat_info" />
         </receiver>
 
+        <!--
+            וידג׳ט התאריך. השעה והאזור נשמעים גם כאן, כי התאריך נגזר מהשעון
+            של המכשיר ולא מהאפליקציה: אחרי טיסה הוא היה נשאר על יום אחר עד
+            חצות. שני השידורים האלה פטורים מההגבלה על שידורים מרומזים.
+        -->
+        <receiver
+            android:name=".DateWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_date_info" />
+        </receiver>
+
         <receiver
             android:name=".SharedWidgetProvider"
             android:exported="false">

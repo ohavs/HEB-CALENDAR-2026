@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- רקע וידג׳ט התאריך. אותו מלבן של widget_bg, בצבע משלו - ראו widget_date_*
+     ב-values. הפינה של המערכת מאנדרואיד 12, ב-drawable-v31. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/widget_date_bg" />
+    <corners android:radius="30dp" />
+</shape>

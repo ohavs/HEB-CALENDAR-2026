@@ -87,19 +87,21 @@ ${faces
  * אנדרואיד אינו מחבר כמה קבצים לפי טווח תווים.
  *
  * Karantina לכותרות, Heebo לספרות: אותו כלל של האפליקציה, ספרות
- * Karantina נקראות כאותיות.
+ * Karantina נקראות כאותיות. Six Caps הוא החריג היחיד, לוידג׳ט התאריך:
+ * ספרות בלבד, צרות וגבוהות כמו השעון של המשגר שלצידו.
  */
 const androidFonts = resolve(root, 'android/app/src/main/res/font');
 const ANDROID = [
   { family: 'Karantina', weight: 700, name: 'karantina_bold' },
   { family: 'Heebo', weight: 500, name: 'heebo_medium' },
   { family: 'Heebo', weight: 700, name: 'heebo_bold' },
+  { family: 'Six Caps', weight: 400, name: 'six_caps' },
 ];
 
 await mkdir(androidFonts, { recursive: true });
 for (const { family, weight, name } of ANDROID) {
   const css = await (
-    await fetch(`https://fonts.googleapis.com/css2?family=${family}:wght@${weight}`)
+    await fetch(`https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}:wght@${weight}`)
   ).text();
   const src = /url\((https:[^)]+\.ttf)\)/.exec(css)?.[1];
   if (!src) throw new Error(`${family} ${weight}: לא נמצא TTF - האם המבנה של גוגל השתנה?`);

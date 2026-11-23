@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  וידג׳ט התאריך בצבעי המערכת (Material You), ולא בפלטה שלנו: הוא נועד
+  לשבת ליד השעון של המשגר ולהיראות כמו זוג. השעון צובע את עצמו מהטפט,
+  ופלטה קבועה הייתה נראית כמו וידג׳ט זר לידו. מתחת ל-API 31 אין צבעי
+  מערכת, והוא נשאר בפלטה של האפליקציה (values/widget.xml).
+-->
+<resources>
+    <color name="widget_date_bg">@android:color/system_neutral1_50</color>
+    <color name="widget_date_ink">@android:color/system_neutral1_900</color>
+</resources>
